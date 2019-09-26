@@ -3,7 +3,7 @@
 """
 Created on Thu Sep 19 12:10:17 2019
 
-@author: vladislav
+@author: Vladislav
 """
 
 import numpy as np
@@ -32,30 +32,37 @@ def leeimagen(filename, flag_color):
     plt.show()
 
 
-def pintaI(filename):
+def pintaI(img):
     """
-    Funcion que lee una imagen y la normaliza, haciendo que los valores RGB
-    esten en el rango [0, 255]
+    Funcion que normaliza una imagen que se le pasas como parametro. Normaliza
+    cada uno de los canales.
 
     Args:
-        filename: Nombre de la imagen
+        img: Imagen a normalizar
+    Return:
+        Devuelve una imagen normalizada
     """
 
-    # Cargar imagen y pasarla de BGR a RGB
-    img = cv.imread(filename)
-    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-    
-    # Crear una matriz que sera la imagen normalizada inicializada a 0
-    normalized = np.zeros(img.shape)
-    
-    # Normalizar la imagen
-    normalized = cv.normalize(img, normalized, 0, 255, cv.NORM_MINMAX)
+    # Copiar la imagen a normalizar y convertirla a float64
+    normalized = np.copy(img)
+    normalized = normalized.astype(np.float64)
 
-    # Dibujar la imagen desactivando los ejes
-    plt.imshow(normalized)
-    plt.axis('off')
-    plt.show()
+    # Segun si la imagen es monobanda (2 dimensiones) o tribanda (3 dimensiones)
+    # obtener los valores maximos y minimos de GRIS o RGB para cada pixel
+    if normalized.ndim == 2:
+        min_val = np.min(normalized)
+        max_val = np.max(normalized)
+    else:
+        min_val = np.min(normalized, axis=(0, 1))
+        max_val = np.max(normalized, axis=(0, 1))
+    
+    # Normalizar la imagen al rango [0, 1] y multiplicarla por 255
+    normalized = (normalized - min_val) / (max_val - min_val) * 255
 
+    # Redondear los valores de la imagen y convertir la imagen a uint8
+    normalized = np.round(normalized).astype(np.uint8)
+
+    return normalized
 
 def pintaMI(vim, titles=None):
     """
@@ -68,14 +75,14 @@ def pintaMI(vim, titles=None):
     """
 
     # Obtener el numero de imagenes
-    columns = len(vim)
+    n_cols = len(vim)
 
-    # Crear columns sublots (un subplot por cada imagen)
-    # El formato sera 1 fula con columns columnas
-    _, axarr = plt.subplots(1, columns)
+    # Crear n_cols sublots (un subplot por cada imagen)
+    # El formato sera 1 fila con n_cols columnas
+    _, axarr = plt.subplots(1, n_cols)
 
     # Pintar cada imagen
-    for i in range(columns):
+    for i in range(n_cols):
         # Obtener siguiente imagen
         axarr[i].imshow(vim[i])
         
@@ -131,35 +138,46 @@ def pintaMITitulo(vim, titles):
 
 ###############################################################################
 # Prueba de la funcion leeimagen
-leeimagen('img/orapple.jpg', True)
+leeimagen('imagenes/orapple.jpg', True)
 
 ###############################################################################
 # Prueba de la funcion pintaI
-pintaI('img/messi.jpg')
+image = cv.imread('imagenes/orapple.jpg')
+normalized = pintaI(image)
+
+# Pasar de BGR a RGB
+normalized = cv.cvtColor(normalized, cv.COLOR_BGR2RGB)
+
+# Dibujar imagen desactivando los ejes
+plt.imshow(normalized)
+plt.axis("off")
+plt.show()
 
 ###############################################################################
 # Prueba de la funcion pintaMI
 
 # Leer imagenes y pasarlas de BGR a RGB
-image1 = cv.imread('img/orapple.jpg')
+image1 = cv.imread('imagenes/orapple.jpg')
 image1 = cv.cvtColor(image1, cv.COLOR_BGR2RGB)
 
-image2 = cv.imread('img/messi.jpg')
+image2 = cv.imread('imagenes/messi.jpg')
 image2 = cv.cvtColor(image2, cv.COLOR_BGR2RGB)
 
-image3 = cv.imread('img/messi-chikito.jpg')
+image3 = cv.imread('imagenes/orapple.jpg', 0)
 image3 = cv.cvtColor(image3, cv.COLOR_BGR2RGB)
 
 # Crear lista con imagenes
 image_list = [image1, image2, image3]
 
+# Para poder pintar las imagenes bien, he cambiado los canales de BGR a RGB,
+# como se puede ver en las lineas anteriores
 pintaMI(image_list)
 
 ###############################################################################
 # Prueba de la funcion modifica_color
 
 # Leer imagen y pasarla de BGR a RGB
-image = cv.imread('img/orapple.jpg')
+image = cv.imread('imagenes/orapple.jpg')
 image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
 
 # Estableser las posiciones de la imagen a modificar
@@ -178,4 +196,4 @@ plt.show()
 
 ###############################################################################
 # Prueba de la funcion pintaMITitulo
-pintaMITitulo(image_list, ["orapple", "messi", "messi chiquito"])
+pintaMITitulo(image_list, ["Orapple", "Messi", "Orapple B/N"])
