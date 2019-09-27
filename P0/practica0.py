@@ -138,10 +138,13 @@ def pintaMITitulo(vim, titles):
 
 ###############################################################################
 # Prueba de la funcion leeimagen
+print('EJERCICIO 1')
 leeimagen('imagenes/orapple.jpg', True)
 
 ###############################################################################
 # Prueba de la funcion pintaI
+print('EJERCICIO 2')
+
 image = cv.imread('imagenes/orapple.jpg')
 normalized = pintaI(image)
 
@@ -155,6 +158,7 @@ plt.show()
 
 ###############################################################################
 # Prueba de la funcion pintaMI
+print('EJERCICIO 3')
 
 # Leer imagenes y pasarlas de BGR a RGB
 image1 = cv.imread('imagenes/orapple.jpg')
@@ -175,6 +179,7 @@ pintaMI(image_list)
 
 ###############################################################################
 # Prueba de la funcion modifica_color
+print('EJERCICIO 4')
 
 # Leer imagen y pasarla de BGR a RGB
 image = cv.imread('imagenes/orapple.jpg')
@@ -196,4 +201,6 @@ plt.show()
 
 ###############################################################################
 # Prueba de la funcion pintaMITitulo
+print('EJERCICIO 5')
+
 pintaMITitulo(image_list, ["Orapple", "Messi", "Orapple B/N"])
