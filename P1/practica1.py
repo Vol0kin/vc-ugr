@@ -15,52 +15,63 @@ import matplotlib.pyplot as plt
 # - Flip horizontal y vertical al kernel
 # - Pasar la correalcion por filas y por columnas
 
-def normalize_image(img):
+def read_image(file_name, depth):
+    img = cv.imread(file_name, depth)
+
+    img = transform_img_float64(img)
+
+    return img
+
+
+def transform_img_float64(img):
     """
-    Funcion que normaliza una imagen que se le pasa como parametro. Normaliza
-    cada uno de los canales.
+    Funcion que pasa una imagen a float64.
 
     Args:
-        img: Imagen a normalizar
+        img: Imagen a transformar
     Return:
-        Devuelve una imagen normalizada
+        Devuelve una imagen en float64
     """
 
-    # Copiar la imagen a normalizar y convertirla a float64
-    normalized = np.copy(img)
-    normalized = normalized.astype(np.float64)
+    # Copiar la imagen y convertirla a float64
+    transformed = np.copy(img)
+    transformed = transformed.astype(np.float64)
+
+    return transformed
+
+
+def transform_img_uint8(img):
+    """
+    Funcion que transforma una en float64 a una imagen en uint8 donde cada pixel
+    esta en el rango [0, 255]
+
+    Args:
+        img: Imagen a transformar
+    Return:
+        Devuelve la imagen en el rango [0, 255]
+    """
+    # Copiar la imagen
+    trans = np.copy(img)
 
     # Segun si la imagen es monobanda (2 dimensiones) o tribanda (3 dimensiones)
     # obtener los valores maximos y minimos de GRIS o RGB para cada pixel
-    if normalized.ndim == 2:
-        min_val = np.min(normalized)
-        max_val = np.max(normalized)
+    if trans.ndim == 2:
+        min_val = np.min(trans)
+        max_val = np.max(trans)
     else:
-        min_val = np.min(normalized, axis=(0, 1))
-        max_val = np.max(normalized, axis=(0, 1))
+        min_val = np.min(trans, axis=(0, 1))
+        max_val = np.max(trans, axis=(0, 1))
     
     # Normalizar la imagen al rango [0, 1]
-    normalized = (normalized - min_val) / (max_val - min_val)
-
-    return normalized
-
-def transform_img_uint8(norm):
-    """
-    Funcion que transforma una cuyos pixeles estan en el rango [0, 1] al rango
-    [0, 255].
+    norm = (trans - min_val) / (max_val - min_val)
     
-    Args:
-        norm: Imagen normalizada
-    Return:
-    Devuelve la imagen en el rango [0, 255]
-    """
     # Multiplicar cada pixel por 255
-    transformed = norm * 255
+    norm = norm * 255
     
     # Redondear los valores y convertirlos a uint8
-    transformed = np.round(transformed).astype(np.uint8)
+    trans_uint8 = np.round(norm).astype(np.uint8)
     
-    return transformed
+    return trans_uint8
 
 
 def visualize_image(img, title=None):
@@ -71,8 +82,11 @@ def visualize_image(img, title=None):
         img: Imagen a visualizar
         title: Titulo de la imagen (por defecto None)
     """
+    # Pasar la imagen a uint8
+    vis = transform_img_uint8(img)
+
     # Pasar de una imagen BGR a RGB
-    vis = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    vis = cv.cvtColor(vis, cv.COLOR_BGR2RGB)
     
     # Visualizar la imagen
     plt.imshow(vis)
@@ -84,34 +98,9 @@ def visualize_image(img, title=None):
     plt.show()
 
 
-def gaussian_kernel_norm(img, ksize, sigma_x, sigma_y, border):
-    """
-    Funcion que aplica un kernel Gaussiano sobre una imagen. Devuelve la imagen
-    con los pixels en el rango [0, 1].
-    
-    Args:
-        img: Imagen sobre la que aplicar el kernel
-        ksize: Tamaño del kernel
-        sigma_x: Sigma sobre el eje X
-        sigma_y: Sigma sobre el eje y
-        border: Tipo de borde
-    Return:
-        Devuelve una imagen sobre la que se ha aplicado un kernel Gaussiano
-    """
-    # Normalizar la imagen
-    img_norm = normalize_image(img)
-    
-    # Aplicar kernel Gaussiano
-    gauss = cv.GaussianBlur(img_norm, ksize, sigmaX=sigma_x,
-                            sigmaY=sigma_y, borderType=border)
-    
-    return gauss
-
-
 def gaussian_kernel(img, ksize, sigma_x, sigma_y, border):
     """
-    Funcion que aplica un kernel Gaussiano sobre una imagen. Devuelve la imagen
-    con los pixels en el rango [0, 255]. Hace uso de gaussian_kernel_norm.
+    Funcion que aplica un kernel Gaussiano sobre una imagen.
     
     Args:
         img: Imagen sobre la que aplicar el kernel
@@ -122,11 +111,10 @@ def gaussian_kernel(img, ksize, sigma_x, sigma_y, border):
     Return:
         Devuelve una imagen sobre la que se ha aplicado un kernel Gaussiano
     """
-    # Aplicar el kernel Gaussiano
-    gauss = gaussian_kernel_norm(img, ksize, sigma_x, sigma_y, border)
     
-    # Pasar los valores de los pixels a uint8
-    gauss = transform_img_uint8(gauss)
+    # Aplicar kernel Gaussiano
+    gauss = cv.GaussianBlur(img, ksize, sigmaX=sigma_x,
+                            sigmaY=sigma_y, borderType=border)
     
     return gauss
 
@@ -144,35 +132,62 @@ def derivative_kernel(img, dx, dy, ksize, border):
     Return:
         Devuelve una imagen sobre la que se ha aplicado el filtro de derivadas.
     """
-    # Normalizar la imagen
-    img_norm = normalize_image(img)
-    
     # Obtener los kernels que aplicar a cada eje (es descomponible porque es
     # el kernel de Sobel)
     kx, ky = cv.getDerivKernels(dx, dy, ksize, normalize=True)
     
     # Aplicar los kernels sobre la imagen
-    der = cv.sepFilter2D(img_norm, cv.CV_64F, kx, ky, borderType=border)
-    
-    # Pasar los pixeles de la imagen a uint8
-    der = transform_img_uint8(der)
+    der = cv.sepFilter2D(img, cv.CV_64F, kx, ky, borderType=border)
     
     return der
 
 
-def laplacian_kernel(img, ksize, sigma_x, sigma_y, border):
+def log_kernel(img, ksize, sigma_x, sigma_y, border):
+    """
+    Funcion que aplica un kernel LoG (Laplacian of Gaussian) sobre una imagen.
+
+    Args:
+        img: Imagen sobre la que aplicar el kernel
+        ksize: Tamaño del kernel Gaussiano y Laplaciano
+        sigma_x: Valor de sigma en el eje X de la Gaussiana
+        sigma_y: Valor de sigma en el eje Y de la Gaussiana
+        border: Tipo de borde
+    Return:
+        Devuelve una imagen sobre la que se ha aplicado un filtro LoG
+    """
 
     # Aplicar filtro Gaussiano
-    gauss = gaussian_kernel_norm(img, (ksize, ksize), sigma_x, sigma_y, border)
+    gauss = gaussian_kernel(img, (ksize, ksize), sigma_x, sigma_y, border)
 
     # Aplicar filtro Laplaciano
     laplace = cv.Laplacian(gauss, cv.CV_64F, ksize=ksize, borderType=border)
 
-    # Pasar los pixeles de la iamgen a uint8
-    laplace = transform_img_uint8(laplace)
-
     return laplace
 
+
+def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
+    """
+    Funcion que devuelve una piramide Gaussiana de tamaño N
+
+    Args:
+        img: Imagen de la que extraer la piramide
+        ksize: Tamaño del kernel
+        sigma_x: Valor de sigma en el eje X
+        sigma_y: Valor de sigma en el eje Y
+        border: Tipo de borde a utilizar
+        N: Numero de imagenes que componen la piramide (default 4)
+
+    """
+
+    norm_img = transform_img_float64(img)
+    gaussian_pyr = [norm_img]
+
+    for i in range(1, N):
+        pass
+
+    return None
+
+    
 
 ###############################################################################
 ###############################################################################
@@ -183,7 +198,7 @@ def laplacian_kernel(img, ksize, sigma_x, sigma_y, border):
 # Aplicacion de filtros Gaussianos
 
 # Cargar una imagen y visualizarla
-img = cv.imread('imagenes/cat.bmp')
+img = read_image('imagenes/cat.bmp', 0)
 visualize_image(img, 'Original image')
 
 # Aplicar Gaussian Blur de tamaño (5, 5) con sigma = 1 y BORDER_REPLICATE
@@ -268,6 +283,6 @@ visualize_image(der, r'$5 \times 5$ First Derivative Kernel in both axis and BOR
 #######################################
 # Apartado B
 
-laplace = laplacian_kernel(img, 3, 3, 3, cv.BORDER_DEFAULT)
+laplace = log_kernel(img, 5, 7, 7, cv.BORDER_DEFAULT)
 visualize_image(laplace)
 
