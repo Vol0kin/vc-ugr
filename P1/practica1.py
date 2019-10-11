@@ -61,23 +61,23 @@ def transform_img_uint8(img):
     else:
         min_val = np.min(trans, axis=(0, 1))
         max_val = np.max(trans, axis=(0, 1))
-    
+
     # Normalizar la imagen al rango [0, 1]
     norm = (trans - min_val) / (max_val - min_val)
-    
+
     # Multiplicar cada pixel por 255
     norm = norm * 255
-    
+
     # Redondear los valores y convertirlos a uint8
     trans_uint8 = np.round(norm).astype(np.uint8)
-    
+
     return trans_uint8
 
 
 def visualize_image(img, title=None):
     """
     Funcion que visualiza una imagen por pantalla.
-    
+
     Args:
         img: Imagen a visualizar
         title: Titulo de la imagen (por defecto None)
@@ -87,21 +87,60 @@ def visualize_image(img, title=None):
 
     # Pasar de una imagen BGR a RGB
     vis = cv.cvtColor(vis, cv.COLOR_BGR2RGB)
-    
+
     # Visualizar la imagen
     plt.imshow(vis)
     plt.axis('off')
-    
+
     if title is not None:
         plt.title(title)
-    
+
+    plt.show()
+
+
+def visualize_mult_img(images, titles=None):
+    """
+    Funcion que pinta multiples imagenes en una misma ventana. Adicionalmente
+    se pueden especificar que titulos tendran las imagenes.
+
+    Args:
+        images: Lista con las imagenes
+        titles: Titulos que tendran las imagenes (default None)
+    """
+
+    # Obtener el numero de imagenes
+    n_img = len(images)
+
+    # Crear n_cols sublots (un subplot por cada imagen)
+    # El formato sera 1 fila con n_cols columnas
+    _, axarr = plt.subplots(1, n_img)
+
+    # Pintar cada imagen
+    for i in range(n_img):
+        # Convertir la imagen a uint8
+        img = transform_img_uint8(images[i])
+
+        # Pasarla de BGR a RGB
+        img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+
+        # Obtener siguiente imagen
+        axarr[i].imshow(img)
+
+        # Determinar si hay que poner o no titulo
+        if titles != None:
+            axarr[i].set_title(titles[i])
+
+        axarr[i].axis('off')
+        print(img.shape)
+
+    # Mostar imagenes
     plt.show()
 
 
 def gaussian_kernel(img, ksize, sigma_x, sigma_y, border):
     """
     Funcion que aplica un kernel Gaussiano sobre una imagen.
-    
+
     Args:
         img: Imagen sobre la que aplicar el kernel
         ksize: Tamaño del kernel
@@ -111,18 +150,18 @@ def gaussian_kernel(img, ksize, sigma_x, sigma_y, border):
     Return:
         Devuelve una imagen sobre la que se ha aplicado un kernel Gaussiano
     """
-    
+
     # Aplicar kernel Gaussiano
     gauss = cv.GaussianBlur(img, ksize, sigmaX=sigma_x,
                             sigmaY=sigma_y, borderType=border)
-    
+
     return gauss
 
 
 def derivative_kernel(img, dx, dy, ksize, border):
     """
     Funcion que aplica un kernel de derivadas a una imagen.
-    
+
     Args:
         img: Imagen sobre la que aplicar el kernel.
         dx: Numero de derivadas que aplicar sobre el eje X.
@@ -135,10 +174,10 @@ def derivative_kernel(img, dx, dy, ksize, border):
     # Obtener los kernels que aplicar a cada eje (es descomponible porque es
     # el kernel de Sobel)
     kx, ky = cv.getDerivKernels(dx, dy, ksize, normalize=True)
-    
+
     # Aplicar los kernels sobre la imagen
     der = cv.sepFilter2D(img, cv.CV_64F, kx, ky, borderType=border)
-    
+
     return der
 
 
@@ -179,15 +218,25 @@ def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
 
     """
 
-    norm_img = transform_img_float64(img)
-    gaussian_pyr = [norm_img]
+    gaussian_pyr = [img]
 
     for i in range(1, N):
-        pass
+        # Obtener el elemento anterior de la piramide Gaussiana
+        prev_img = np.copy(gaussian_pyr[i - 1])
 
-    return None
+        # Aplicar Gaussian Blur
+        gauss = gaussian_kernel(prev_img, ksize, sigma_x, sigma_y, border)
 
-    
+        # Reducir el tamaño de la imagen a la mitad
+        down_sampled_gauss = gauss[1::2, 1::2]
+
+        # Añadir imagen a la piramide
+        gaussian_pyr.append(down_sampled_gauss)
+
+
+    return gaussian_pyr
+
+
 
 ###############################################################################
 ###############################################################################
@@ -286,3 +335,10 @@ visualize_image(der, r'$5 \times 5$ First Derivative Kernel in both axis and BOR
 laplace = log_kernel(img, 5, 7, 7, cv.BORDER_DEFAULT)
 visualize_image(laplace)
 
+
+###############################################################################
+###############################################################################
+# Ejercicio 2
+
+pyr = gaussian_pyramid(img, (5,5), 3, 3, cv.BORDER_REFLECT)
+visualize_mult_img(pyr)
