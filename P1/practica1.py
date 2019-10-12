@@ -229,6 +229,7 @@ def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
 
         # Reducir el tamaño de la imagen a la mitad
         down_sampled_gauss = gauss[1::2, 1::2]
+        print(down_sampled_gauss.shape)
 
         # Añadir imagen a la piramide
         gaussian_pyr.append(down_sampled_gauss)
@@ -236,6 +237,67 @@ def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
 
     return gaussian_pyr
 
+
+def laplacian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
+
+    # Obtener piramide Gaussiana de un nivel mas
+    gaussian_pyr = gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N+1)
+
+    # Crear la lista que contendra la piramide Laplaciana
+    # Se inserta el ultimo elemento de la piramide Gaussiana primero
+    laplacian_pyr = [gaussian_pyr[-1]]
+
+    # Recorrer en orden inverso la piramide Gaussiana y generar la Laplaciana
+    for i in reversed(range(1, N+1)):
+        # Obtener la imagen actual y la anterior
+        current_img = gaussian_pyr[i]
+        previous_img = gaussian_pyr[i - 1]
+
+        # Hacer upsampling de la imagen actual
+        upsampled_img = np.repeat(current_img, 2, axis=0)
+        upsampled_img = np.repeat(upsampled_img, 2, axis=1)
+
+        # Si falta una fila, copiar la ultima
+        if upsampled_img.shape[0] < previous_img.shape[0]:
+            upsampled_img = np.vstack([upsampled_img, upsampled_img[-1]])
+
+        # Si falta una fila, copiar la ultima
+        if upsampled_img.shape[1] < previous_img.shape[1]:
+            upsampled_img = np.hstack([upsampled_img, upsampled_img[:, -1].reshape(-1, 1)])
+
+        # Pasar un Gaussian Blur a la imagen escalada
+        upsampled_gauss = gaussian_kernel(upsampled_img, ksize, sigma_x, sigma_y, border)
+
+        # Restar la imagen orignal de la escalada para obtener detalles
+        diff_img = previous_img - upsampled_gauss
+
+        # Guardar en la piramide
+        laplacian_pyr.insert(0, diff_img)
+
+
+    return laplacian_pyr
+
+
+def non_max_supression(img):
+    dim1 = img.shape[0]
+    dim2 = img.shape[1]
+
+    supressed_img = np.zeros_like(img)
+
+    for i in range(dim1):
+        for j in range(dim2):
+            region = img[max(i-1, 0):i+2, max(j-1, 0):j+2]
+            current_val = img[i, j]
+            max_val = np.max(region)
+
+            if max_val == current_val:
+                supressed_img[i, j] = current_val
+
+    return supressed_img
+
+
+def laplacian_scale_space():
+    return None
 
 
 ###############################################################################
@@ -263,15 +325,15 @@ gauss = gaussian_kernel(img, (11,11), 4, 4, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_REPLICATE')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_REFLECT
-gauss = gaussian_kernel(img, (11,11), 4, 4, cv.BORDER_REFLECT)
+gauss = gaussian_kernel(img, (101,101), 15, 15, cv.BORDER_REFLECT)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_REFLECT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_CONSTANT
-gauss = gaussian_kernel(img, (11,11), 4, 4, cv.BORDER_CONSTANT)
+gauss = gaussian_kernel(img, (101,101), 15, 15, cv.BORDER_CONSTANT)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_CONSTANT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_DEFAULT
-gauss = gaussian_kernel(img, (11,11), 4, 4, cv.BORDER_DEFAULT)
+gauss = gaussian_kernel(img, (101,101), 15, 15, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_DEFAULT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigmax = 5, sigmay = 2 y BORDER_REPLICATE
@@ -341,4 +403,7 @@ visualize_image(laplace)
 # Ejercicio 2
 
 pyr = gaussian_pyramid(img, (5,5), 3, 3, cv.BORDER_REFLECT)
+visualize_mult_img(pyr)
+
+pyr = laplacian_pyramid(img, (5,5), 3, 3, cv.BORDER_REFLECT)
 visualize_mult_img(pyr)
