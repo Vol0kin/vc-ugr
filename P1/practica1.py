@@ -132,7 +132,6 @@ def visualize_mult_images(images, titles=None):
             axarr[i].set_title(titles[i])
 
         axarr[i].axis('off')
-        print(img.shape)
 
     # Mostar imagenes
     plt.show()
@@ -267,7 +266,6 @@ def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
 
         # Reducir el tamaño de la imagen a la mitad
         down_sampled_gauss = gauss[1::2, 1::2]
-        print(down_sampled_gauss.shape)
 
         # Añadir imagen a la piramide
         gaussian_pyr.append(down_sampled_gauss)
@@ -401,15 +399,27 @@ def laplacian_scale_space(img, ksize, border, N, sigma=1.0, sigma_inc=1.2):
 
 
 def visualize_laplacian_scale_space(img, sigma, title=None):
-
+    """
+    Funcion que permite visualizar una imagen generada en el espacio de escalas
+    Laplaciano con circulos en las zonas destacadas
+    
+    Args:
+        img: Imagen que mostrar
+        sigma: Valor de sigma que se ha utilizado para generar la iamgen
+        title: Titulo de la imagen (default None)
+    """
     # Pasar la imagen a uint8
     vis = transform_img_uint8(img)
 
+    # Obtener los indices de las filas y columnas donde los pixels tienen un valor
+    # por encima de la media (es decir, que hayan sido destacados)
+    # Las filas y columnas estan invertidas
     idx_col, idx_row = np.where(vis > np.bincount(vis.flatten()).argmax())
 
     # Pasar de una imagen BGR a RGB
     vis = cv.cvtColor(vis, cv.COLOR_BGR2RGB)
 
+    # Pintar un circulo verde por cada punto
     for point in zip(idx_row, idx_col):
         cv.circle(vis, point, int(2 * sigma), (0, 255, 0))
 
@@ -421,6 +431,35 @@ def visualize_laplacian_scale_space(img, sigma, title=None):
         plt.title(title)
 
     plt.show()
+
+
+def hybrid_image_generator(img_low, img_high, ksize, sigma_low, sigma_high, border):
+    """
+    Funcion que permite crear una imagen hibrida combinando dos imagenes
+
+    Args:
+        img_low: Imagen que sera utilizada para las bajas frecuencias
+        img_high: Imagen que sera utilizada para las altas frecuencias
+        ksize: Tamaño del kernel (es una tupla)
+        sigma_low: Sigma para la imagen de bajas frecuencias
+        sigma_high: Sigma para la imgane de altas frecuencias
+        border: Tipo de borde
+    Return:
+        Devuelve una lista que contiene la imagen de bajas frecuencias, la de altas
+        y la hibrida
+    """
+    # Crear la imagen de bajas frecuencias aplicando filtro Gaussiano
+    low_freq_img = gaussian_kernel(img_low, ksize, sigma_low, sigma_low, border)
+
+    # Crear imagen de altas frecuencias aplicando filtro Gaussiano y restando a la original
+    gauss_high_freq = gaussian_kernel(img_high, ksize, sigma_high, sigma_high, border)
+    high_freq_img = img_high - gauss_high_freq
+
+    # Crear la imagen hibrida combinando las dos
+    hybrid = low_freq_img + high_freq_img
+
+    return [low_freq_img, high_freq_img, hybrid]
+
 
 ###############################################################################
 ###############################################################################
@@ -532,11 +571,31 @@ pyr = laplacian_pyramid(img, (5,5), 3, 3, cv.BORDER_REFLECT)
 pyr_img = create_img_pyramid(pyr)
 visualize_image(pyr_img)
 
-scale, sigma = laplacian_scale_space(img, 5, cv.BORDER_REPLICATE, 5)
-for i, j  in zip(scale, sigma):
-    visualize_laplacian_scale_space(i, j)
+#scale, sigma = laplacian_scale_space(img, 5, cv.BORDER_REPLICATE, 5)
+#for i, j  in zip(scale, sigma):
+#    visualize_laplacian_scale_space(i, j)
 
 
 ###############################################################################
 ###############################################################################
 # Ejercicio 3
+img2 = read_image('imagenes/dog.bmp', 0) 
+hybrid = hybrid_image_generator(img, img2, (31, 31), 15, 5, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+
+pyr = gaussian_pyramid(hybrid[-1], (5,5), 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+
+
+###############################################################################
+###############################################################################
+# BONUS
+
+# BONUS 2
+img3 = read_image('imagenes/cat.bmp', 1)
+img4 = read_image('imagenes/dog.bmp', 1)
+hybrid = hybrid_image_generator(img3, img4, (31, 31), 15, 2, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+visualize_image(hybrid[-1])
