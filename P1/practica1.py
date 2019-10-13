@@ -62,6 +62,7 @@ def transform_img_uint8(img):
         min_val = np.min(trans, axis=(0, 1))
         max_val = np.max(trans, axis=(0, 1))
 
+
     # Normalizar la imagen al rango [0, 1]
     norm = (trans - min_val) / (max_val - min_val)
 
@@ -98,7 +99,7 @@ def visualize_image(img, title=None):
     plt.show()
 
 
-def visualize_mult_img(images, titles=None):
+def visualize_mult_images(images, titles=None):
     """
     Funcion que pinta multiples imagenes en una misma ventana. Adicionalmente
     se pueden especificar que titulos tendran las imagenes.
@@ -204,6 +205,43 @@ def log_kernel(img, ksize, sigma_x, sigma_y, border):
     return laplace
 
 
+def create_img_pyramid(pyramid):
+    """
+    Funcion que crea una imagen a partir de una lista de imagenes que forman una
+    piramide
+
+    Args:
+        pyramid: Lista que contiene las imagenes
+    Return:
+        Devuelve una imagen compuesta por todas las imagenes de la piramide
+    """
+    # Crear una copia de la primera imagen (la mas grande y a la que se añadiran
+    # el resto de imagenes)
+    pyr_img = np.copy(pyramid[0])
+
+    # Para cada imagen de la lista, concatenarla a la primera imagen
+    for i in range(1, len(pyramid)):
+        # Obtener imagen actual
+        insert_img = np.copy(pyramid[i])
+
+        # Determinar cuantas filas de blancos se tienen que insertar respecto a
+        # la imagen original para que tengan el mismo tamaño
+        n_new_rows = pyramid[0].shape[0] - insert_img.shape[0]
+
+        # Crear una imagen de blancos que se concatenara con la imagen actual para
+        # que tenga las mismas dimensiones que la actual
+        white_rows = np.full((n_new_rows, insert_img.shape[1]), 255.0)
+
+        # Insertar los blancos verticalmente, por encima de la imagen actual
+        insert_img = np.vstack([white_rows, insert_img])
+
+        # Insertar la nueva imagen en la piramide, concatenandola por la derecha
+        pyr_img = np.hstack([pyr_img, insert_img])
+
+    return pyr_img
+
+
+
 def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
     """
     Funcion que devuelve una piramide Gaussiana de tamaño N
@@ -217,7 +255,7 @@ def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
         N: Numero de imagenes que componen la piramide (default 4)
 
     """
-
+    # Inicializar la piramide con la primera imagen
     gaussian_pyr = [img]
 
     for i in range(1, N):
@@ -239,6 +277,20 @@ def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
 
 
 def laplacian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
+    """
+    Funcion que crea una piramide Laplaciana de una imagen
+
+    Args:
+        img: Imagen de la que crar la piramide
+        ksize: Tamaño del kernel
+        sigma_x: Valor de sigma en el eje X
+        sigma_y: Valor de sigma en el eje Y
+        border: Tipo de borde
+        N: Numero de componentes de la piramide. El nivel Gaussiano (ultimo)
+           no esta incluido(default 4)
+    Return:
+        Devuelve una lista que contiene las imagenes que forman la piramide
+    """
 
     # Obtener piramide Gaussiana de un nivel mas
     gaussian_pyr = gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N+1)
@@ -279,26 +331,96 @@ def laplacian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
 
 
 def non_max_supression(img):
-    dim1 = img.shape[0]
-    dim2 = img.shape[1]
+    """
+    Funcion que realiza la supresion de no maximos dada una imagen de entrada
 
+    Args:
+        img: Imagen sobre la que realizar la supresion de no maximos
+    Return:
+        Devuelve una nueva imagen sobre la que se han suprimido los maximos
+    """
+    # Crear imagen inicial para la supresion de maximos (inicializada a 0)
     supressed_img = np.zeros_like(img)
 
-    for i in range(dim1):
-        for j in range(dim2):
-            region = img[max(i-1, 0):i+2, max(j-1, 0):j+2]
-            current_val = img[i, j]
-            max_val = np.max(region)
+    # Para cada pixel, aplicar una caja 3x3 para determinar el maximo local
+    for i,j in np.ndindex(img.shape):
+        # Obtener la region 3x3 (se consideran los bordes para que la caja
+        # tenga el tamaño adecuado, sin salirse)
+        region = img[max(i-1, 0):i+2, max(j-1, 0):j+2]
 
-            if max_val == current_val:
-                supressed_img[i, j] = current_val
+        # Obtener el valor actual y el maximo de la region
+        current_val = img[i, j]
+        max_val = np.max(region)
+
+        # Si el valor actual es igual al maximo, copiarlo en la imagen de supresion
+        # de no maximos
+        if max_val == current_val:
+            supressed_img[i, j] = current_val
 
     return supressed_img
 
 
-def laplacian_scale_space():
-    return None
+def laplacian_scale_space(img, ksize, border, N, sigma=1.0, sigma_inc=1.2):
+    """
+    Funcion que construye el espacio de escalas Laplaciano de una imagen dada
 
+    Args:
+        img: Imagen de la que extraer el espacio de escalas
+        ksize: Tamaño del kernel
+        border: Tipo de borde
+        N: Numero de escalas
+        sigma: Valor inicial del kernel (default 1)
+        sigma_inc: Multiplicador que incrementa el sigma (default 1.2)
+    Return:
+        Devuelve una lista con N imagenes, formando el espacio de escalas y los
+        valores de sigma utilizados
+    """
+    # Crear listas que contendran las imagenes y los sigma
+    scale_space = []
+    sigma_list = []
+
+    # Crear las N escalas
+    for _ in range(N):
+        # Aplicar Laplacian of Gaussian
+        level_img = log_kernel(img, ksize, sigma, sigma, border)
+
+        # Normalizar multiplicando por sigma^2
+        level_img *= sigma ** 2
+
+        # Suprimir no maximos
+        supressed_level = non_max_supression(level_img)
+
+        # Guardas imagen y sigma
+        scale_space.append(supressed_level)
+        sigma_list.append(sigma)
+
+        # Incrementar sigma
+        sigma *= sigma_inc
+
+    return scale_space, sigma_list
+
+
+def visualize_laplacian_scale_space(img, sigma, title=None):
+
+    # Pasar la imagen a uint8
+    vis = transform_img_uint8(img)
+
+    idx_col, idx_row = np.where(vis > np.bincount(vis.flatten()).argmax())
+
+    # Pasar de una imagen BGR a RGB
+    vis = cv.cvtColor(vis, cv.COLOR_BGR2RGB)
+
+    for point in zip(idx_row, idx_col):
+        cv.circle(vis, point, int(2 * sigma), (0, 255, 0))
+
+    # Visualizar la imagen
+    plt.imshow(vis)
+    plt.axis('off')
+
+    if title is not None:
+        plt.title(title)
+
+    plt.show()
 
 ###############################################################################
 ###############################################################################
@@ -403,7 +525,18 @@ visualize_image(laplace)
 # Ejercicio 2
 
 pyr = gaussian_pyramid(img, (5,5), 3, 3, cv.BORDER_REFLECT)
-visualize_mult_img(pyr)
+pyr_img = create_img_pyramid(pyr) 
+visualize_image(pyr_img)
 
 pyr = laplacian_pyramid(img, (5,5), 3, 3, cv.BORDER_REFLECT)
-visualize_mult_img(pyr)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+scale, sigma = laplacian_scale_space(img, 5, cv.BORDER_REPLICATE, 5)
+for i, j  in zip(scale, sigma):
+    visualize_laplacian_scale_space(i, j)
+
+
+###############################################################################
+###############################################################################
+# Ejercicio 3
