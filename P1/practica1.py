@@ -582,10 +582,6 @@ visualize_image(cat, 'Original image')
 gauss = gaussian_kernel(cat, 5,5, 1, 1, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 1$ and BORDER_REPLICATE')
 
-kx = cv.getGaussianKernel(5, 1)
-ky = cv.getGaussianKernel(5, 1)
-gauss = convolution(cat, kx, ky)
-visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 1$ and BORDER_REPLICATE')
 # Aplicar Gaussian Blur de tamaño (5, 5) con sigma = 3 y BORDER_REPLICATE
 gauss = gaussian_kernel(cat, 5,5, 3, 3, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 3$ and BORDER_REPLICATE')
@@ -621,9 +617,6 @@ visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma_x = 2$, $\sig
 der = derivative_kernel(cat, 1, 0, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis and BORDER_DEFAULT')
 
-kx, ky = cv.getDerivKernels(1, 0, 5, normalize=True)
-der = convolution(cat, kx, ky)
-visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis and BORDER_DEFAULT')
 # Aplicar filtro de primera derivada en el eje Y con tamaño 5 y BORDER_DEFAULT
 der = derivative_kernel(cat, 0, 1, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in Y-axis and BORDER_DEFAULT')
@@ -667,23 +660,59 @@ visualize_image(der, r'$5 \times 5$ First Derivative Kernel in both axis and BOR
 #######################################
 # Apartado B
 
-laplace = log_kernel(cat, 5, 7, 7, cv.BORDER_DEFAULT)
+# Laplaciana de Gaussiana 5x5 con sigma=1 en cada eje
+laplace = log_kernel(cat, 5, 1, 1, cv.BORDER_REPLICATE)
 visualize_image(laplace)
 
+# Laplaciana de Gaussiana 5x5 con sigma=3 en cada eje
+laplace = log_kernel(cat, 5, 3, 3, cv.BORDER_REPLICATE)
+visualize_image(laplace)
+
+# Laplaciana de Gaussiana 5x5 con sigma=1 en cada eje
+laplace = log_kernel(cat, 5, 1, 1, cv.BORDER_REFLECT)
+visualize_image(laplace)
+
+# Laplaciana de Gaussiana 5x5 con sigma=1 en cada eje
+laplace = log_kernel(cat, 5, 3, 3, cv.BORDER_REFLECT)
+visualize_image(laplace)
 
 ###############################################################################
 ###############################################################################
 # Ejercicio 2
 
+#######################################
+# Apartado A
+
+# Obtener una piramide Gaussiana utilizando un kernel 5x5 con sigma de 3 en cada eje
 pyr = gaussian_pyramid(cat, 5, 3, 3, cv.BORDER_REFLECT)
+
+# Componer la piramide en una unica imagen
 pyr_img = create_img_pyramid(pyr)
+
+# Visualizar la piramide
 visualize_image(pyr_img)
 
+#######################################
+# Apartado C
+
+# Obtener una piramide Laplaciana utilizando un kernel 5x5 con sigma 3 en cada eje
 pyr = laplacian_pyramid(cat, 5, 3, 3, cv.BORDER_REFLECT)
+
+# Componer la piramide en una unica imagen
 pyr_img = create_img_pyramid(pyr)
+
+# Visualizar la piramide
 visualize_image(pyr_img)
 
+#######################################
+# Apartado C
+
+# Obtener la escala Laplaciana junto con los sigma utilizados en cada nivel
+# Aplicar un kernel de tamaño 5 con borde replicado, creando una escala de 5 niveles
 scale, sigma = laplacian_scale_space(cat, 5, cv.BORDER_REPLICATE, 5)
+
+# Para cada elemento del conjunto, visualizar el resultado y las regiones con circulos
+# verdes, los cuales tienen una escala de 15*sigma
 for i, j  in zip(scale, sigma):
     visualize_image(i)
     visualize_laplacian_scale_space(i, j)
@@ -692,6 +721,8 @@ for i, j  in zip(scale, sigma):
 ###############################################################################
 ###############################################################################
 # Ejercicio 3
+
+# Composicion gato-perro
 hybrid = hybrid_image_generator(cat, dog, 31, 15, 5, cv.BORDER_REFLECT)
 visualize_mult_images(hybrid)
 
@@ -699,21 +730,107 @@ pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
 pyr_img = create_img_pyramid(pyr)
 visualize_image(pyr_img)
 
-hybrid = hybrid_image_generator(einstein, marilyn, 31, 15, 5, cv.BORDER_REFLECT)
+# Composicion Einstein-Marilyn
+hybrid = hybrid_image_generator(einstein, marilyn, 9, 5, 3, cv.BORDER_REFLECT)
 visualize_mult_images(hybrid)
 
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
 
+# Composicion bicicleta-moto
+hybrid = hybrid_image_generator(bicycle, motorcycle, 27, 13, 5, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+# Composicion ave-avion
+hybrid = hybrid_image_generator(bird, plane, 17, 9, 3, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+# Composicion pez-submarino
+hybrid = hybrid_image_generator(fish, submarine, 23, 11, 5, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
 
 ###############################################################################
 ###############################################################################
 # BONUS
 
+# BONUS 1
+
+# Hacer la convolucion con el kernel gaussiano
+kx = cv.getGaussianKernel(5, 1)
+ky = cv.getGaussianKernel(5, 1)
+gauss = convolution(cat, kx, ky)
+visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 1$ using convolution')
+
+# Hacer la convolucion con el kernel de la primera derivada en el eje X
+kx, ky = cv.getDerivKernels(1, 0, 5, normalize=True)
+der = convolution(cat, kx, ky)
+visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis using convolution')
+
 # BONUS 2
-img3 = read_image('imagenes/cat.bmp', 1)
-img4 = read_image('imagenes/dog.bmp', 1)
-hybrid = hybrid_image_generator(img3, img4, 31, 17, 15, cv.BORDER_REFLECT)
+cat_color = read_image('imagenes/cat.bmp', 1)
+dog_color = read_image('imagenes/dog.bmp', 1)
+
+bird_color = read_image('imagenes/bird.bmp', 1)
+plane_color = read_image('imagenes/plane.bmp', 1)
+
+einstein_color = read_image('imagenes/einstein.bmp', 1)
+marilyn_color = read_image('imagenes/marilyn.bmp', 1)
+
+bicycle_color = read_image('imagenes/bicycle.bmp', 1)
+motorcycle_color = read_image('imagenes/motorcycle.bmp', 1)
+
+fish_color = read_image('imagenes/fish.bmp', 1)
+submarine_color = read_image('imagenes/submarine.bmp', 1)
+
+# Composicion gato-perro
+hybrid = hybrid_image_generator(cat_color, dog_color, 31, 17, 15, cv.BORDER_REFLECT)
 visualize_mult_images(hybrid)
 visualize_image(hybrid[-1])
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+# Composicion Einstein-Marilyn
+hybrid = hybrid_image_generator(einstein_color, marilyn_color, 9, 5, 3, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+# Composicion bicicleta-moto
+hybrid = hybrid_image_generator(bicycle_color, motorcycle_color, 27, 13, 5, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+# Composicion ave-avion
+hybrid = hybrid_image_generator(bird_color, plane_color, 17, 9, 3, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+# Composicion pez-submarino
+hybrid = hybrid_image_generator(fish_color, submarine_color, 23, 11, 5, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
 
 pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
 pyr_img = create_img_pyramid(pyr)
