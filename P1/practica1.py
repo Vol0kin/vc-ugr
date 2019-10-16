@@ -137,7 +137,7 @@ def visualize_mult_images(images, titles=None):
     plt.show()
 
 
-def gaussian_kernel(img, ksize, sigma_x, sigma_y, border):
+def gaussian_kernel(img, ksize_x, ksize_y, sigma_x, sigma_y, border):
     """
     Funcion que aplica un kernel Gaussiano sobre una imagen.
 
@@ -150,10 +150,15 @@ def gaussian_kernel(img, ksize, sigma_x, sigma_y, border):
     Return:
         Devuelve una imagen sobre la que se ha aplicado un kernel Gaussiano
     """
+    # Obtener un kernel para cada eje
+    kernel_x = cv.getGaussianKernel(ksize_x, sigma_x)
+    kernel_y = cv.getGaussianKernel(ksize_y, sigma_y)
+
+    # Obtener kernel 2D
+    kernel2D = np.outer(kernel_x, kernel_y)
 
     # Aplicar kernel Gaussiano
-    gauss = cv.GaussianBlur(img, ksize, sigmaX=sigma_x,
-                            sigmaY=sigma_y, borderType=border)
+    gauss = cv.filter2D(img, cv.CV_64F, kernel2D, borderType=border)
 
     return gauss
 
@@ -175,8 +180,12 @@ def derivative_kernel(img, dx, dy, ksize, border):
     # el kernel de Sobel)
     kx, ky = cv.getDerivKernels(dx, dy, ksize, normalize=True)
 
+    # Obtener el kernel 2D haciendo dot product del kernel en Y con el kernel
+    # en X
+    kernel2D = np.outer(ky, kx)
+
     # Aplicar los kernels sobre la imagen
-    der = cv.sepFilter2D(img, cv.CV_64F, kx, ky, borderType=border)
+    der = cv.filter2D(img, cv.CV_64F, kernel2D, borderType=border)
 
     return der
 
@@ -196,10 +205,16 @@ def log_kernel(img, ksize, sigma_x, sigma_y, border):
     """
 
     # Aplicar filtro Gaussiano
-    gauss = gaussian_kernel(img, (ksize, ksize), sigma_x, sigma_y, border)
+    gauss = gaussian_kernel(img, ksize, ksize, sigma_x, sigma_y, border)
+
+    dx2 = derivative_kernel(gauss, 2, 0, ksize, border)
+    dy2 = derivative_kernel(gauss, 0, 2, ksize, border)
+
+    laplace = dx2 + dy2
+    #laplace = np.abs(laplace)
 
     # Aplicar filtro Laplaciano
-    laplace = cv.Laplacian(gauss, cv.CV_64F, ksize=ksize, borderType=border)
+    #laplace = cv.Laplacian(gauss, cv.CV_64F, ksize=ksize, borderType=border)
 
     return laplace
 
@@ -229,7 +244,16 @@ def create_img_pyramid(pyramid):
 
         # Crear una imagen de blancos que se concatenara con la imagen actual para
         # que tenga las mismas dimensiones que la actual
-        white_rows = np.full((n_new_rows, insert_img.shape[1]), 255.0)
+        if insert_img.ndim == 2:
+            # Se escoge el maximo entre el maximo valor de la imagen mas grande y la mas pequeña
+            # Se hace asi debido a que, esta parte de la funcion se utiliza tanto para la piramide
+            # Gaussiana como la Laplaciana, con lo cual, hay que ver cual es el maximo valor que se
+            # puede encontrar en cualquiera de las dos piramides
+            white_rows = np.full((n_new_rows, insert_img.shape[1]), max(np.max(pyramid[-1]), np.max(pyramid[0])))
+        else:
+            # Si es una imagen a color, se escoge el maximo para cada uno de los canales
+            # para que el fondo sea blanco
+            white_rows = np.full((n_new_rows, insert_img.shape[1], 3), np.max(pyramid[0], axis=(0, 1)))
 
         # Insertar los blancos verticalmente, por encima de la imagen actual
         insert_img = np.vstack([white_rows, insert_img])
@@ -238,7 +262,6 @@ def create_img_pyramid(pyramid):
         pyr_img = np.hstack([pyr_img, insert_img])
 
     return pyr_img
-
 
 
 def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
@@ -262,7 +285,7 @@ def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
         prev_img = np.copy(gaussian_pyr[i - 1])
 
         # Aplicar Gaussian Blur
-        gauss = gaussian_kernel(prev_img, ksize, sigma_x, sigma_y, border)
+        gauss = gaussian_kernel(prev_img, ksize, ksize, sigma_x, sigma_y, border)
 
         # Reducir el tamaño de la imagen a la mitad
         down_sampled_gauss = gauss[1::2, 1::2]
@@ -315,8 +338,9 @@ def laplacian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
         if upsampled_img.shape[1] < previous_img.shape[1]:
             upsampled_img = np.hstack([upsampled_img, upsampled_img[:, -1].reshape(-1, 1)])
 
-        # Pasar un Gaussian Blur a la imagen escalada
-        upsampled_gauss = gaussian_kernel(upsampled_img, ksize, sigma_x, sigma_y, border)
+        # Pasar un Gaussian Blur a la imagen escalada para intentar suavizar el efecto de las
+        # filas y las columnas repetidas
+        upsampled_gauss = gaussian_kernel(upsampled_img, ksize, ksize, sigma_x, sigma_y, border)
 
         # Restar la imagen orignal de la escalada para obtener detalles
         diff_img = previous_img - upsampled_gauss
@@ -385,6 +409,9 @@ def laplacian_scale_space(img, ksize, border, N, sigma=1.0, sigma_inc=1.2):
         # Normalizar multiplicando por sigma^2
         level_img *= sigma ** 2
 
+        # Elevar al cuadrado la imagen resultante
+        level_img = level_img ** 2
+
         # Suprimir no maximos
         supressed_level = non_max_supression(level_img)
 
@@ -402,7 +429,7 @@ def visualize_laplacian_scale_space(img, sigma, title=None):
     """
     Funcion que permite visualizar una imagen generada en el espacio de escalas
     Laplaciano con circulos en las zonas destacadas
-    
+
     Args:
         img: Imagen que mostrar
         sigma: Valor de sigma que se ha utilizado para generar la iamgen
@@ -414,14 +441,14 @@ def visualize_laplacian_scale_space(img, sigma, title=None):
     # Obtener los indices de las filas y columnas donde los pixels tienen un valor
     # por encima de la media (es decir, que hayan sido destacados)
     # Las filas y columnas estan invertidas
-    idx_col, idx_row = np.where(vis > np.bincount(vis.flatten()).argmax())
+    idx_col, idx_row = np.where(vis > 128)
 
     # Pasar de una imagen BGR a RGB
     vis = cv.cvtColor(vis, cv.COLOR_BGR2RGB)
 
     # Pintar un circulo verde por cada punto
     for point in zip(idx_row, idx_col):
-        cv.circle(vis, point, int(2 * sigma), (0, 255, 0))
+        cv.circle(vis, point, int(15 * sigma), (0, 255, 0))
 
     # Visualizar la imagen
     plt.imshow(vis)
@@ -449,16 +476,79 @@ def hybrid_image_generator(img_low, img_high, ksize, sigma_low, sigma_high, bord
         y la hibrida
     """
     # Crear la imagen de bajas frecuencias aplicando filtro Gaussiano
-    low_freq_img = gaussian_kernel(img_low, ksize, sigma_low, sigma_low, border)
+    low_freq_img = gaussian_kernel(img_low, ksize, ksize, sigma_low, sigma_low, border)
 
     # Crear imagen de altas frecuencias aplicando filtro Gaussiano y restando a la original
-    gauss_high_freq = gaussian_kernel(img_high, ksize, sigma_high, sigma_high, border)
+    gauss_high_freq = gaussian_kernel(img_high, ksize, ksize, sigma_high, sigma_high, border)
     high_freq_img = img_high - gauss_high_freq
 
     # Crear la imagen hibrida combinando las dos
     hybrid = low_freq_img + high_freq_img
 
     return [low_freq_img, high_freq_img, hybrid]
+
+
+def correlation_1D(img, kernel):
+    """
+    Funcion que aplica la correlacion 1D sobre una imagen de entrada utilizando
+    un kernel dado
+
+    Args:
+        img: Imagen sobre la que aplicar la correlacion
+        kernel: Kernel que se aplicara
+    Return:
+        Devuelve una imagen sobre la que se ha aplicado correlacion 1D por filas
+    """
+    # Obtener el numero de elementos que se deben replicar al principio y al final
+    # de la imagen
+    n_replica = kernel.shape[0] // 2
+
+    # Replicar elemento inicial y final de la imagen n_replica veces
+    replica_img = np.hstack([np.tile(img[:, 0].reshape(-1, 1), n_replica), img])
+    replica_img = np.hstack([replica_img, np.tile(img[:, -1].reshape(-1, 1), n_replica)])
+
+    # Crear matriz de salida con el mismo tamaño que img
+    correlation_mat = np.empty_like(img)
+
+    # Aplicar la correlacion sobre cada elemento (i, j) de la imagen
+    for i in range(img.shape[0]):
+        for j in range(n_replica, img.shape[1] + n_replica):
+            # Obtener sub imagen del mismo tamaño que el kernel
+            sub_img = replica_img[i, j - n_replica:j + n_replica + 1]
+
+            # Realizar producto escalar de la sub imagen y el kernel
+            corr_value = np.dot(sub_img, kernel)
+
+            # Actualizar valor de la matriz de correlacion
+            correlation_mat[i, j - n_replica] = corr_value
+
+    return correlation_mat
+
+
+def convolution(img, kernel_x, kernel_y):
+    """
+    Funcion que aplica la convolucion sobre una imagen dados un kernel para
+    el eje X y el eje Y
+    
+    Args:
+        img: Imagen sobre la que aplicar la convolucion
+        kernel_x: Kernel en el eje X
+        kernel_y: Kernel en el eje Y
+    Return:
+        Devuelve la convolucion de la imagen con los kernels de entrada
+    """
+    # Realizar un flip sobre los kernels
+    kernel_x_flip = np.flip(kernel_x)
+    kernel_y_flip = np.flip(kernel_y)
+
+    # Realizar la convolucion (primero sobre el eje X y luego sobre el eje Y)
+    convolution = correlation_1D(img, kernel_x_flip)
+    convolution = correlation_1D(convolution.T, kernel_y_flip)
+
+    # Trasponer la convolucion (porque se han cambiado filas por columnas anteriormente)
+    convolution = convolution.T
+
+    return convolution
 
 
 ###############################################################################
@@ -474,35 +564,39 @@ img = read_image('imagenes/cat.bmp', 0)
 visualize_image(img, 'Original image')
 
 # Aplicar Gaussian Blur de tamaño (5, 5) con sigma = 1 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, (5,5), 1, 1, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(img, 5,5, 1, 1, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 1$ and BORDER_REPLICATE')
 
+kx = cv.getGaussianKernel(5, 1)
+ky = cv.getGaussianKernel(5, 1)
+gauss = convolution(img, kx, ky)
+visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 1$ and BORDER_REPLICATE')
 # Aplicar Gaussian Blur de tamaño (5, 5) con sigma = 3 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, (5,5), 3, 3, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(img, 5,5, 3, 3, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 3$ and BORDER_REPLICATE')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, (11,11), 4, 4, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(img, 11,11, 4, 4, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_REPLICATE')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_REFLECT
-gauss = gaussian_kernel(img, (101,101), 15, 15, cv.BORDER_REFLECT)
+gauss = gaussian_kernel(img, 101,101, 15, 15, cv.BORDER_REFLECT)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_REFLECT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_CONSTANT
-gauss = gaussian_kernel(img, (101,101), 15, 15, cv.BORDER_CONSTANT)
+gauss = gaussian_kernel(img, 101,101, 15, 15, cv.BORDER_CONSTANT)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_CONSTANT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_DEFAULT
-gauss = gaussian_kernel(img, (101,101), 15, 15, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(img, 101,101, 15, 15, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_DEFAULT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigmax = 5, sigmay = 2 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, (11,11), 5, 2, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(img, 11,11, 5, 2, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma_x = 5$, $\sigma_y = 2$ and BORDER_REPLICATE')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigmax = 2, sigmay = 5 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, (11,11), 2, 5, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(img, 11,11, 2, 5, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma_x = 2$, $\sigma_y = 5$ and BORDER_REPLICATE')
 
 ####################################
@@ -512,6 +606,9 @@ visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma_x = 2$, $\sig
 der = derivative_kernel(img, 1, 0, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis and BORDER_DEFAULT')
 
+kx, ky = cv.getDerivKernels(1, 0, 5, normalize=True)
+der = convolution(img, kx, ky)
+visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis and BORDER_DEFAULT')
 # Aplicar filtro de primera derivada en el eje Y con tamaño 5 y BORDER_DEFAULT
 der = derivative_kernel(img, 0, 1, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in Y-axis and BORDER_DEFAULT')
@@ -563,27 +660,28 @@ visualize_image(laplace)
 ###############################################################################
 # Ejercicio 2
 
-pyr = gaussian_pyramid(img, (5,5), 3, 3, cv.BORDER_REFLECT)
-pyr_img = create_img_pyramid(pyr) 
-visualize_image(pyr_img)
-
-pyr = laplacian_pyramid(img, (5,5), 3, 3, cv.BORDER_REFLECT)
+pyr = gaussian_pyramid(img, 5, 3, 3, cv.BORDER_REFLECT)
 pyr_img = create_img_pyramid(pyr)
 visualize_image(pyr_img)
 
-#scale, sigma = laplacian_scale_space(img, 5, cv.BORDER_REPLICATE, 5)
-#for i, j  in zip(scale, sigma):
-#    visualize_laplacian_scale_space(i, j)
+pyr = laplacian_pyramid(img, 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+scale, sigma = laplacian_scale_space(img, 5, cv.BORDER_REPLICATE, 5)
+for i, j  in zip(scale, sigma):
+    visualize_image(i)
+    visualize_laplacian_scale_space(i, j)
 
 
 ###############################################################################
 ###############################################################################
 # Ejercicio 3
-img2 = read_image('imagenes/dog.bmp', 0) 
-hybrid = hybrid_image_generator(img, img2, (31, 31), 15, 5, cv.BORDER_REFLECT)
+img2 = read_image('imagenes/dog.bmp', 0)
+hybrid = hybrid_image_generator(img, img2, 31, 15, 5, cv.BORDER_REFLECT)
 visualize_mult_images(hybrid)
 
-pyr = gaussian_pyramid(hybrid[-1], (5,5), 3, 3, cv.BORDER_REFLECT)
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
 pyr_img = create_img_pyramid(pyr)
 visualize_image(pyr_img)
 
@@ -596,6 +694,10 @@ visualize_image(pyr_img)
 # BONUS 2
 img3 = read_image('imagenes/cat.bmp', 1)
 img4 = read_image('imagenes/dog.bmp', 1)
-hybrid = hybrid_image_generator(img3, img4, (31, 31), 15, 2, cv.BORDER_REFLECT)
+hybrid = hybrid_image_generator(img3, img4, 31, 17, 15, cv.BORDER_REFLECT)
 visualize_mult_images(hybrid)
 visualize_image(hybrid[-1])
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
