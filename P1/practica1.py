@@ -559,100 +559,115 @@ def convolution(img, kernel_x, kernel_y):
 # Apartado A
 # Aplicacion de filtros Gaussianos
 
-# Cargar una imagen y visualizarla
-img = read_image('imagenes/cat.bmp', 0)
-visualize_image(img, 'Original image')
+# Cargar las imagenes en blanco y negro
+cat = read_image('imagenes/cat.bmp', 0)
+dog = read_image('imagenes/dog.bmp', 0)
+
+bird = read_image('imagenes/bird.bmp', 0)
+plane = read_image('imagenes/plane.bmp', 0)
+
+einstein = read_image('imagenes/einstein.bmp', 0)
+marilyn = read_image('imagenes/marilyn.bmp', 0)
+
+bicycle = read_image('imagenes/bicycle.bmp', 0)
+motorcycle = read_image('imagenes/motorcycle.bmp', 0)
+
+fish = read_image('imagenes/fish.bmp', 0)
+submarine = read_image('imagenes/submarine.bmp', 0)
+
+# Visualizar imagen del gato
+visualize_image(cat, 'Original image')
 
 # Aplicar Gaussian Blur de tamaño (5, 5) con sigma = 1 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, 5,5, 1, 1, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(cat, 5,5, 1, 1, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 1$ and BORDER_REPLICATE')
 
 kx = cv.getGaussianKernel(5, 1)
 ky = cv.getGaussianKernel(5, 1)
-gauss = convolution(img, kx, ky)
+gauss = convolution(cat, kx, ky)
 visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 1$ and BORDER_REPLICATE')
 # Aplicar Gaussian Blur de tamaño (5, 5) con sigma = 3 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, 5,5, 3, 3, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(cat, 5,5, 3, 3, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 3$ and BORDER_REPLICATE')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, 11,11, 4, 4, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(cat, 11,11, 4, 4, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_REPLICATE')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_REFLECT
-gauss = gaussian_kernel(img, 101,101, 15, 15, cv.BORDER_REFLECT)
+gauss = gaussian_kernel(cat, 101,101, 15, 15, cv.BORDER_REFLECT)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_REFLECT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_CONSTANT
-gauss = gaussian_kernel(img, 101,101, 15, 15, cv.BORDER_CONSTANT)
+gauss = gaussian_kernel(cat, 101,101, 15, 15, cv.BORDER_CONSTANT)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_CONSTANT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_DEFAULT
-gauss = gaussian_kernel(img, 101,101, 15, 15, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(cat, 101,101, 15, 15, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_DEFAULT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigmax = 5, sigmay = 2 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, 11,11, 5, 2, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(cat, 11,11, 5, 2, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma_x = 5$, $\sigma_y = 2$ and BORDER_REPLICATE')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigmax = 2, sigmay = 5 y BORDER_REPLICATE
-gauss = gaussian_kernel(img, 11,11, 2, 5, cv.BORDER_REPLICATE)
+gauss = gaussian_kernel(cat, 11,11, 2, 5, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma_x = 2$, $\sigma_y = 5$ and BORDER_REPLICATE')
 
 ####################################
 # Aplicacion de filtros de derivadas
 
 # Aplicar filtro de primera derivada en el eje X con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(img, 1, 0, 5, cv.BORDER_DEFAULT)
+der = derivative_kernel(cat, 1, 0, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis and BORDER_DEFAULT')
 
 kx, ky = cv.getDerivKernels(1, 0, 5, normalize=True)
-der = convolution(img, kx, ky)
+der = convolution(cat, kx, ky)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis and BORDER_DEFAULT')
 # Aplicar filtro de primera derivada en el eje Y con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(img, 0, 1, 5, cv.BORDER_DEFAULT)
+der = derivative_kernel(cat, 0, 1, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in Y-axis and BORDER_DEFAULT')
 
 # Aplicar filtro de segunda derivada en el eje X con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(img, 2, 0, 5, cv.BORDER_DEFAULT)
+der = derivative_kernel(cat, 2, 0, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ Second Derivative Kernel in X-axis and BORDER_DEFAULT')
 
 # Aplicar filtro de segunda derivada en el eje Y con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(img, 0, 2, 5, cv.BORDER_DEFAULT)
+der = derivative_kernel(cat, 0, 2, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ Second Derivative Kernel in Y-axis and BORDER_DEFAULT')
 
 # Aplicar filtro de primera derivada en ambos ejes con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(img, 1, 1, 5, cv.BORDER_DEFAULT)
+der = derivative_kernel(cat, 1, 1, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in both axis and BORDER_DEFAULT')
 
 # Aplicar filtro de segunda derivada en ambos ejes con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(img, 2, 2, 5, cv.BORDER_DEFAULT)
+der = derivative_kernel(cat, 2, 2, 5, cv.BORDER_DEFAULT)
 visualize_image(der, r'$5 \times 5$ Second Derivative Kernel in both axis and BORDER_DEFAULT')
 
 # Aplicar filtro de primera derivada en ambos ejes con tamaño 7 y BORDER_DEFAULT
-der = derivative_kernel(img, 1, 1, 7, cv.BORDER_DEFAULT)
+der = derivative_kernel(cat, 1, 1, 7, cv.BORDER_DEFAULT)
 visualize_image(der, r'$7 \times 7$ First Derivative Kernel in both axis and BORDER_DEFAULT')
 
 # Aplicar filtro de primera derivada en ambos ejes con tamaño 11 y BORDER_DEFAULT
-der = derivative_kernel(img, 1, 1, 11, cv.BORDER_DEFAULT)
+der = derivative_kernel(cat, 1, 1, 11, cv.BORDER_DEFAULT)
 visualize_image(der, r'$11 \times 11$ First Derivative Kernel in both axis and BORDER_DEFAULT')
 
 # Aplicar filtro de primera derivada en ambos ejes con tamaño 15 y BORDER_DEFAULT
-der = derivative_kernel(img, 1, 1, 15, cv.BORDER_DEFAULT)
+der = derivative_kernel(cat, 1, 1, 15, cv.BORDER_DEFAULT)
 visualize_image(der, r'$15 \times 15$ First Derivative Kernel in both axis and BORDER_DEFAULT')
 
 # Aplicar filtro de primera derivada en ambos ejes con tamaño 5 y BORDER_REPLICATE
-der = derivative_kernel(img, 1, 1, 5, cv.BORDER_REPLICATE)
+der = derivative_kernel(cat, 1, 1, 5, cv.BORDER_REPLICATE)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in both axis and BORDER_REPLICATE')
 
 # Aplicar filtro de primera derivada en ambos ejes con tamaño 5 y BORDER_REFLECT
-der = derivative_kernel(img, 1, 1, 5, cv.BORDER_REFLECT)
+der = derivative_kernel(cat, 1, 1, 5, cv.BORDER_REFLECT)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in both axis and BORDER_REFLECT')
 
 #######################################
 # Apartado B
 
-laplace = log_kernel(img, 5, 7, 7, cv.BORDER_DEFAULT)
+laplace = log_kernel(cat, 5, 7, 7, cv.BORDER_DEFAULT)
 visualize_image(laplace)
 
 
@@ -660,15 +675,15 @@ visualize_image(laplace)
 ###############################################################################
 # Ejercicio 2
 
-pyr = gaussian_pyramid(img, 5, 3, 3, cv.BORDER_REFLECT)
+pyr = gaussian_pyramid(cat, 5, 3, 3, cv.BORDER_REFLECT)
 pyr_img = create_img_pyramid(pyr)
 visualize_image(pyr_img)
 
-pyr = laplacian_pyramid(img, 5, 3, 3, cv.BORDER_REFLECT)
+pyr = laplacian_pyramid(cat, 5, 3, 3, cv.BORDER_REFLECT)
 pyr_img = create_img_pyramid(pyr)
 visualize_image(pyr_img)
 
-scale, sigma = laplacian_scale_space(img, 5, cv.BORDER_REPLICATE, 5)
+scale, sigma = laplacian_scale_space(cat, 5, cv.BORDER_REPLICATE, 5)
 for i, j  in zip(scale, sigma):
     visualize_image(i)
     visualize_laplacian_scale_space(i, j)
@@ -677,13 +692,15 @@ for i, j  in zip(scale, sigma):
 ###############################################################################
 ###############################################################################
 # Ejercicio 3
-img2 = read_image('imagenes/dog.bmp', 0)
-hybrid = hybrid_image_generator(img, img2, 31, 15, 5, cv.BORDER_REFLECT)
+hybrid = hybrid_image_generator(cat, dog, 31, 15, 5, cv.BORDER_REFLECT)
 visualize_mult_images(hybrid)
 
 pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
 pyr_img = create_img_pyramid(pyr)
 visualize_image(pyr_img)
+
+hybrid = hybrid_image_generator(einstein, marilyn, 31, 15, 5, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
 
 
 
