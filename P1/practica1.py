@@ -184,6 +184,9 @@ def derivative_kernel(img, dx, dy, ksize, border):
     # en X
     kernel2D = np.outer(ky, kx)
 
+    # Hacer el flip para que se calcule la convolucion
+    kernel2D = np.flip(kernel2D)
+
     # Aplicar los kernels sobre la imagen
     der = cv.filter2D(img, cv.CV_64F, kernel2D, borderType=border)
 
@@ -830,6 +833,19 @@ visualize_image(pyr_img)
 
 # Composicion pez-submarino
 hybrid = hybrid_image_generator(fish_color, submarine_color, 23, 11, 5, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+#######################################
+# BONUS 3
+
+mrbean = read_image('imagenes/mrbean.bmp', 0)
+zapatero = read_image('imagenes/zapatero.bmp', 0)
+
+hybrid = hybrid_image_generator(mrbean, zapatero, 23, 11, 5, cv.BORDER_REFLECT)
 visualize_mult_images(hybrid)
 
 pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
