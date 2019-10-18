@@ -128,11 +128,53 @@
 
 \newpage
 
-\section{Ejercicio 3}
+\section{\textsc{Imágenes híbridas}}
+
+\noindent \textbf{Mezclando adecuadamente una parte de las frecuencias altas de una imagen con una parte de
+las frecuencias bajas de otra imagen, obtenemos una imagen híbrida que admite distintas interpretaciones a distintas
+distancias (ver hybrid images project page).}
+
+\noindent \textbf{Para seleccionar la parte de frecuencias altas y bajas que nos quedamos
+de cada una de las imágenes usaremos el parámetro sigma del núcleo/máscara de alisamiento gaussiano que usaremos.
+A mayor valor de sigma mayor eliminación de altas frecuencias en la imagen convolucionada. Para una buena
+implementación elegir dicho valor de forma separada para cada una de las dos imágenes (ver las recomendaciones
+dadas en el paper de Oliva et al.). Recordar que las máscaras 1D siempre deben tener de longitud un número impar.}
+
+\noindent \textbf{Implementar una función que genere las imágenes de baja y alta frecuencia a partir de las
+parejas de imágenes (solo en la versión de imágenes de gris). El valor de sigma más adecuado para cada pareja
+habrá que encontrarlo por experimentación.}
+
+\begin{enumerate}
+	\item Escribir una función que muestre las tres imágenes (alta, baja e híbrida) en una misma ventana.
+	(Recordar que las imágenes después de una convolución contienen número flotantes que pueden ser positivos y negativos)
+	\item Realizar la composición con al menos 3 de las parejas de imágenes
+	\item Construir pirámides gaussianas de al menos 4 níveles con las imágenes resultado. Explicar el efecto que se observa.
+\end{enumerate}
+
+\subsection{Apartado 1}
+
+\subsection{Apartado 2}
+
+\subsection{Apartado 3}
 
 \newpage
 
 \section{Bonus}
+
+\subsection{Convolución 2D propia}
+
+\noindent \textbf{Implementar con código propio la convolución 2D con cualquier máscara 2D de números reales usando
+máscaras separables.}
+
+\subsection{Imágenes híbridas a color}
+
+\noindent \textbf{Realizar todas las parejas de imágenes híbridas en su formato a color (solo se tendrá en cuenta
+si la versión de gris es correcta).}
+
+\subsection{Imágen híbrida propia}
+
+\noindent \textbf{Realizar una imagen híbrida con al menos una pareja de imágenes de su elección que hayan
+sido extraídas de imágenes más grandes. Justifique la elección y todos los pasos que realiza.}
 
 \newpage
 
