@@ -1,0 +1,148 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[spanish,es-nodecimaldot]{babel}	% Utilizar español
+\usepackage[utf8]{inputenc}					% Caracteres UTF-8
+\usepackage{graphicx}						% Imagenes
+\usepackage[hidelinks]{hyperref}			% Poner enlaces sin marcarlos en rojo
+\usepackage{fancyhdr}						% Modificar encabezados y pies de pagina
+\usepackage{float}							% Insertar figuras
+\usepackage[textwidth=390pt]{geometry}		% Anchura de la pagina
+\usepackage[nottoc]{tocbibind}				% Referencias (no incluir num pagina indice en Indice)
+\usepackage{enumitem}						% Permitir enumerate con distintos simbolos
+\usepackage[T1]{fontenc}					% Usar textsc en sections
+\usepackage{amsmath}						% Símbolos matemáticos
+
+% Comando para poner el nombre de la asignatura
+\newcommand{\asignatura}{Visión por Computador}
+\newcommand{\autor}{Vladislav Nikolov Vasilev}
+\newcommand{\titulo}{Trabajo 1}
+\newcommand{\subtitulo}{Filtrado y Detección de Regiones}
+
+% Configuracion de encabezados y pies de pagina
+\pagestyle{fancy}
+\lhead{\autor{}}
+\rhead{\asignatura{}}
+\lfoot{Grado en Ingeniería Informática}
+\cfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}		% Linea cabeza de pagina
+\renewcommand{\footrulewidth}{0.4pt}		% Linea pie de pagina
+
+\begin{document}
+\pagenumbering{gobble}
+
+% Pagina de titulo
+\begin{titlepage}
+
+\begin{minipage}{\textwidth}
+
+\centering
+
+\includegraphics[scale=0.5]{img/ugr.png}\\
+
+\textsc{\Large \asignatura{}\\[0.2cm]}
+\textsc{GRADO EN INGENIERÍA INFORMÁTICA}\\[1cm]
+
+\noindent\rule[-1ex]{\textwidth}{1pt}\\[1.5ex]
+\textsc{{\Huge \titulo\\[0.5ex]}}
+\textsc{{\Large \subtitulo\\}}
+\noindent\rule[-1ex]{\textwidth}{2pt}\\[3.5ex]
+
+\end{minipage}
+
+\vspace{0.5cm}
+
+\begin{minipage}{\textwidth}
+
+\centering
+
+\textbf{Autor}\\ {\autor{}}\\[2.5ex]
+\textbf{Rama}\\ {Computación y Sistemas Inteligentes}\\[2.5ex]
+\vspace{0.3cm}
+
+\includegraphics[scale=0.3]{img/etsiit.jpeg}
+
+\vspace{0.7cm}
+\textsc{Escuela Técnica Superior de Ingenierías Informática y de Telecomunicación}\\
+\vspace{1cm}
+\textsc{Curso 2019-2020}
+\end{minipage}
+\end{titlepage}
+
+\pagenumbering{arabic}
+\tableofcontents
+\thispagestyle{empty}				% No usar estilo en la pagina de indice
+
+\newpage
+
+\setlength{\parskip}{1em}
+
+\section{\textsc{Ejercicio sobre filtros básicos}}
+
+\noindent \textbf{USANDO LAS FUNCIONES DE OPENCV}: escribir funciones que implementen los siguientes puntos:
+
+\begin{enumerate}[label=\textbf{\Alph*)}]
+	\item \textbf{El cálculo de la convolución de una imagen con una máscara 2D. Usar una Gaussiana 2D (GaussianBlur)
+	y máscaras 1D dadas por getDerivKernels). Mostrar ejemplos con distintos tamaños de máscara, valores de
+	sigma y condiciones de contorno. Valorar los resultados.}
+	\item \textbf{Usar la función Laplacian para el cálculo de la convolución 2D con una máscara normalizada de
+	Laplaciana-de-Gaussiana de tamaño variable. Mostrar ejemplos de funcionamiento usando dos tipos de
+	bordes y dos valores de sigma: 1 y 3.}
+\end{enumerate}
+
+\subsection{Apartado A}
+
+\subsection{Apartado B}
+
+\newpage
+
+\section{\textsc{Ejercicio sobre pirámides y detección de regiones}}
+
+\noindent \textbf{IMPLEMENTAR} funciones para las siguiente tareas:
+
+\begin{enumerate}[label=\textbf{\Alph*)}]
+	\item \textbf{Una función que genere una representación en pirámide Gaussiana de 4 niveles de una
+	imagen. Mostrar ejemplos de funcionamiento usando bordes y justificar la elección de los parámetros.}
+	\item \textbf{Una función que genere una representación en pirámide Laplaciana de 4 niveles de una imagen.
+	Mostrar ejemplos de funcionamiento usando bordes.}
+	\item \textbf{Construir un espacio de escalas Laplaciano para implementar la búsqueda de regiones usando el siguiente
+	algoritmo:}
+	\begin{enumerate}[label=\textbf{\alph*.}]
+		\item Fijar sigma
+		\item Repetir para N escalas
+		\item Realizar supresión de no-máximos en cada escala
+		\begin{enumerate}[label=\roman*.]
+			\item Filtrar la imagen con la Laplaciana-Gaussiana normalizada en escala
+			\item Guardar el cuadrado de la respuesta para el actual nivel del espacio de escalas
+			\item Incrementar el valor de sigma por un coeficiente k.( 1.2-1.4)
+		\end{enumerate}
+		\item Mostrar las regiones encontradas en sus correspondientes escalas. Dibujar círculos con radio proporcional a
+		la escala.
+	\end{enumerate}
+\end{enumerate}
+
+\subsection{Apartado A}
+
+\subsection{Apartado B}
+
+\subsection{Apartado C}
+
+\newpage
+
+\section{Ejercicio 3}
+
+\newpage
+
+\section{Bonus}
+
+\newpage
+
+\begin{thebibliography}{5}
+
+\bibitem{nombre-referencia}
+Texto referencia
+\\\url{https://url.referencia.com}
+
+\end{thebibliography}
+
+\end{document}
+

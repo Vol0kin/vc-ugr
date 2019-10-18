@@ -10,14 +10,20 @@ import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Bonus 1
-# - Correlación 1D
-# - Flip horizontal y vertical al kernel
-# - Pasar la correalcion por filas y por columnas
-
 def read_image(file_name, depth):
+    """
+    Funcion que carga una imagen con la profundidad especificada
+
+    Args:
+        file_name: Nombre de la imagen a cargar
+        depth: Profundiad (1 color, 0 ByN)
+    Return:
+        Devuelve una imagen en float64
+    """
+    # Cargar imagen
     img = cv.imread(file_name, depth)
 
+    # Transformar imagen a float64
     img = transform_img_float64(img)
 
     return img
@@ -137,6 +143,30 @@ def visualize_mult_images(images, titles=None):
     plt.show()
 
 
+def apply_kernel(img, kx, ky, border):
+    """
+    Funcion que aplica un kernel separable sobre una imagen, realizando una
+    convolucion
+
+    Args:
+        img: Imagen sobre la que aplicar el filtro
+        kx: Kernel en el eje X
+        ky: Kernel en el eje Y
+        border: Tipo de borde
+    Return:
+        Devuelve una imagen filtrada
+    """
+    # Hacer el flip a los kernels para aplicarlos como una convolucion
+    kx_flip = np.flip(kx)
+    ky_flip = np.flip(ky)
+
+    # Realizar la convolucion
+    conv_x = cv.filter2D(img, cv.CV_64F, kx_flip.T, borderType=border)
+    conv = cv.filter2D(conv_x, cv.CV_64F, ky_flip, borderType=border)
+
+    return conv
+
+
 def gaussian_kernel(img, ksize_x, ksize_y, sigma_x, sigma_y, border):
     """
     Funcion que aplica un kernel Gaussiano sobre una imagen.
@@ -154,11 +184,8 @@ def gaussian_kernel(img, ksize_x, ksize_y, sigma_x, sigma_y, border):
     kernel_x = cv.getGaussianKernel(ksize_x, sigma_x)
     kernel_y = cv.getGaussianKernel(ksize_y, sigma_y)
 
-    # Obtener kernel 2D
-    kernel2D = np.outer(kernel_x, kernel_y)
-
     # Aplicar kernel Gaussiano
-    gauss = cv.filter2D(img, cv.CV_64F, kernel2D, borderType=border)
+    gauss = apply_kernel(img, kernel_x, kernel_y, border)
 
     return gauss
 
@@ -180,15 +207,8 @@ def derivative_kernel(img, dx, dy, ksize, border):
     # el kernel de Sobel)
     kx, ky = cv.getDerivKernels(dx, dy, ksize, normalize=True)
 
-    # Obtener el kernel 2D haciendo dot product del kernel en Y con el kernel
-    # en X
-    kernel2D = np.outer(ky, kx)
-
-    # Hacer el flip para que se calcule la convolucion
-    kernel2D = np.flip(kernel2D)
-
     # Aplicar los kernels sobre la imagen
-    der = cv.filter2D(img, cv.CV_64F, kernel2D, borderType=border)
+    der = apply_kernel(img, kx, ky, border)
 
     return der
 
