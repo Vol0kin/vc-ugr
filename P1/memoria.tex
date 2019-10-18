@@ -274,12 +274,12 @@ a comportarse como un filtro de caja, ponderando más o menos de forma equitativ
 	\begin{enumerate}[label=\textbf{\alph*.}]
 		\item Fijar sigma
 		\item Repetir para N escalas
-		\item Realizar supresión de no-máximos en cada escala
 		\begin{enumerate}[label=\roman*.]
 			\item Filtrar la imagen con la Laplaciana-Gaussiana normalizada en escala
 			\item Guardar el cuadrado de la respuesta para el actual nivel del espacio de escalas
 			\item Incrementar el valor de sigma por un coeficiente k.( 1.2-1.4)
 		\end{enumerate}
+		\item Realizar supresión de no-máximos en cada escala
 		\item Mostrar las regiones encontradas en sus correspondientes escalas. Dibujar círculos con radio proporcional a
 		la escala.
 	\end{enumerate}
