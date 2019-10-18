@@ -10,6 +10,38 @@
 \usepackage{enumitem}						% Permitir enumerate con distintos simbolos
 \usepackage[T1]{fontenc}					% Usar textsc en sections
 \usepackage{amsmath}						% Símbolos matemáticos
+\usepackage{subcaption}
+
+
+\usepackage{listings}
+\usepackage{xcolor}
+ 
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+ 
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4,
+    language=Python
+}
+ 
+\lstset{style=mystyle}
 
 % Comando para poner el nombre de la asignatura
 \newcommand{\asignatura}{Visión por Computador}
@@ -91,6 +123,139 @@
 
 \subsection{Apartado A}
 
+Para realizar todas las pruebas, vamos a utilizar una imágen en blanco y negro. De esta forma, los resultados se podrán
+ver de forma más clara. Se puede utilizar cualquiera de las imágenes que se han proporcionado, pero vamos a utilizar
+la foto del gato. A continuación se puede ver la imágen en cuestión:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{img/cat.png}
+\caption{Imágen original del gato en blanco y negro.}
+\label{fig:cat}
+\end{figure}
+
+Antes de ver cuáles son los resultados y compararlos. Hace falta aclarar algunos puntos:
+
+\begin{itemize}
+	\item Cuando se cargan las imágenes, se convierten a \textit{float64}, para así tener más precisión a la hora de
+	hacer las posteriores operaciones (aplicar filtros, sumar o restar imágenes, etc.), además de que así no nos limitamos
+	a usar solo valores en el rango $[0, 255]$.
+	\item Las operaciones para aplicar filtros de OpenCV aplican una correlación. Por tanto, para aplicar una convolución,
+	se debe realizar un \textit{flip} del \textit{kernel}; esto es, darle la vuelta en el eje $X$ y en el eje $Y$.
+	Como en todos los casos trabajaremos con \textit{kernels} separables, solo será necesario darles la vuelta en un sentido.
+	\item Respecto al punto anterior, al trabajar con \textit{kernels} separables, con tal de mejorar la eficiencia,
+	se puede aplicar primero el \textit{kernel} del eje $X$ y, sobre el resultado, aplicar el \textit{kernel} en el
+	eje $Y$. Esto es mucho más rápido que aplicar directamente un \textit{kernel} 2D sobre la imágen, debido a que el
+	número de operaciones es mucho menor.
+\end{itemize}
+
+Como en este ejercicio se piden aplicar \textit{kernels} de Gaussiana y de derivada, se han hecho funciones específicas
+las cuáles pueden ser consultadas en el código. Estas funciones son \textit{gaussian\_kernel()} y \textit{derivative\_kernel()},
+respectivamente. No se va a especificar exactamente lo que hacen debido a que solo obtienen los \textit{kernels} con los
+parámetros adecuados (valores de $\sigma$ y tamaño de cada \textit{kernel} para el caso de la Gaussiana, y tamaño del
+\textit{kernel} y número de veces que se deriva en cada eje en el caso de la derivada).
+
+Lo que sí que es importante destacar es que estas dos funciones utilizan una común para realizar la convolución. Como se
+dijo anteriormente, OpenCV realiza como tal la correlación, pero se puede aplicar una convolución realizando unos pocos cambios.
+La función que se puede ver a continuación recibe un \textit{kernel} para cada eje y aplica el filtro mediante la
+convolución:
+
+\begin{lstlisting}[label={alg:apply-kernel}]
+def apply_kernel(img, kx, ky, border):
+    """
+    Funcion que aplica un kernel separable sobre una imagen,
+    realizando una convolucion
+
+    Args:
+        img: Imagen sobre la que aplicar el filtro
+        kx: Kernel en el eje X
+        ky: Kernel en el eje Y
+        border: Tipo de borde
+    Return:
+        Devuelve una imagen filtrada
+    """
+    # Hacer el flip a los kernels para aplicarlos como una convolucion
+    kx_flip = np.flip(kx)
+    ky_flip = np.flip(ky)
+
+    # Realizar la convolucion
+    conv_x = cv.filter2D(img, cv.CV_64F, kx_flip.T,
+    					 borderType=border)
+    conv = cv.filter2D(conv_x, cv.CV_64F, ky_flip,
+    				   borderType=border)
+
+    return conv
+\end{lstlisting}
+
+Como se puede ver, se tiene que hacer un \textit{flip} de los \textit{kernels} para poder aplicar una convolución.
+Al aplicar cada \textit{kernel} de forma separada mediante $filter2D$, se consigue una mayor eficiencia (como se ha
+mencionado anteriormente). Es importante destacar que primero se aplica el \textit{kernel} sobre el eje de las $X$ y,
+sobre el resultado obtenido, se aplica el \textit{kernel} en el eje $Y$. También es importante destacar que, cuando
+se aplica el \textit{kernel} sobre el eje $X$, se le pasa la traspuesta del \textit{kernel}. Esto se debe a que
+OpenCV proporciona los \textit{kernels} como vectores columnas, y para pasarlo por las filas, necesitamos que sea
+un vector fila. Al traponer el vector columna obtenemos, como parece lógico, un vector columna.
+
+Otra cosa muy importante a destacar son los \textit{kernels} que se van a utilizar. Uno de ellos es el \textit{kernel}
+Gaussiano, el cuál es simétrico tanto en el eje $X$ como en el $Y$. Al aplicarlo, por tanto, se podría ahorrar la
+operación del \textit{flip}, ya que lo va a dejar igual. Sin embargo, debido a que se ha implementado la función
+para que sea genérica, se realiza esta operación. El otro \textit{kernel} que se utiliza es el de las derivadas,
+que no es más que un \textit{kernel} de Sobel, el cuál combina alisamiento Gaussiano con la derivada.
+A diferencia del anterior \textit{kernel}, este no es simétrico, y por tanto, la operación de
+\textit{flip} no lo va a dejar igual; por tanto, no puede ser ahorrada en este caso.
+
+Con esto comentado, ya podemos empezar a hablar de los resultados que se han obtenido. Para ello, vamos a comenzar
+comentando los resultados que se obtienen para el filtro Gaussiano.
+
+Lo primero que se ha probado es un \textit{kernel} de $5 \times 5$, variando los valores de $\sigma$ para ver cómo cambiaba.
+A continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.48]{img/gauss-sigma1.png}
+	\subcaption{Filtro Gaussiano con $\sigma = 1$.}
+	\label{fig:gauss-sigma1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.48]{img/gauss-sigma2.png}
+	\subcaption{Filtro Gaussiano con $\sigma = 3$.}
+	\label{fig:gauss-sigma2}
+\end{subfigure}
+\caption{Filtro Gaussiano con diferentes tamaños de $\sigma$.}
+\label{fig:gauss-sigma}
+\end{figure}
+
+Como se puede ver, comparando cualquiera de las imágenes de la figura \ref{fig:gauss-sigma} con \ref{fig:cat}, existen ciertas
+diferencias. Podemos ver claramente como al aplicar el filtro Gaussiano se ha perdido cierto detalle, ya que se están
+eliminando las frecuencias altas. Además, si comparamos las figuras \ref{fig:gauss-sigma1} y \ref{fig:gauss-sigma2}, podemos
+ver que a medida que aumentamos el tamaño de $\sigma$, se van perdiendo más detalles, ya que se emborrona más.
+
+Se ha probado también a variar el tamaño de la máscara, conservando el mismo valor de $\sigma$, para ver qué es lo que sucede.
+A continuación, se puede ver lo que se ha obtenido:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.48]{img/gauss-sigma2.png}
+	\subcaption{Filtro Gaussiano de tamaño $5 \times 5$.}
+	\label{fig:gauss-sigma3}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.48]{img/gauss-size.png}
+	\subcaption{Filtro Gaussiano de tamaño $11 \times 11$.}
+	\label{fig:gauss-size1}
+\end{subfigure}
+\caption{Filtro Gaussiano con diferentes tamaños de \textit{kernel}.}
+\label{fig:gauss-size}
+\end{figure}
+
+Tal y como se puede ver en la figura \ref{fig:gauss-size}, al modificar el tamaño del \textit{kernel} se han obtenido
+diferentes resultados. Esto se debe a que, si se tiene un valor de $\sigma$ alto con una máscara pequeña, esta tiende
+a comportarse como un filtro de caja, ponderando más o menos de forma equitativa a los vecinos del píxel
+
+
 \subsection{Apartado B}
 
 \newpage
@@ -159,7 +324,7 @@ habrá que encontrarlo por experimentación.}
 
 \newpage
 
-\section{Bonus}
+\section{\textsc{Bonus}}
 
 \subsection{Convolución 2D propia}
 

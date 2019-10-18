@@ -609,21 +609,21 @@ visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 1$ and BORDER
 gauss = gaussian_kernel(cat, 5,5, 3, 3, cv.BORDER_REPLICATE)
 visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 3$ and BORDER_REPLICATE')
 
-# Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_REPLICATE
-gauss = gaussian_kernel(cat, 11,11, 4, 4, cv.BORDER_REPLICATE)
-visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_REPLICATE')
+# Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 3 y BORDER_REPLICATE
+gauss = gaussian_kernel(cat, 11,11, 3, 3, cv.BORDER_REPLICATE)
+visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 3$ and BORDER_REPLICATE')
 
-# Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_REFLECT
+# Aplicar Gaussian Blur de tamaño (101, 101) con sigma = 15 y BORDER_REFLECT
 gauss = gaussian_kernel(cat, 101,101, 15, 15, cv.BORDER_REFLECT)
-visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_REFLECT')
+visualize_image(gauss, r'$101 \times 101$ Gaussian Blur with $\sigma = 15$ and BORDER_REFLECT')
 
-# Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_CONSTANT
+# Aplicar Gaussian Blur de tamaño (101, 101) con sigma = 15 y BORDER_CONSTANT
 gauss = gaussian_kernel(cat, 101,101, 15, 15, cv.BORDER_CONSTANT)
-visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_CONSTANT')
+visualize_image(gauss, r'$101 \times 101$ Gaussian Blur with $\sigma = 15$ and BORDER_CONSTANT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigma = 4 y BORDER_DEFAULT
 gauss = gaussian_kernel(cat, 101,101, 15, 15, cv.BORDER_REPLICATE)
-visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma = 4$ and BORDER_DEFAULT')
+visualize_image(gauss, r'$101 \times 101$ Gaussian Blur with $\sigma = 15$ and BORDER_DEFAULT')
 
 # Aplicar Gaussian Blur de tamaño (11, 11) con sigmax = 5, sigmay = 2 y BORDER_REPLICATE
 gauss = gaussian_kernel(cat, 11,11, 5, 2, cv.BORDER_REPLICATE)
