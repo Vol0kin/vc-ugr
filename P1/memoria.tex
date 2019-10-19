@@ -11,6 +11,7 @@
 \usepackage[T1]{fontenc}					% Usar textsc en sections
 \usepackage{amsmath}						% Símbolos matemáticos
 \usepackage{subcaption}
+\usepackage{caption}
 
 
 \usepackage{listings}
@@ -252,9 +253,224 @@ A continuación, se puede ver lo que se ha obtenido:
 \end{figure}
 
 Tal y como se puede ver en la figura \ref{fig:gauss-size}, al modificar el tamaño del \textit{kernel} se han obtenido
-diferentes resultados. Esto se debe a que, si se tiene un valor de $\sigma$ alto con una máscara pequeña, esta tiende
-a comportarse como un filtro de caja, ponderando más o menos de forma equitativa a los vecinos del píxel
+diferentes resultados. Esto se debe a que más píxels forman parte de la máscara (como es obvio), y por tanto, se tiene
+en cuenta una mayor parte de la Gaussiana. Por tanto, existe cierta dependencia entre esto dos valores (el tamaño del
+\textit{kernel} y el valor de $\sigma$). A mayor $\sigma$, mayor tendrá que ser el tamaño de la máscara, para así poder
+modelizar mejor el comportamiento de la función con los píxels vecinos. Si no se adaptase el tamaño del \textit{kernel},
+se tendría que solo se coge una parte pequeña de la función Gaussiana más cercana al centro, ignorando el comportamiento
+de los píxels más lejanos. Tampoco hay que coger un tamaño demasiado grande si el $\sigma$ es pequeño, ya que entonces
+habrán muchos píxels que tendrán un valor muy próximo a 0 (aquellos que estén más alejados). En resumen, que hay
+escoger de forma proporcional el tamaño del \textit{kernel} y el $\sigma$.
 
+Para ver cómo afecta el tipo de borde a la imágen resultante, se han realizado una serie de pruebas variando el borde
+utilizado a la hora de aplicar los \textit{kernels}. Para que los efectos fuesen notables, se ha tenido que escoger un
+tamaño de máscara mucho más grande a los utilizados anteriormente. Esto se debe a que con una máscara pequeña no se
+puede apreciar muy bien el resultado, debido a que no se coge mucha región fuera de los bordes de la imágen. El tamaño de
+la máscara es de $101 \times 101$, permitiendo que se salga lo suficiente de la imágen para ver la influencia. A continuación
+se pueden ver los resultados que se han obtenido:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.47]{img/gauss-border1.png}
+	\subcaption{Borde reflejando la imágen.}
+	\label{fig:gauss-border1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.47]{img/gauss-border2.png}
+	\subcaption{Borde constante.}
+	\label{fig:gauss-border2}
+\end{subfigure}
+\end{figure}
+\begin{figure}[H]\ContinuedFloat
+\begin{subfigure}{\textwidth}
+	\centering
+	\includegraphics[scale=0.5]{img/gauss-border3.png}
+	\subcaption{Borde por defecto (reflejado sin contar el primer píxel).}
+	\label{fig:gauss-border3}
+\end{subfigure}
+\caption{Filtro Gaussiano con diferentes tipos de bordes.}
+\label{fig:gauss-borders}
+\end{figure}
+
+Como se puede ver, existen ciertas diferencias dependiendo de qué tipo de borde se escoja. Si comparamos las figuras
+\ref{fig:gauss-border1} y \ref{fig:gauss-border3} con la figura \ref{fig:gauss-border2}, se puede ver claramente que
+los resultados no son los mismos, ya que en este último caso se utiliza un valor constante para las partes más allá
+de los bordes de las imágenes. Por tanto, la imágen queda como si estuviese enmarcada.
+
+Las diferencias entre las figuras \ref{fig:gauss-border1} y \ref{fig:gauss-border3} son mucho más sutiles, pero notables.
+Se puede ver como por ejemplo en la figura \ref{fig:gauss-border3} la esquina inferior izquierda es más oscura, mientras
+que en la figura \ref{fig:gauss-border1} es más clara. Aunque los dos tipos de borde reflejen la imágen, la forma en la
+que lo hacen es distinto. $BORDER\_DEFAULT$ no considera el píxel del borde, mientras que $BORDER\_REFLECT$ sí que lo hace.
+Todo esto se puede ver mejor explicado aquí. %INSERTAR REFERENCIA
+
+Por último, y antes de pasar al \textit{kernel} de derivada, se ha probado a variar el $\sigma$ que se ha aplicado en cada
+eje, manteniendo constante el tamaño del \textit{kernel}. A continuación se pueden ver cuáles han sido los rsultados obtenidos:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/gauss-diff1.png}
+	\subcaption{Filtro Gaussiano con $\sigma_x = 5$ y $\sigma_y = 2$.}
+	\label{fig:gauss-diff1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/gauss-diff2.png}
+	\subcaption{Filtro Gaussiano con $\sigma_x = 2$ y $\sigma_y = 5$.}
+	\label{fig:gauss-diff2}
+\end{subfigure}
+\caption{Filtro Gaussiano variando el $\sigma$ en cada eje.}
+\label{fig:gauss-diff}
+\end{figure}
+
+Como se puede ver claramente, hay diferencias, debido a que el alisamiento solo se ha hecho en uno de los ejes en
+vez de en los dos. Se puede ver como en la figura \ref{fig:gauss-diff1} el pelo de la frente del gato parece que
+va hacia la derecha, mientras que en la figura \ref{fig:gauss-diff2} el pelo de la frente parece que va hacia abajo.
+Además, en esta segunda imágen se puede ver como los bigotes se han emborronado más que en el primer caso, donde
+son más apreciables.
+
+Con esto ya comentado, pasemos a hablar del \textit{kernel} de las derivadas. Lo primero que podemos hacer es ver
+qué influencia tiene la derivada dependiendo del eje sobre el que se aplique y según el número de veces que se derive
+en cada uno de los ejes. Para ello, vamos a probar la primera y la segunda derivada en cada uno de los ejes de forma
+separada (esto es, que no derivaremos a la vez). A continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/der-x1.png}
+	\subcaption{Filtro de primera derivada en el eje $X$.}
+	\label{fig:der-x1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/der-x2.png}
+	\subcaption{Filtro de segunda derivada en el eje $X$.}
+	\label{fig:der-x2}
+\end{subfigure}
+\end{figure}
+\begin{figure}[H]\ContinuedFloat
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/der-y1.png}
+	\subcaption{Filtro de primera derivada en el eje $Y$.}
+	\label{fig:der-y1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/der-y2.png}
+	\subcaption{Filtro de segunda derivada en el eje $Y$.}
+	\label{fig:der-y2}
+\end{subfigure}
+\caption{Filtro de derivada variando el número de diferenciaciones en cada eje.}
+\label{fig:der}
+\end{figure}
+
+Al pasarlo por el eje $X$, como se puede ver en las figuras \ref{fig:der-x1} y \ref{fig:der-x2}, se puede ver que se van
+quedando aquellos bordes verticales, ya que los horizontales se ven muy poco o nada, como es por ejemplo el caso del pelo
+de las orejas, el cuál casi no se ve, o algunos de los bigotes. En cambio, al pasarlo por el eje $Y$, tal y como se
+puede ver en las figuras \ref{fig:der-y1} y \ref{fig:der-y2}, se van quedando aquellos bordes que horizontales.
+Se puede ver que el pelo en las orejas se puede ver mejor, además de que algunos de los bigote están mejor definidos
+que en el caso anterior. Lo único que se va perdiendo son los bordes del gato como tal, haciendo que, a medida que se
+va derivando más en el eje $Y$, se distinga menos donde empieza el gato y donde está el fondo.
+
+También se ha decidido estudiar qué efecto tiene pasar el \textit{kernel} de las derivadas tanto en el eje $X$ como en
+el $Y$ a la vez, ya que la función $getDerivKernel$ permite especificar el número de diferenciaciones a realizar en cada
+eje. Los resultados que se han obtenido son los siguientes:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.37]{img/der-xy1.png}
+	\subcaption{Filtro de primera derivada en ambos ejes.}
+	\label{fig:der-xy1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.37]{img/der-xy2.png}
+	\subcaption{Filtro de segunda derivada en ambos ejes.}
+	\label{fig:der-xy2}
+\end{subfigure}
+\caption{Filtro de derivada variando el número de diferenciaciones en los dos ejes.}
+\label{fig:der-xy}
+\end{figure}
+
+A diferencia de lo que se ve en la figura \ref{fig:der}, en la figura \ref{fig:der-xy} se observa que aquellos bordes que
+destacan más son los que están en diagonal (es decir, una combinación de los dos ejes). Los horizontales y los verticales
+casi no se notan, como por ejemplo es el caso de los contornos del gato, ya que aquí es incluso más difícil o casi imposible
+distinguir donde empieza el gato y donde empieza el fondo.
+
+Ahora, tal y como hicimos antes, pasemos a ver qué pasa si mantenemos el número de diferenciaciones constante y aumentamos
+el tamaño del \textit{kernel}. Para ello, vamos a establecer que en todos los casos se obtiene la primera derivada en el eje
+$X$. Los resultados de estas variaciones del tamaño del \textit{kernel} se pueden ver a continuación:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.46]{img/der-size1.png}
+	\subcaption{Filtro de tamaño $7 \times 7$.}
+	\label{fig:der-size1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.46]{img/der-size2.png}
+	\subcaption{Filtro de tamaño $11 \times 11$.}
+	\label{fig:der-size2}
+\end{subfigure}
+\begin{subfigure}{\textwidth}
+	\centering
+	\includegraphics[scale=0.46]{img/der-size3.png}
+	\subcaption{Filtro de tamaño $15 \times 15$.}
+	\label{fig:der-size3}
+\end{subfigure}
+\caption{Filtro de primera derivada en el eje $X$ variando el tamaño del \textit{kernel}.}
+\label{fig:der-size}
+\end{figure}
+
+Como resultado más obvio, se puede ver que a medida que va aumentando el tamaño del \textit{kernel}, se va emborronando más
+la imágen. Esto se debe a que uno de los \textit{kernels} de Sobel hace un suavizado, de forma que se va eliminando el ruido.
+A mayor tamaño del \textit{kernel}, más se va a emborronar. Por tanto, aquellos bordes muy finos se van a ir perdiendo. Por
+ejemplo, si comparamos la figura \ref{fig:der-size1} con la figura \ref{fig:der-size3}, podemos ver que los bordes o contornos
+que se pueden ver en la primera figura en la frente del gato han ido desapariciendo o haciéndose menos notables en esta última.
+De esta forma, aumentar el tamaño del \textit{kernel} parece que solo nos aporta más suaviazado. Un tamaño de \textit{kernel}
+relativamente pequeño es suficiente para extraer los contornos.
+
+Por último, vamos a ver como variando el tipo de borde cambia la imágen que obtenemos. Para ello, tal y como hicimos antes, vamos
+a fijar un tamaño de \textit{kernel} relativamente grande para poder apreciar el efecto del borde. En este caso, estamos limitados
+a un tamaño máximo de 31, ya que OpenCV no permite obtener más. Por tanto, vamos a usar este tamaño de \textit{kernel} a la hora
+de variar los bordes, ya que se ha considerado el más adecuado para la labor. A continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.44]{img/der-border1.png}
+	\subcaption{Borde reflejando la imágen.}
+	\label{fig:der-border1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.44]{img/der-border2.png}
+	\subcaption{Borde constante.}
+	\label{fig:der-border2}
+\end{subfigure}
+\begin{subfigure}{\textwidth}
+	\centering
+	\includegraphics[scale=0.44]{img/der-border3.png}
+	\subcaption{Borde por defecto (reflejado sin contar el primer píxel).}
+	\label{fig:der-border3}
+\end{subfigure}
+\caption{Filtro de primera derivada en el eje $X$ variando el tipo de borde.}
+\label{fig:der-border}
+\end{figure}
+
+En este caso, sucede algo parecido a lo que se podía ver en la figura \ref{fig:gauss-borders}. Podemos ver que
+la figura más diferente de todas es la figura \ref{fig:der-border2}. Sin embargo, no parece que haya mucha diferencia
+destacable o notable entre las figuras \ref{fig:der-border1} y \ref{fig:der-border3}, con lo cuál podríamos decir que
+permiten obtener un resultado más o menos parecido, sin demasiadas diferencias. Parece que en este caso el tipo
+de borde que más afecta es el constante, aquél en el que se supone un valor constante para todos los píxels fuera de la imágen.
+Por tanto, si utilizamos cualquier otro tipo de borde no notaríamos mucha diferencia, lo cuál no sucedía en el caso del
+filtro Gaussiano, ya que sí que había algunas diferencias, aunque fuesen muy pocas.
 
 \subsection{Apartado B}
 

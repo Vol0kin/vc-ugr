@@ -636,49 +636,53 @@ visualize_image(gauss, r'$11 \times 11$ Gaussian Blur with $\sigma_x = 2$, $\sig
 ####################################
 # Aplicacion de filtros de derivadas
 
-# Aplicar filtro de primera derivada en el eje X con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(cat, 1, 0, 5, cv.BORDER_DEFAULT)
-visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis and BORDER_DEFAULT')
+# Aplicar filtro de primera derivada en el eje X con tamaño 5 y BORDER_REPLICATE
+der = derivative_kernel(cat, 1, 0, 5, cv.BORDER_REPLICATE)
+visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis and BORDER_REPLICATE')
 
-# Aplicar filtro de primera derivada en el eje Y con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(cat, 0, 1, 5, cv.BORDER_DEFAULT)
-visualize_image(der, r'$5 \times 5$ First Derivative Kernel in Y-axis and BORDER_DEFAULT')
+# Aplicar filtro de primera derivada en el eje Y con tamaño 5 y BORDER_REPLICATE
+der = derivative_kernel(cat, 0, 1, 5, cv.BORDER_REPLICATE)
+visualize_image(der, r'$5 \times 5$ First Derivative Kernel in Y-axis and BORDER_REPLICATE')
 
-# Aplicar filtro de segunda derivada en el eje X con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(cat, 2, 0, 5, cv.BORDER_DEFAULT)
-visualize_image(der, r'$5 \times 5$ Second Derivative Kernel in X-axis and BORDER_DEFAULT')
+# Aplicar filtro de segunda derivada en el eje X con tamaño 5 y BORDER_REPLICATE
+der = derivative_kernel(cat, 2, 0, 5, cv.BORDER_REPLICATE)
+visualize_image(der, r'$5 \times 5$ Second Derivative Kernel in X-axis and BORDER_REPLICATE')
 
-# Aplicar filtro de segunda derivada en el eje Y con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(cat, 0, 2, 5, cv.BORDER_DEFAULT)
-visualize_image(der, r'$5 \times 5$ Second Derivative Kernel in Y-axis and BORDER_DEFAULT')
-
-# Aplicar filtro de primera derivada en ambos ejes con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(cat, 1, 1, 5, cv.BORDER_DEFAULT)
-visualize_image(der, r'$5 \times 5$ First Derivative Kernel in both axis and BORDER_DEFAULT')
-
-# Aplicar filtro de segunda derivada en ambos ejes con tamaño 5 y BORDER_DEFAULT
-der = derivative_kernel(cat, 2, 2, 5, cv.BORDER_DEFAULT)
-visualize_image(der, r'$5 \times 5$ Second Derivative Kernel in both axis and BORDER_DEFAULT')
-
-# Aplicar filtro de primera derivada en ambos ejes con tamaño 7 y BORDER_DEFAULT
-der = derivative_kernel(cat, 1, 1, 7, cv.BORDER_DEFAULT)
-visualize_image(der, r'$7 \times 7$ First Derivative Kernel in both axis and BORDER_DEFAULT')
-
-# Aplicar filtro de primera derivada en ambos ejes con tamaño 11 y BORDER_DEFAULT
-der = derivative_kernel(cat, 1, 1, 11, cv.BORDER_DEFAULT)
-visualize_image(der, r'$11 \times 11$ First Derivative Kernel in both axis and BORDER_DEFAULT')
-
-# Aplicar filtro de primera derivada en ambos ejes con tamaño 15 y BORDER_DEFAULT
-der = derivative_kernel(cat, 1, 1, 15, cv.BORDER_DEFAULT)
-visualize_image(der, r'$15 \times 15$ First Derivative Kernel in both axis and BORDER_DEFAULT')
+# Aplicar filtro de segunda derivada en el eje Y con tamaño 5 y BORDER_REPLICATE
+der = derivative_kernel(cat, 0, 2, 5, cv.BORDER_REPLICATE)
+visualize_image(der, r'$5 \times 5$ Second Derivative Kernel in Y-axis and BORDER_REPLICATE')
 
 # Aplicar filtro de primera derivada en ambos ejes con tamaño 5 y BORDER_REPLICATE
 der = derivative_kernel(cat, 1, 1, 5, cv.BORDER_REPLICATE)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in both axis and BORDER_REPLICATE')
 
-# Aplicar filtro de primera derivada en ambos ejes con tamaño 5 y BORDER_REFLECT
-der = derivative_kernel(cat, 1, 1, 5, cv.BORDER_REFLECT)
-visualize_image(der, r'$5 \times 5$ First Derivative Kernel in both axis and BORDER_REFLECT')
+# Aplicar filtro de segunda derivada en ambos ejes con tamaño 5 y BORDER_REPLICATE
+der = derivative_kernel(cat, 2, 2, 5, cv.BORDER_REPLICATE)
+visualize_image(der, r'$5 \times 5$ Second Derivative Kernel in both axis and BORDER_REPLICATE')
+
+# Aplicar filtro de primera derivada en eje X con tamaño 7 y BORDER_REPLICATE
+der = derivative_kernel(cat, 1, 0, 7, cv.BORDER_REPLICATE)
+visualize_image(der, r'$7 \times 7$ First Derivative Kernel in X-axis and BORDER_REPLICATE')
+
+# Aplicar filtro de primera derivada en eje X con tamaño 11 y BORDER_REPLICATE
+der = derivative_kernel(cat, 1, 0, 11, cv.BORDER_REPLICATE)
+visualize_image(der, r'$11 \times 11$ First Derivative Kernel in X-axis and BORDER_REPLICATE')
+
+# Aplicar filtro de primera derivada en eje X con tamaño 15 y BORDER_REPLICATE
+der = derivative_kernel(cat, 1, 0, 15, cv.BORDER_REPLICATE)
+visualize_image(der, r'$15 \times 15$ First Derivative Kernel in X-axis and BORDER_REPLICATE')
+
+# Aplicar filtro de primera derivada en eje X con tamaño 31 y BORDER_REFLECT
+der = derivative_kernel(cat, 1, 0, 31, cv.BORDER_REFLECT)
+visualize_image(der, r'$31 \times 31$ First Derivative Kernel in X-axis and BORDER_REFLECT')
+
+# Aplicar filtro de primera derivada en eje X con tamaño 31 y BORDER_CONSTANT
+der = derivative_kernel(cat, 1, 0, 31, cv.BORDER_CONSTANT)
+visualize_image(der, r'$31 \times 31$ First Derivative Kernel in X-axis and BORDER_CONSTANT')
+
+# Aplicar filtro de primera derivada en eje X con tamaño 31 y BORDER_DEFAULT
+der = derivative_kernel(cat, 1, 0, 31, cv.BORDER_DEFAULT)
+visualize_image(der, r'$31 \times 31$ First Derivative Kernel in X-axis and BORDER_DEFAULT')
 
 #######################################
 # Apartado B
