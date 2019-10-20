@@ -229,15 +229,14 @@ def log_kernel(img, ksize, sigma_x, sigma_y, border):
 
     # Aplicar filtro Gaussiano
     gauss = gaussian_kernel(img, ksize, ksize, sigma_x, sigma_y, border)
-
+    
+    # Obtener los filtros de derivada segunda en cada eje, aplicados sobre
+    # el filtro Gaussiano
     dx2 = derivative_kernel(gauss, 2, 0, ksize, border)
     dy2 = derivative_kernel(gauss, 0, 2, ksize, border)
-
+    
+    # Combinar los filtros de derivadas y obtener Laplaciana de Gaussiana
     laplace = dx2 + dy2
-    #laplace = np.abs(laplace)
-
-    # Aplicar filtro Laplaciano
-    #laplace = cv.Laplacian(gauss, cv.CV_64F, ksize=ksize, borderType=border)
 
     return laplace
 
@@ -689,19 +688,19 @@ visualize_image(der, r'$31 \times 31$ First Derivative Kernel in X-axis and BORD
 
 # Laplaciana de Gaussiana 5x5 con sigma=1 en cada eje
 laplace = log_kernel(cat, 5, 1, 1, cv.BORDER_REPLICATE)
-visualize_image(laplace)
+visualize_image(laplace, r'$5 \times 5$ Laplacian of Gaussian with $\sigma = 1$ and BORDER_REPLICATE')
 
 # Laplaciana de Gaussiana 5x5 con sigma=3 en cada eje
 laplace = log_kernel(cat, 5, 3, 3, cv.BORDER_REPLICATE)
-visualize_image(laplace)
+visualize_image(laplace, r'$5 \times 5$ Laplacian of Gaussian with $\sigma = 3$ and BORDER_REPLICATE')
+
+# Laplaciana de Gaussiana 31x31 con sigma=1 en cada eje
+laplace = log_kernel(cat, 31, 1, 1, cv.BORDER_REPLICATE)
+visualize_image(laplace, r'$31 \times 31$ Laplacian of Gaussian with $\sigma = 3$ and BORDER_REPLICATE')
 
 # Laplaciana de Gaussiana 5x5 con sigma=1 en cada eje
-laplace = log_kernel(cat, 5, 1, 1, cv.BORDER_REFLECT)
-visualize_image(laplace)
-
-# Laplaciana de Gaussiana 5x5 con sigma=1 en cada eje
-laplace = log_kernel(cat, 5, 3, 3, cv.BORDER_REFLECT)
-visualize_image(laplace)
+laplace = log_kernel(cat, 31, 3, 3, cv.BORDER_CONSTANT)
+visualize_image(laplace, r'$31 \times 31$ Laplacian of Gaussian with $\sigma = 3$ and BORDER_CONSTANT')
 
 ###############################################################################
 ###############################################################################
@@ -711,13 +710,24 @@ visualize_image(laplace)
 # Apartado A
 
 # Obtener una piramide Gaussiana utilizando un kernel 5x5 con sigma de 3 en cada eje
+# y BORDER_REFLECT
 pyr = gaussian_pyramid(cat, 5, 3, 3, cv.BORDER_REFLECT)
 
 # Componer la piramide en una unica imagen
 pyr_img = create_img_pyramid(pyr)
 
 # Visualizar la piramide
-visualize_image(pyr_img)
+visualize_image(pyr_img, r'Gaussian Pyramid using a $5 \times 5$ kernel with $\sigma=3$ and BORDER_REFLECT')
+
+# Obtener una piramide Gaussiana utilizando un kernel 5x5 con sigma de 3 en cada eje
+# y BORDER_CONSTANT
+pyr = gaussian_pyramid(cat, 5, 3, 3, cv.BORDER_CONSTANT)
+
+# Componer la piramide en una unica imagen
+pyr_img = create_img_pyramid(pyr)
+
+# Visualizar la piramide
+visualize_image(pyr_img, r'Gaussian Pyramid using a $5 \times 5$ kernel with $\sigma=3$ and BORDER_CONSTANT')
 
 #######################################
 # Apartado C

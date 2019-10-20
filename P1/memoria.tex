@@ -13,7 +13,6 @@
 \usepackage{subcaption}
 \usepackage{caption}
 
-
 \usepackage{listings}
 \usepackage{xcolor}
  
@@ -39,7 +38,8 @@
     showstringspaces=false,
     showtabs=false,                  
     tabsize=4,
-    language=Python
+    language=Python,
+    literate={ñ}{{\~n}}1
 }
  
 \lstset{style=mystyle}
@@ -161,7 +161,7 @@ dijo anteriormente, OpenCV realiza como tal la correlación, pero se puede aplic
 La función que se puede ver a continuación recibe un \textit{kernel} para cada eje y aplica el filtro mediante la
 convolución:
 
-\begin{lstlisting}[label={alg:apply-kernel}]
+\begin{lstlisting}[caption={Función que aplica un filtro separable.},label={alg:apply-kernel}]
 def apply_kernel(img, kx, ky, border):
     """
     Funcion que aplica un kernel separable sobre una imagen,
@@ -474,6 +474,107 @@ filtro Gaussiano, ya que sí que había algunas diferencias, aunque fuesen muy p
 
 \subsection{Apartado B}
 
+Antes de analizar los resultados, vamos a comentar brevemente cómo es la función de la Laplaciana de Gaussiana. El código
+es el que se puede ver a continuación:
+
+\begin{lstlisting}[caption={Función que aplica una Laplaciana de Gaussiana.},label={alg:log-kernel}]
+def log_kernel(img, ksize, sigma_x, sigma_y, border):
+    """
+    Funcion que aplica un kernel LoG (Laplacian of Gaussian) sobre una imagen.
+
+    Args:
+        img: Imagen sobre la que aplicar el kernel
+        ksize: Tamaño del kernel Gaussiano y Laplaciano
+        sigma_x: Valor de sigma en el eje X de la Gaussiana
+        sigma_y: Valor de sigma en el eje Y de la Gaussiana
+        border: Tipo de borde
+    Return:
+        Devuelve una imagen sobre la que se ha aplicado un filtro LoG
+    """
+
+    # Aplicar filtro Gaussiano
+    gauss = gaussian_kernel(img, ksize, ksize, sigma_x, sigma_y, border)
+    
+    # Obtener los filtros de derivada segunda en cada eje, aplicados sobre
+    # el filtro Gaussiano
+    dx2 = derivative_kernel(gauss, 2, 0, ksize, border)
+    dy2 = derivative_kernel(gauss, 0, 2, ksize, border)
+    
+    # Combinar los filtros de derivadas y obtener Laplaciana de Gaussiana
+    laplace = dx2 + dy2
+
+    return laplace
+\end{lstlisting}
+
+Lo primero que se hace es aplicar un filtro de Gaussiana sobre la imágen de entrada. Al ser éste un filtro de paso bajo, las
+altas frecuencias (y el ruido) se eliminan, quedando una imágen más suavizada. Después, sobre el resultado de aplicar el
+filtro, se obtienen los filtros de segunda derivada para cada eje. Lo único que hay que hacer al final es combinar la
+segunda derivada en el eje $X$ y la segunda derivada en el eje $Y$. Estos dos últimos pasos (diferenciación y suma) se
+han seguido según la fórmula de la Laplaciana, la cuál es:
+
+\begin{equation}
+\texttt{dst} = \Delta \texttt{src} = \frac{\partial^2 \texttt{src}}{\partial x^2} + \frac{\partial^2 \texttt{src}}{\partial y^2}
+\end{equation}
+
+Hay que tener en cuenta que el filtro de derivada tiene una parte que es también un filtro de alisamiento. Por tanto, al
+aplicarlo junto con la Gaussiana, se alisa más la imágen. Esto nos hace replantearnos el uso del filtro Gaussiano del
+principio. Sin embargo, también hay que considerar que el alisamiento de la derivada por sí solo no es muy grande. Por consiguiente,
+vamos a dejar el filtro Gaussiano del principio, aunque se acabe alisndo algo más de lo que se debe.
+
+Una vez comentado esto, vamos a ver cuáles son los resultados que se han obtenido. Lo primero que se ha probado es a variar
+el tamaño del $\sigma$ utilizado, utilizando en ambos casos un \textit{kernel} de $5 \times 5$. Los resultados son los que
+se pueden ver a continuación:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/laplacian-sigma1.png}
+	\subcaption{Filtro con $\sigma = 1$.}
+	\label{fig:laplacian-sigma1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/laplacian-sigma2.png}
+	\subcaption{Filtro con $\sigma = 3$.}
+	\label{fig:laplacian-sigma2}
+\end{subfigure}
+\caption{Filtro de Laplaciana de Gaussiana con diferentes valores de $\sigma$.}
+\label{fig:laplacian-sigma}
+\end{figure}
+
+Como se puede ver, al aumentar el tamaño de $\sigma$ se obtiene un mayor suavizado (debido a la Gaussiana), además de que
+la imágen pierde intensidad debido a esto mismo. Además, se puede ver como los bordes son más gruesos. En la figura
+\ref{fig:laplacian-sigma1} los bordes en las orejas y los bigotes son mucho más finos que los que se pueden ver en la
+figura \ref{fig:laplacian-sigma2}. Esto se debe a lo comentado anteriormente: un mayor emoborronamiento.
+
+Como también se ha pedido, se ha probado a modificar el tipo de borde utilizado para ver qué efecto tiene sobre la imágen
+resultante. Para ello, tal y como se ha hecho anteriormente se ha utilizado un \textit{kernel} de mayor tamaño, concretamente
+de 31. De esta forma, el efecto sería más apreciable. Se ha utilizado el mismo borde que se puede ver en la figura
+\ref{fig:laplacian-sigma}, y otro más. Además, se ha fijado un $\sigma = 3$ para los dos casos. Los resultados se pueden ver
+a continuación:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/laplacian-border1.png}
+	\subcaption{Filtro replicando el píxel del borde.}
+	\label{fig:laplacian-border1}
+\end{subfigure}
+\begin{subfigure}{.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{img/laplacian-border2.png}
+	\subcaption{Filtro con borde constante.}
+	\label{fig:laplacian-border2}
+\end{subfigure}
+\caption{Filtro de Laplaciana de Gaussiana con diferentes valores de $\sigma$.}
+\label{fig:laplacian-border}
+\end{figure}
+
+Claramente se pueden apreciar las diferencias. Se puede ver que la imágen que se ve en la figura \ref{fig:laplacian-border2}
+parece estar enmarcada, debido a que tiene los píxels de color negro en los bordes. Además, tiene una mayor intensidad que
+la que se puede ver en la figura \ref{fig:laplacian-border1}, aunque el precio a pagar ha sido que se ha perdido demasiado
+detalle por el camino.
+
 \newpage
 
 \section{\textsc{Ejercicio sobre pirámides y detección de regiones}}
@@ -503,7 +604,150 @@ filtro Gaussiano, ya que sí que había algunas diferencias, aunque fuesen muy p
 
 \subsection{Apartado A}
 
+Para crear la pirámide Gaussiana, se ha utilizado la siguiente función:
+
+\begin{lstlisting}[caption={Función que crea una priámide Gaussiana.},label={alg:guassian-pyramid}]
+def gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
+    """
+    Funcion que devuelve una piramide Gaussiana de tamaño N
+
+    Args:
+        img: Imagen de la que extraer la piramide
+        ksize: Tamaño del kernel
+        sigma_x: Valor de sigma en el eje X
+        sigma_y: Valor de sigma en el eje Y
+        border: Tipo de borde a utilizar
+        N: Numero de imagenes que componen la piramide (default 4)
+
+    """
+    # Inicializar la piramide con la primera imagen
+    gaussian_pyr = [img]
+
+    for i in range(1, N):
+        # Obtener el elemento anterior de la piramide Gaussiana
+        prev_img = np.copy(gaussian_pyr[i - 1])
+
+        # Aplicar Gaussian Blur
+        gauss = gaussian_kernel(prev_img, ksize, ksize, sigma_x, sigma_y, border)
+
+        # Reducir el tamaño de la imagen a la mitad
+        down_sampled_gauss = gauss[1::2, 1::2]
+
+        # Añadir imagen a la piramide
+        gaussian_pyr.append(down_sampled_gauss)
+
+
+    return gaussian_pyr
+\end{lstlisting}
+
+Entender el funcionamiento del código es bastante directo, pero por si acaso, vamos a describir brevemente lo que hace. Esta
+función crea la pirámide Gaussiana de $N$ niveles (contando como primer nivel la imágen original). Por tanto, la imágen
+resultante estará compuesta de la imágen original y las $N - 1$ reducciones de la imágen original. Para obtener la siguiente
+imágen de la pirámide, simplemente basta con coger el nivel anterior, aplicarle un filtro Gaussiano y reducir su tamaño a la
+mitad, y posteriormente guardar el resultado. Todo esto se corresponde con la parte del bucle, la cuál se realiza $N - 1$ veces.
+
+Lo más importante a destacar es el escalado de la imágen, el cuál puede ser visto en línea 25. Lo que se hace es coger todas las
+filas y columnas pares, ignorando las impares. De esta forma, si se escala una imágen que tenga alguna de sus dimensiones (o bien
+el número de filas o bien el número de columnas) impar, en el siguiente nivel estos valores serán pares. De la otra forma, si
+cogíesemos las filas y columnas impares, esto no se daría, ya que si alguna de las dimensiones fuese impar, en el siguiente
+nivel también lo sería. Es preferible trabajar con dimensiones pares, ya que así se pierde menos información al tomar una
+muestra de su espacio.
+
+Una vez habiendo comentado esto, vamos a ver algún ejemplo de pirámide Gaussiana:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{img/gauss-pyr-1.png}
+\caption{Pirámide Gaussiana utilizando un \textit{kernel} $5 \times 5$ en cada nivel con $\sigma = 3$.}
+\label{fig:gauss-pyr-1}
+\end{figure}
+
+Tal y como se puede ver en la figura \ref{fig:gauss-pyr-1} se crea una pirámide en la que al reducir el tamaño de la
+imágen no se pierde demasiado detalle, ya que la figura del gato sigue siendo distinguible en cada nivel.
+
+Se ha elegido un tamaño de \textit{kernel} de $5 \times 5$ con un $\sigma = 3$ en cada eje porque es una máscara no
+muy grande y que aplica un suavizado suficiente para cada nivel, es decir, que ni aplica demasiado ni demasiado poco, tal
+y como se comprobó en la figura \ref{fig:gauss-sigma}. Otro motivo importante es que, cuantos más niveles tenga la pirámide,
+más pequeña se irá haciendo la imágen, y por tanto, no interesa tener una máscara enorme con un sigma muy grande, ya que se
+va a emborronar demasiado. Se ha elegido un borde de tipo reflejo porque en general no modifica mucho la imágen de salida.
+
+Para ver si cambiando el tipo de borde obtenemos algo diferente, se ha probado a utilizar un borde constante.
+El resto de parámetros se han dejado igual. A continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{img/gauss-pyr-2.png}
+\caption{Pirámide Gaussiana con borde constante.}
+\label{fig:gauss-pyr-2}
+\end{figure}
+
+Se puede ver que existen unas pequeñas diferencias si lo comparamos con la figura \ref{fig:gauss-pyr-1}. En los niveles
+más altos, no tiene mucha influencia el haber cambiado el tipo de borde, pero a medida que la imágen se va haciendo más pequeña,
+se pueden ver como comienzan a aparecer los recuadros negros, tal y como hemos visto anteriormente en la figura
+\ref{fig:gauss-border2}. A parte de esto, no hay muchas más diferencias apreciables, lo cuál se puede deber a
+que el tamaño del \textit{kernel} no es tan grande a como lo era antes.
+
 \subsection{Apartado B}
+
+Para crear la pirámide Laplaciana, se ha utilizado la siguiente función:
+
+\begin{lstlisting}[caption={Función que crea una pirámide Laplaciana.},label={alg:laplacian-pyramid}]
+def laplacian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
+    """
+    Funcion que crea una piramide Laplaciana de una imagen
+
+    Args:
+        img: Imagen de la que crar la piramide
+        ksize: Tamaño del kernel
+        sigma_x: Valor de sigma en el eje X
+        sigma_y: Valor de sigma en el eje Y
+        border: Tipo de borde
+        N: Numero de componentes de la piramide. El nivel Gaussiano (ultimo)
+           no esta incluido(default 4)
+    Return:
+        Devuelve una lista que contiene las imagenes que forman la piramide
+    """
+
+    # Obtener piramide Gaussiana de un nivel mas
+    gaussian_pyr = gaussian_pyramid(img, ksize, sigma_x, sigma_y, border, N+1)
+
+    # Crear la lista que contendra la piramide Laplaciana
+    # Se inserta el ultimo elemento de la piramide Gaussiana primero
+    laplacian_pyr = [gaussian_pyr[-1]]
+
+    # Recorrer en orden inverso la piramide Gaussiana y generar la Laplaciana
+    for i in reversed(range(1, N+1)):
+        # Obtener la imagen actual y la anterior
+        current_img = gaussian_pyr[i]
+        previous_img = gaussian_pyr[i - 1]
+
+        # Hacer upsampling de la imagen actual
+        upsampled_img = np.repeat(current_img, 2, axis=0)
+        upsampled_img = np.repeat(upsampled_img, 2, axis=1)
+
+        # Si falta una fila, copiar la ultima
+        if upsampled_img.shape[0] < previous_img.shape[0]:
+            upsampled_img = np.vstack([upsampled_img, upsampled_img[-1]])
+
+        # Si falta una fila, copiar la ultima
+        if upsampled_img.shape[1] < previous_img.shape[1]:
+            upsampled_img = np.hstack([upsampled_img, upsampled_img[:, -1].reshape(-1, 1)])
+
+        # Pasar un Gaussian Blur a la imagen escalada para intentar suavizar el efecto de las
+        # filas y las columnas repetidas
+        upsampled_gauss = gaussian_kernel(upsampled_img, ksize, ksize, sigma_x, sigma_y, border)
+
+        # Restar la imagen orignal de la escalada para obtener detalles
+        diff_img = previous_img - upsampled_gauss
+
+        # Guardar en la piramide
+        laplacian_pyr.insert(0, diff_img)
+
+
+    return laplacian_pyr
+\end{lstlisting}
+
+Esta vez, a diferencia de lo que se podía ver en el código \ref{alg:guassian-pyramid}
 
 \subsection{Apartado C}
 
