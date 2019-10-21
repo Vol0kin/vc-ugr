@@ -437,7 +437,7 @@ def laplacian_scale_space(img, ksize, border, N, sigma=1.0, sigma_inc=1.2):
         # Suprimir no maximos
         supressed_level = non_max_supression(level_img)
 
-        # Guardas imagen y sigma
+        # Guardar imagen y sigma
         scale_space.append(supressed_level)
         sigma_list.append(sigma)
 
@@ -710,14 +710,14 @@ visualize_image(laplace, r'$31 \times 31$ Laplacian of Gaussian with $\sigma = 3
 # Apartado A
 
 # Obtener una piramide Gaussiana utilizando un kernel 5x5 con sigma de 3 en cada eje
-# y BORDER_REFLECT
-pyr = gaussian_pyramid(cat, 5, 3, 3, cv.BORDER_REFLECT)
+# y BORDER_REPLICATE
+pyr = gaussian_pyramid(cat, 5, 3, 3, cv.BORDER_REPLICATE)
 
 # Componer la piramide en una unica imagen
 pyr_img = create_img_pyramid(pyr)
 
 # Visualizar la piramide
-visualize_image(pyr_img, r'Gaussian Pyramid using a $5 \times 5$ kernel with $\sigma=3$ and BORDER_REFLECT')
+visualize_image(pyr_img, r'Gaussian Pyramid using a $5 \times 5$ kernel with $\sigma=3$ and BORDER_REPLICATE')
 
 # Obtener una piramide Gaussiana utilizando un kernel 5x5 con sigma de 3 en cada eje
 # y BORDER_CONSTANT
@@ -730,16 +730,28 @@ pyr_img = create_img_pyramid(pyr)
 visualize_image(pyr_img, r'Gaussian Pyramid using a $5 \times 5$ kernel with $\sigma=3$ and BORDER_CONSTANT')
 
 #######################################
-# Apartado C
+# Apartado B
 
 # Obtener una piramide Laplaciana utilizando un kernel 5x5 con sigma 3 en cada eje
-pyr = laplacian_pyramid(cat, 5, 3, 3, cv.BORDER_REFLECT)
+# y BORDER_REPLICATE
+pyr = laplacian_pyramid(cat, 5, 3, 3, cv.BORDER_REPLICATE)
 
 # Componer la piramide en una unica imagen
 pyr_img = create_img_pyramid(pyr)
 
 # Visualizar la piramide
-visualize_image(pyr_img)
+visualize_image(pyr_img, r'Laplacian Pyramid using a $5 \times 5$ kernel with $\sigma=3$ and BORDER_REPLICATE')
+
+# Obtener una piramide Laplaciana utilizando un kernel 5x5 con sigma 3 en cada eje
+# y BORDER_CONSTANT
+pyr = laplacian_pyramid(cat, 5, 3, 3, cv.BORDER_CONSTANT)
+
+# Componer la piramide en una unica imagen
+pyr_img = create_img_pyramid(pyr)
+
+# Visualizar la piramide
+visualize_image(pyr_img, r'Laplacian Pyramid using a $5 \times 5$ kernel with $\sigma=3$ and BORDER_CONSTANT')
+
 
 #######################################
 # Apartado C
@@ -750,9 +762,9 @@ scale, sigma = laplacian_scale_space(cat, 5, cv.BORDER_REPLICATE, 5)
 
 # Para cada elemento del conjunto, visualizar el resultado y las regiones con circulos
 # verdes, los cuales tienen una escala de 15*sigma
-for i, j  in zip(scale, sigma):
-    visualize_image(i)
-    visualize_laplacian_scale_space(i, j)
+for img, sigma  in zip(scale, sigma):
+    visualize_image(img, r'Non-max supressed image using $\sigma={}$'.format(sigma))
+    visualize_laplacian_scale_space(img, sigma, r'Relevant features using $\sigma={}$'.format(sigma))
 
 
 ###############################################################################

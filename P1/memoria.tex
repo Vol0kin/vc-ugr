@@ -669,7 +669,8 @@ Se ha elegido un tamaño de \textit{kernel} de $5 \times 5$ con un $\sigma = 3$ 
 muy grande y que aplica un suavizado suficiente para cada nivel, es decir, que ni aplica demasiado ni demasiado poco, tal
 y como se comprobó en la figura \ref{fig:gauss-sigma}. Otro motivo importante es que, cuantos más niveles tenga la pirámide,
 más pequeña se irá haciendo la imágen, y por tanto, no interesa tener una máscara enorme con un sigma muy grande, ya que se
-va a emborronar demasiado. Se ha elegido un borde de tipo reflejo porque en general no modifica mucho la imágen de salida.
+va a emborronar demasiado. Se ha elegido un borde de tipo replicado porque en general no modifica mucho la imágen de salida.
+En este caso, la pirámide es de 4 niveles; es decir, $N=4$, tal y como se ha pedido.
 
 Para ver si cambiando el tipo de borde obtenemos algo diferente, se ha probado a utilizar un borde constante.
 El resto de parámetros se han dejado igual. A continuación se pueden ver los resultados:
@@ -747,9 +748,270 @@ def laplacian_pyramid(img, ksize, sigma_x, sigma_y, border, N=4):
     return laplacian_pyr
 \end{lstlisting}
 
-Esta vez, a diferencia de lo que se podía ver en el código \ref{alg:guassian-pyramid}
+Esta vez, a diferencia de lo que se podía ver en el código \ref{alg:guassian-pyramid}, el código puede que no
+sea tan sencillo de entender. Por tanto, vamos a intentar explicar de manera breve y simple qué es lo que hace.
+
+Para generar una pirámide Laplaciana de $N$ niveles, lo más fácil es partir de una pirámide Gaussiana de $N + 1$ niveles
+(el último será la imágen más pequeña, la cuál contendrá las bajas frecuencias, a diferencia del resto de imágenes
+de la priámide). Comenzando desde esta imágen más pequeña, se realiza un escalado hacia arriba para que tenga las mismas
+dimensiones de la imágen del nivel anterior. Este escalado se realiza replicando todas las filas y columnas. Sobre este
+escalado se aplica un filtro Gaussiano para suavizar la imágen, ya que contiene información redundante e interesa
+modificar los píxels para que se tenga en cuenta el entorno. Finalmente, se resta la imágen escalada y suavizada
+al anterior nivel de la pirámide Gaussiana para obtener las altas frecuencias, y se almacena esta información.
+
+El proceso de escalado o \textit{upsampling} es muy importante, y se debe destacar la forma en la que se hace. Este
+procedimiento se puede ver en las líneas 31-40. Como se dijo anteriormente, se replican las filas y columnas, insertándolas
+al lado de las originales. Este es el procedimiento más sencillo que se puede realizar, ya que se duplica el tamaño de la
+imágen con valores ``válidos''. Sin embargo, aparece un pequeño problema: puede suceder que alguna de las dimensiones
+de la imágen del nivel anterior sea impar. Como las imágenes deben tener el mismo tamaño para poder obtener las altas
+frecuencias, lo que se ha decidido es añadir una fila o una columna más, o ambos, al final de la imágen, replicando por
+tanto la última fila/columna. De esta forma nos aseguramos de que siempre la imágen escalada y la del nivel anterior
+de la pirámide Gaussiana tengan el mismo tamaño.
+
+A continuación se pude ver un ejemplo de pirámide Laplaciana. Tal y como se hizo antes, se ha elegido un tamaño de
+\textit{kernel} de $5 \times 5$ con un $\sigma = 3$ en cada eje, ya que así no se emborrona mucho la imágen en cada nivel.
+De nuevo, el tipo de borde es el de replicado, porque no modifica mucho la imágen. En este caso, se ha generado
+una pirámide Laplaciana con $N=4$, lo cuál significa que el resultado tendrá un nivel extra, el cuál será la imágen más pequeña
+con las frecuencias bajas. El resultado es el siguiente:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{img/lap-pyr-1.png}
+\caption{Pirámide Laplaciana utilizando un \textit{kernel} $5 \times 5$ en cada nivel con $\sigma = 3$.}
+\label{fig:lap-pyr-1}
+\end{figure}
+
+Se puede ver que los niveles bajos son los que tienen las frecuencias altas, mientras que el más alto (el último) es el
+que contiene las frecuencias bajas de la imágen. De esta forma, se puede realizar una reconstrucción de la imágen sencilla
+y conservando casi todos los detalles, cosa que con la pirámide Gaussiana no ocurría, ya que solo se almacenan las bajas
+frecuencias.
+
+De nuevo, tal y como hicimos antes, para ver qué efecto tiene cambiar el tipo de borde, vamos a probar a construir la misma
+pirámide, pero cambiando a un borde de tipo constante. A continuación se puede ver la pirámide resultante:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{img/lap-pyr-2.png}
+\caption{Pirámide Laplaciana con tipo de borde constante.}
+\label{fig:lap-pyr-2}
+\end{figure}
+
+Se puede ver que sí que existen ciertas diferencias si se compara con la figura \ref{fig:lap-pyr-1}. De nuevo, es como
+si la imágen estuviese enmarcada, ya que empiezan a aparecer bordes, aunque esta vez son blancos en las imágenes de altas
+frecuencias, y de forma menos visible pero aún así presente, negros en la imágen de baja frecuencia, tal y como sucedía en
+la figura \ref{fig:gauss-pyr-2}. 
 
 \subsection{Apartado C}
+
+Para comenzar, vamos a ilustrar cuál es el código que realiza la función de obtener un espacio de escalas Laplaciano:
+
+\begin{lstlisting}[caption={Función que crea un espacio de escalas Laplaciano},label={alg:lap-space-scale}]
+def laplacian_scale_space(img, ksize, border, N, sigma=1.0, sigma_inc=1.2):
+    """
+    Funcion que construye el espacio de escalas Laplaciano de una imagen dada
+
+    Args:
+        img: Imagen de la que extraer el espacio de escalas
+        ksize: Tamaño del kernel
+        border: Tipo de borde
+        N: Numero de escalas
+        sigma: Valor inicial del kernel (default 1)
+        sigma_inc: Multiplicador que incrementa el sigma (default 1.2)
+    Return:
+        Devuelve una lista con N imagenes, formando el espacio de escalas y los
+        valores de sigma utilizados
+    """
+    # Crear listas que contendran las imagenes y los sigma
+    scale_space = []
+    sigma_list = []
+
+    # Crear las N escalas
+    for _ in range(N):
+        # Aplicar Laplacian of Gaussian
+        level_img = log_kernel(img, ksize, sigma, sigma, border)
+
+        # Normalizar multiplicando por sigma^2
+        level_img *= sigma ** 2
+
+        # Elevar al cuadrado la imagen resultante
+        level_img = level_img ** 2
+
+        # Suprimir no maximos
+        supressed_level = non_max_supression(level_img)
+
+        # Guardar imagen y sigma
+        scale_space.append(supressed_level)
+        sigma_list.append(sigma)
+
+        # Incrementar sigma
+        sigma *= sigma_inc
+
+    return scale_space, sigma_list
+\end{lstlisting}
+
+Esta función es bastante sencilla de entender. Se encarga de crear un espacio de escalas Laplaciano de $N$ niveles.
+Para ello, partiendo siempre de la imágen original, aplica un filtro de Laplaciana de Gaussiana como el que se puede
+ver en el algoritmo \ref{alg:log-kernel}. Después, normaliza la imágen multiplicando por $\sigma^2$ y, para eliminar
+todos aquellos valores negativos, se eleva cada píxel de la imágen resultante al cuadrado. Acto seguido se suprimen
+los no máximos y se guarda la imágen resultante. También se guarda el $\sigma$ utilizado, aunque esto es para ofrecer
+información extra luego. Finalmente, se multiplica $\sigma$ por 1.2, y se repite todo el proceso.
+
+Como se pude ver, por defecto, el valor de $\sigma$ inicial es 1, ya que no interesa aplicar mucho alisamiento al principio.
+Adicionalemnte, el incremento por defecto de $\sigma$ es 1.2, ya que de esta forma se puede ver mejor como van evolucionando
+las regiones relevantes.
+
+Para la supresión de no máximos se ha utilizado la siguiente función:
+
+\begin{lstlisting}[caption={Función que hace la supresión de no máximos.},label={alg:non-max-supression}]
+def non_max_supression(img):
+    """
+    Funcion que realiza la supresion de no maximos dada una imagen de entrada
+
+    Args:
+        img: Imagen sobre la que realizar la supresion de no maximos
+    Return:
+        Devuelve una nueva imagen sobre la que se han suprimido los maximos
+    """
+    # Crear imagen inicial para la supresion de maximos (inicializada a 0)
+    supressed_img = np.zeros_like(img)
+
+    # Para cada pixel, aplicar una caja 3x3 para determinar el maximo local
+    for i,j in np.ndindex(img.shape):
+        # Obtener la region 3x3 (se consideran los bordes para que la caja
+        # tenga el tamaño adecuado, sin salirse)
+        region = img[max(i-1, 0):i+2, max(j-1, 0):j+2]
+
+        # Obtener el valor actual y el maximo de la region
+        current_val = img[i, j]
+        max_val = np.max(region)
+
+        # Si el valor actual es igual al maximo, copiarlo en la imagen de supresion
+        # de no maximos
+        if max_val == current_val:
+            supressed_img[i, j] = current_val
+
+    return supressed_img
+\end{lstlisting}
+
+Lo único que se realiza es crear una imágen nueva con todos los valores a 0, y se recorre la imágen sobre la que se
+ha aplicado el filtro Laplaciana de Gaussiana normalizado y elevado al cuadrado. En cada caso se comprueba si el píxel
+$(i, j)$, es decir, el actual, tiene el mismo valor que el máximo de la región. Para la región, se ha escogido un
+tamaño de $3 \times 3$, porque es el que se escoge normalmente. En caso de que el píxel actual sea igual al máximo, se copia
+su valor en la posición $(i, j)$ de la imágen resultante. En caso contrario, se deja a 0, ya que no es un máximo.
+
+Puede que la línea que resulte más intrigante del algoritmo \ref{alg:non-max-supression} es la 17, donde se determina
+la región. De la forma en la que se hace, nos aseguramos que en ningún momento nos salimos de las dimensiones de la
+matriz que representa la imágen por la izquierda y por arriba, ya que no importa que nos pasemos de más por los extremos
+de la derecha y por abajo. De esta forma, controlamos los bordes. En caso de no hacerlo así, obtendríamos un error por
+problemas de indexación. No hace falta controlar que no nos salgamos de los otros bordes porque Numpy no da problemas
+al pasarnos de tamaño, siempre y cuando alguno de los píxels de la imágen formen parte de esa región.
+
+Una vez comentado esto, vamos a ver cómo sería aplicar esta función sobre nuestra imágen del gato. Para ello, vamos
+a obtener un espacio de escalas con 5 escalas utilizando un \textit{kernel} de tamaño 5 y borde de replicado. Se ha
+escogido este tamaño de máscara porque nos ha ofrecido unos buenos resultados en los apartados anteriores, y el borde
+de replicado ofrece unos resultados razonables. El resto de parámetros ($\sigma$ e incremento) se dejan a los valores
+por defecto por los motivos comentados anteriormente.
+
+También se pide que, sobre estas escalas se dibujen círculos proporcionales a $\sigma$ de las regiones relevantes. Ya
+que no se indica exactamente cómo hacerlo, vamos a suponer que aquellas regiones relevantes son las que tienen una intensidad
+de gris superior a 128. Como tampoco se indica qué tamaño deben tener los círculos, vamos a suponer que tienen un radio de
+$15\sigma$ según el $\sigma$ utilizado para la escala.
+
+A continuación se pueden ver la imágen resultado de aplicarle la supresión de no máximos y la imágen con las regiones relevantes:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/non-max1.png}
+	\caption{Supresión de no máximos del nivel 1.}
+	\label{fig:non-max1}
+\end{subfigure}
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/features1.png}
+	\caption{Regiones relevantes del nivel 1.}
+	\label{fig:features1}
+\end{subfigure}
+\caption{Resultados del nivel 1 de escalas Laplaciano.}
+\label{fig:lap-scale-space1}
+\end{figure}
+
+\begin{figure}[H]
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/non-max2.png}
+	\caption{Supresión de no máximos del nivel 2.}
+	\label{fig:non-max2}
+\end{subfigure}
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/features2.png}
+	\caption{Regiones relevantes del nivel 2.}
+	\label{fig:features2}
+\end{subfigure}
+\caption{Resultados del nivel 2 de escalas Laplaciano.}
+\label{fig:lap-scale-space2}
+\end{figure}
+
+\begin{figure}[H]
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/non-max3.png}
+	\caption{Supresión de no máximos del nivel 3.}
+	\label{fig:non-max3}
+\end{subfigure}
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/features3.png}
+	\caption{Regiones relevantes del nivel 3.}
+	\label{fig:features3}
+\end{subfigure}
+\caption{Resultados del nivel 3 de escalas Laplaciano.}
+\label{fig:lap-scale-space3}
+\end{figure}
+
+\begin{figure}[H]
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/non-max4.png}
+	\caption{Supresión de no máximos del nivel 4.}
+	\label{fig:non-max4}
+\end{subfigure}
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/features4.png}
+	\caption{Regiones relevantes del nivel 4.}
+	\label{fig:features4}
+\end{subfigure}
+\caption{Resultados del nivel 4 de escalas Laplaciano.}
+\label{fig:lap-scale-space4}
+\end{figure}
+
+\begin{figure}[H]
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/non-max5.png}
+	\caption{Supresión de no máximos del nivel 5.}
+	\label{fig:non-max5}
+\end{subfigure}
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/features5.png}
+	\caption{Regiones relevantes del nivel 5.}
+	\label{fig:features5}
+\end{subfigure}
+\caption{Resultados del nivel 5 de escalas Laplaciano.}
+\label{fig:lap-scale-space5}
+\end{figure}
+
+Como se puede ver, a medida que va aumentando el valor de $\sigma$ el número de regiones relevantes se va incrementando.
+Esto puede deberse a que al incrementar el valor de $\sigma$ se suaviza más, y por tanto, los píxels comienzan a tener
+unos valores más similares.
+
+Puede que este incremento de regiones no se vea muy nítido en el documento debido al tamaño de las figuras y a la compresión
+que se hace de las imágenes, pero si nos fijamos en las regiones de los ojos, las orejas y los bigotes, podemos ver que se van
+``encendiendo'' más píxels. Esto se pone de manifiesto con la cantidad de círculos nuevos que van apareciendo en estas zonas,
+ya que a medida que aumenta el $\sigma$ van apareciendo más y más.
 
 \newpage
 
