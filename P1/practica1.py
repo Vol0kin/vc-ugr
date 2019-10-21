@@ -559,6 +559,10 @@ def convolution(img, kernel_x, kernel_y):
     Return:
         Devuelve la convolucion de la imagen con los kernels de entrada
     """
+    # Hacer que los kernels sean vectores columna
+    kernel_x = kernel_x.reshape(-1, 1)
+    kernel_y = kernel_y.reshape(-1, 1)
+    
     # Realizar un flip sobre los kernels
     kernel_x_flip = np.flip(kernel_x)
     kernel_y_flip = np.flip(kernel_y)
@@ -815,19 +819,21 @@ visualize_image(pyr_img)
 ###############################################################################
 # BONUS
 
+#######################################
 # BONUS 1
 
 # Hacer la convolucion con el kernel gaussiano
-kx = cv.getGaussianKernel(5, 1)
-ky = cv.getGaussianKernel(5, 1)
+kx = cv.getGaussianKernel(5, 3)
+ky = cv.getGaussianKernel(5, 3)
 gauss = convolution(cat, kx, ky)
-visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 1$ using convolution')
+visualize_image(gauss, r'$5 \times 5$ Gaussian Blur with $\sigma = 3$ using convolution')
 
 # Hacer la convolucion con el kernel de la primera derivada en el eje X
 kx, ky = cv.getDerivKernels(1, 0, 5, normalize=True)
 der = convolution(cat, kx, ky)
 visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis using convolution')
 
+#######################################
 # BONUS 2
 cat_color = read_image('imagenes/cat.bmp', 1)
 dog_color = read_image('imagenes/dog.bmp', 1)

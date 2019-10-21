@@ -13,6 +13,9 @@
 \usepackage{subcaption}
 \usepackage{caption}
 
+\usepackage{mathtools}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
 \usepackage{listings}
 \usepackage{xcolor}
  
@@ -1040,9 +1043,196 @@ habrá que encontrarlo por experimentación.}
 
 \subsection{Apartado 1}
 
+En este apartado se ha pedido crear las funciones. Por tanto, en el siguiente apartado veremos las composiciones
+que se han creado. Así que, de momento, vamos a echarle un vistazo a la función que permite crear las imágenes híbridas:
+
+\begin{lstlisting}[caption={Función que crea imágenes híbridas.},label={alg:hybrid-img}]
+def hybrid_image_generator(img_low, img_high, ksize, sigma_low, sigma_high, border):
+    """
+    Funcion que permite crear una imagen hibrida combinando dos imagenes
+
+    Args:
+        img_low: Imagen que sera utilizada para las bajas frecuencias
+        img_high: Imagen que sera utilizada para las altas frecuencias
+        ksize: Tamaño del kernel (es una tupla)
+        sigma_low: Sigma para la imagen de bajas frecuencias
+        sigma_high: Sigma para la imgane de altas frecuencias
+        border: Tipo de borde
+    Return:
+        Devuelve una lista que contiene la imagen de bajas frecuencias, la de altas
+        y la hibrida
+    """
+    # Crear la imagen de bajas frecuencias aplicando filtro Gaussiano
+    low_freq_img = gaussian_kernel(img_low, ksize, ksize, sigma_low, sigma_low, border)
+
+    # Crear imagen de altas frecuencias aplicando filtro Gaussiano y restando a la original
+    gauss_high_freq = gaussian_kernel(img_high, ksize, ksize, sigma_high, sigma_high, border)
+    high_freq_img = img_high - gauss_high_freq
+
+    # Crear la imagen hibrida combinando las dos
+    hybrid = low_freq_img + high_freq_img
+
+    return [low_freq_img, high_freq_img, hybrid]
+\end{lstlisting}
+
+Esta función crea la imágen híbrida con las frecuencias bajas de la primera y las altas de la segunda imágen que se le pasa.
+Junto a esta, obtiene también las imágenes de bajas y altas frecuencias que se utilizan para componer la híbrida.
+Para obtener las frecuencias bajas, basta con simplemente pasar un filtro Gaussiano. Para las altas, solo tenemos que obtener
+las frecuencias bajas y restárselo a la imágen original, obteniendo por tanto las frecuencias altas. Finalmente, solo hace
+falta combinar las dos imágenes resultantes en una sumándolas. De esta forma, se obtiene una imágen híbrida, compuesta
+por las altas frecuencias de una de las imágenes y las altas de la otra.
+
+Para visualizarlas, se ha creado la siguiente función:
+
+\begin{lstlisting}[caption={Función que muestra múltiples imágenes en la misma ventana.},label={alg:vis-mult}]
+def visualize_mult_images(images, titles=None):
+    """
+    Funcion que pinta multiples imagenes en una misma ventana. Adicionalmente
+    se pueden especificar que titulos tendran las imagenes.
+
+    Args:
+        images: Lista con las imagenes
+        titles: Titulos que tendran las imagenes (default None)
+    """
+
+    # Obtener el numero de imagenes
+    n_img = len(images)
+
+    # Crear n_cols sublots (un subplot por cada imagen)
+    # El formato sera 1 fila con n_cols columnas
+    _, axarr = plt.subplots(1, n_img)
+
+    # Pintar cada imagen
+    for i in range(n_img):
+        # Convertir la imagen a uint8
+        img = transform_img_uint8(images[i])
+
+        # Pasarla de BGR a RGB
+        img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+
+        # Obtener siguiente imagen
+        axarr[i].imshow(img)
+
+        # Determinar si hay que poner o no titulo
+        if titles != None:
+            axarr[i].set_title(titles[i])
+
+        axarr[i].axis('off')
+
+    # Mostar imagenes
+    plt.show()
+\end{lstlisting}
+
+Para mostrarlas, las imágenes se pasan primero a \textit{uint8} (hace falta recordar que hemos estado trabajando con
+imágenes en \textit{float64} hasta ahora). Además, ya que se está usando el módulo \textit{matplotlib}, se tiene
+que cambiar del formato BGR (el que usa OpenCV) a RGB (el que utiliza el módulo mencionado anteriormente). Hace falta recalcar
+que esto se ha hecho con todas las imágenes hasta ahora, y no es exlusivo de las imágenes híbridas. Lo que sí que es
+diferente es la forma en la que se dibujan, ya que hay que partir el \textit{plot} que se utiliza en tantos
+\textit{subplots} como imágenes se quieran pintar a la vez.
+
 \subsection{Apartado 2}
 
+Una vez vistas las funciones, vamos a ver las composiciones creadas. Hace falta destacar que los valores de $\sigma$ que
+se utilizan para la imágen de las altas frecuencias y para la de las bajas dependen mucho del par de imágenes, y se han
+obtenido mediante experimentación.
+
+Se han realizado las composiciones de todas las parejas de imágenes, las cuáles pueden ser vistas a continuación:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/hyb1.png}
+\caption{Composición gato-perro.}
+\label{fig:hyb1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/hyb2.png}
+\caption{Composición Einstein-Marilyn.}
+\label{fig:hyb2}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/hyb3.png}
+\caption{Composición bicicleta-moto.}
+\label{fig:hyb3}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/hyb4.png}
+\caption{Composición ave-avión.}
+\label{fig:hyb4}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/hyb5.png}
+\caption{Composición pez-submarino.}
+\label{fig:hyb5}
+\end{figure}
+
+En la parte izquierda de cada figura se puede ver la imágen en bajas frecuencias que se ha utilizado. En la parte central
+aparece la imágen de altas frecuencias. A la derecha se puede ver la imágen híbrida. En general, las imágenes híbridas
+han quedado bastante bien, ya que se puede ver que la imágen de altas frecuencias es más distinguible de cerca
+que la de bajas. Al revés pasaría lo mismo; ya que al alejarnos de la imágen, solo veríamos las bajas, y no las altas.
+
 \subsection{Apartado 3}
+
+En este apartado, vamos a simular que nos estamos alejando de la imágen para ver si podemos dejar de ver las altas
+frecuencias. Para ello, en vez de tener que alejarnos nosotros de la pantalla, podemos ir disminuyendo el tamaño de la
+imágen híbrida para ver cómo va cambiando lo que vemos a medida que nos vamos alejando. Aquí es donde entra en juego la pirámide
+Gaussiana, la cuál permite visualizar esta evolución de forma sencilla, ya que incluye versiones más grandes de la
+imágen y más pequeñas.
+
+Para construir la pirámide, se ha utilizado un $N=4$ (es decir, que se verán 4 imágenes en la pirámide), con un tamaño de
+\textit{kernel} de 5 y un $\sigma=3$ para cada eje, tal y como se ha hecho en los apartados anteriores.
+Para el tipo de borde, se ha elegido de nuevo el borde de replicado.
+
+A continuación se pueden ver ejemplos de las pirámides Gaussianas:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/hyb-pyr1.png}
+\caption{Pirámide Gaussiana de la composición gato-perro.}
+\label{fig:hyb-pyr1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/hyb-pyr2.png}
+\caption{Pirámide Gaussiana de la composición Einstein-Marilyn.}
+\label{fig:hyb-pyr2}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/hyb-pyr3.png}
+\caption{Pirámide Gaussiana de la composición bicicleta-moto.}
+\label{fig:hyb-pyr4}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/hyb-pyr4.png}
+\caption{Pirámide Gaussiana de la composición ave-avión.}
+\label{fig:hyb-pyr4}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/hyb-pyr5.png}
+\caption{Pirámide Gaussiana de la composición pez-submarino.}
+\label{fig:hyb-pyr5}
+\end{figure}
+
+Como se puede ver, a medida que se va haciendo más pequeña la imágen, menos se ve la parte de imágen que tiene frecuencias
+altas, hasta que al final solo se ve la imágen de bajas frecuencias. Esto se debe a que las ondas de frecuencia alta
+viajan una menor distancia en el espacio debido a que tienen una menor amplitud de onda. Las frecuencias bajas,
+en cambio, tienen una amplitud de onda mayor, y son capaces de recorrer una mayor distancia. De esta forma, a medida
+que nos alejamos o reducimos el tamaño de la imágen, menos altas frecuencias nos van a llegar, hasta que al final solo
+nos lleguen las bajas, tal y como se ha dicho anteriormente.
 
 \newpage
 
@@ -1052,6 +1242,160 @@ habrá que encontrarlo por experimentación.}
 
 \noindent \textbf{Implementar con código propio la convolución 2D con cualquier máscara 2D de números reales usando
 máscaras separables.}
+
+Para esta sección se han hecho dos cosas:
+
+\begin{enumerate}
+	\item Implementar la correlación 1D con código propio.
+	\item Implementar la convolución 2D utilizando la correlación 1D implementada anteriormente.
+\end{enumerate}
+
+Vamos a comenzar explicando la correlación 1D. Se ha implementado el siguiente código:
+
+\begin{lstlisting}[caption={Función que realiza la correlación 1D},label={alg:corr-1d}]
+def correlation_1D(img, kernel):
+    """
+    Funcion que aplica la correlacion 1D sobre una imagen de entrada utilizando
+    un kernel dado
+
+    Args:
+        img: Imagen sobre la que aplicar la correlacion
+        kernel: Kernel que se aplicara
+    Return:
+        Devuelve una imagen sobre la que se ha aplicado correlacion 1D por filas
+    """
+    # Obtener el numero de elementos que se deben replicar al principio y al final
+    # de la imagen
+    n_replica = kernel.shape[0] // 2
+
+    # Replicar elemento inicial y final de la imagen n_replica veces
+    replica_img = np.hstack([np.tile(img[:, 0].reshape(-1, 1), n_replica), img])
+    replica_img = np.hstack([replica_img, np.tile(img[:, -1].reshape(-1, 1), n_replica)])
+
+    # Crear matriz de salida con el mismo tamaño que img
+    correlation_mat = np.empty_like(img)
+
+    # Aplicar la correlacion sobre cada elemento (i, j) de la imagen
+    for i in range(img.shape[0]):
+        for j in range(n_replica, img.shape[1] + n_replica):
+            # Obtener sub imagen del mismo tamaño que el kernel
+            sub_img = replica_img[i, j - n_replica:j + n_replica + 1]
+
+            # Realizar producto escalar de la sub imagen y el kernel
+            corr_value = np.dot(sub_img, kernel)
+
+            # Actualizar valor de la matriz de correlacion
+            correlation_mat[i, j - n_replica] = corr_value
+
+    return correlation_mat
+\end{lstlisting}
+
+Vamos a ir explicando lo que hace el código para que se entienda cuál es la idea general. Lo primero que hay que
+hacer es extender la imágen que se pasa como argumento, de modo que tenga más píxels. Esto se hace por los bordes, debido
+a que también se tiene que calcular la correlación ahí y, en caso de no tener más valores más allá de ellos, se estaría
+haciendo un cálculo incorrecto. Para ello, se replica el píxel del borde un número de veces. Este número de veces
+está determinado por la variable $n\_replica$, la cuál viene dada por la siguiente expresión:
+
+\begin{equation}
+	n\_replica = \floor*{\frac{KernelSize}{2}}
+\end{equation}
+
+Esto se debe a que los \textit{kernels} tienen un tamaño impar, debido a que consideran $KernelSize \; / \; 2 - 1$ vecinos
+a cada lado del píxel $(i, j)$ de la imágen. Este píxel (el cuál es el central del \textit{kernel}) hace que el tamaño
+de la máscara sea siempre impar. Por tanto, nos interesa saber cuántas veces tenemos que replicar el borde de la imágen según el
+tamaño del \textit{kernel} que se le pase.
+
+Se ha elegido hacer un replicado debido a que no estaba nada especificado en el enunciado del ejercicio, además de que
+es lo más sencillo de hacer. Por tanto, lo que se hace es copiar el primer y el último píxel de cada fila de la imágen
+$n\_replica$ veces, tal y como hace el tipo de borde $BORDER\_REPLICATE$ de OpenCV. Este replicado se puede ver en las
+líneas 17 y 18 del código \ref{alg:corr-1d}, donde se crea una nueva matriz en la que se concatenan primero al principio
+y luego al final las réplicas del primer y del último píxel de la imágen original, respectivamente. Esta operación está
+vectorizada, por tanto, se hace para todas las filas a la vez.
+
+Después, se crea una matriz de salida, $correlation\_mat$, la cuál tiene las mismas dimensiones que la imágen de entrada.
+Aquí es dónde se escribirá el resultado de la convolución. A continuación se recorren todas las filas de la de la imágen
+replicada, lo cuál se corresponde con la línea 24. La imágen replicada tiene el mismo número de filas que la original, así que
+usaremos el número de filas de la original para delimitar el rango del bucle, por comodidad más que nada. Para cada fila,
+se comienza a partir de columna $n\_replica$, debido a que queremos dejar tantos vecinos a la izquierda del píxel
+central inicial, y se recorre la imágen replicada hasta la columna $NumColumnasImagenOriginal + n\_replica$, aplicando
+la correlación. De esta forma, recorremos la imágen original dentro de la replicada, y usamos los píxeles replicados solo
+para el cálculo de la correlación. Ninguno de estos píxels replicados estará en el centro de la correlación por las condiciones
+especificadas anteriormente.
+
+Para el cálculo de la correlación, simplemente obtenemos una parte de la imágen del mismo tamaño que el \textit{kernel}
+utilizando los índices definidos anteriormente, se realiza el producto escalar entre esta parte de la imágen y el \textit{kernel}
+y se guarda el resultado en la matriz de salida. Es importante destacar que esta función asume que el \textit{kernel} viene
+dado como un vector columna, para así poder realizar el producto escalar entre un vector fila (la parte de la imágen) y un
+vector columna (el \textit{kernel}).
+
+Ahora ya solo nos queda ver como se haría la convolución. A continuación se puede ver el código implementado:
+
+\begin{lstlisting}[caption={Función que aplica la convolución 2D sobre una imágen.},label={alg:convolution}]
+def convolution(img, kernel_x, kernel_y):
+    """
+    Funcion que aplica la convolucion sobre una imagen dados un kernel para
+    el eje X y el eje Y
+    
+    Args:
+        img: Imagen sobre la que aplicar la convolucion
+        kernel_x: Kernel en el eje X
+        kernel_y: Kernel en el eje Y
+    Return:
+        Devuelve la convolucion de la imagen con los kernels de entrada
+    """
+    # Hacer que los kernels sean vectores columna
+    kernel_x = kernel_x.reshape(-1, 1)
+    kernel_y = kernel_y.reshape(-1, 1)
+    
+    # Realizar un flip sobre los kernels
+    kernel_x_flip = np.flip(kernel_x)
+    kernel_y_flip = np.flip(kernel_y)
+
+    # Realizar la convolucion (primero sobre el eje X y luego sobre el eje Y)
+    convolution = correlation_1D(img, kernel_x_flip)
+    convolution = correlation_1D(convolution.T, kernel_y_flip)
+
+    # Trasponer la convolucion (porque se han cambiado filas por columnas anteriormente)
+    convolution = convolution.T
+
+    return convolution
+\end{lstlisting}
+
+Lo primero que se hace es transformar los \textit{kernels} de entrada para que sean vectores columna (si no lo eran ya). A
+continuación, para poder aplicar la convolución hace falta realizar un \textit{flip} sobre los \textit{kernels} (líneas 18-19).
+Como son vectores y no matrices, simplemente basta con darles la vuelta. Si no se hiciese, se aplicaría una correlación en vez de
+una convolución, lo cuál no produciría el resultado deseado.
+
+Una vez hecho esto, es el momento de aplicar la correlación utilizando los \textit{kernels} sobre los que se ha aplicado un
+\textit{flip}. Primero se aplica sobre el eje X, lo cuál se puede ver en la línea 22 y no supone ningún problema. Sin embargo,
+si nos damos cuenta de una cosa, la correlación 1D que se puede ver en el código \ref{alg:corr-1d} se aplica por filas. Para
+aplicarla a las columnas, simplemente basta realizar la traspuesta de la imágen sobre la que se quiere realizar la correlación.
+De esta forma, se cambiarán las filas por las columnas, y se podrá aplicar sin problema. Lo único que hará falta es trasponer
+la imágen resultado al final, ya que tiene las filas y las columnas cambiadas. Esto se puede ver en la línea 26.
+
+Para probar nuestra función, hemos aplicado un \textit{kernel} Gaussiano de $\sigma=3$ en cada eje y tamaño de \textit{kernel}
+5 sobre la imágen del gatito que hemos estado usando hasta ahora. También hemos aplicado un filtro de primera derivada
+en el eje $X$ con tamaño de \textit{kernel} 5. A continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/conv1.png}
+	\subcaption{Filtro Gaussiano.}
+	\label{fig:conv1}
+\end{subfigure}
+\begin{subfigure}{.5\linewidth}
+	\centering
+	\includegraphics[scale=0.5]{img/conv2.png}
+	\subcaption{Filtro de primera derivada.}
+	\label{fig:conv2}
+\end{subfigure}
+\caption{Distintos filtros utilizando la convolución propia.}
+\label{fig:conv}
+\end{figure}
+
+El código anteriormente mostrado funciona perfectamente ya que, como se puede comprobar, los resultados son los mismos que los
+que se pueden ver para las figuras \ref{fig:gauss-sigma2} y \ref{fig:der-x1}.
 
 \subsection{Imágenes híbridas a color}
 
