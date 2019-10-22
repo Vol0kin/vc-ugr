@@ -835,6 +835,8 @@ visualize_image(der, r'$5 \times 5$ First Derivative Kernel in X-axis using conv
 
 #######################################
 # BONUS 2
+
+# Cargar imagenes a color
 cat_color = read_image('imagenes/cat.bmp', 1)
 dog_color = read_image('imagenes/dog.bmp', 1)
 
@@ -853,7 +855,6 @@ submarine_color = read_image('imagenes/submarine.bmp', 1)
 # Composicion gato-perro
 hybrid = hybrid_image_generator(cat_color, dog_color, 31, 17, 15, cv.BORDER_REFLECT)
 visualize_mult_images(hybrid)
-visualize_image(hybrid[-1])
 
 pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
 pyr_img = create_img_pyramid(pyr)
@@ -894,10 +895,24 @@ visualize_image(pyr_img)
 #######################################
 # BONUS 3
 
+# Leer imagenes ByN
 mrbean = read_image('imagenes/mrbean.bmp', 0)
 zapatero = read_image('imagenes/zapatero.bmp', 0)
 
-hybrid = hybrid_image_generator(mrbean, zapatero, 23, 11, 5, cv.BORDER_REFLECT)
+# Leer imagenes a color
+mrbean_color = read_image('imagenes/mrbean.bmp', 1)
+zapatero_color = read_image('imagenes/zapatero.bmp', 1)
+
+# Composición ByN
+hybrid = hybrid_image_generator(mrbean, zapatero, 23, 19, 5, cv.BORDER_REFLECT)
+visualize_mult_images(hybrid)
+
+pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)
+pyr_img = create_img_pyramid(pyr)
+visualize_image(pyr_img)
+
+# Composición color
+hybrid = hybrid_image_generator(mrbean_color, zapatero_color, 23, 19, 5, cv.BORDER_REFLECT)
 visualize_mult_images(hybrid)
 
 pyr = gaussian_pyramid(hybrid[-1], 5, 3, 3, cv.BORDER_REFLECT)

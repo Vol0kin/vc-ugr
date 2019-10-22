@@ -306,7 +306,7 @@ Las diferencias entre las figuras \ref{fig:gauss-border1} y \ref{fig:gauss-borde
 Se puede ver como por ejemplo en la figura \ref{fig:gauss-border3} la esquina inferior izquierda es más oscura, mientras
 que en la figura \ref{fig:gauss-border1} es más clara. Aunque los dos tipos de borde reflejen la imágen, la forma en la
 que lo hacen es distinto. $BORDER\_DEFAULT$ no considera el píxel del borde, mientras que $BORDER\_REFLECT$ sí que lo hace.
-Todo esto se puede ver mejor explicado aquí. %INSERTAR REFERENCIA
+Todo esto se puede ver mejor explicado aquí\cite{opencv-border}.
 
 Por último, y antes de pasar al \textit{kernel} de derivada, se ha probado a variar el $\sigma$ que se ha aplicado en cada
 eje, manteniendo constante el tamaño del \textit{kernel}. A continuación se pueden ver cuáles han sido los rsultados obtenidos:
@@ -1022,7 +1022,7 @@ ya que a medida que aumenta el $\sigma$ van apareciendo más y más.
 
 \noindent \textbf{Mezclando adecuadamente una parte de las frecuencias altas de una imagen con una parte de
 las frecuencias bajas de otra imagen, obtenemos una imagen híbrida que admite distintas interpretaciones a distintas
-distancias (ver hybrid images project page).}
+distancias (ver hybrid images project page\cite{oliva}).}
 
 \noindent \textbf{Para seleccionar la parte de frecuencias altas y bajas que nos quedamos
 de cada una de las imágenes usaremos el parámetro sigma del núcleo/máscara de alisamiento gaussiano que usaremos.
@@ -1210,7 +1210,7 @@ A continuación se pueden ver ejemplos de las pirámides Gaussianas:
 \centering
 \includegraphics[scale=0.7]{img/hyb-pyr3.png}
 \caption{Pirámide Gaussiana de la composición bicicleta-moto.}
-\label{fig:hyb-pyr4}
+\label{fig:hyb-pyr3}
 \end{figure}
 
 \begin{figure}[H]
@@ -1402,18 +1402,191 @@ que se pueden ver para las figuras \ref{fig:gauss-sigma2} y \ref{fig:der-x1}.
 \noindent \textbf{Realizar todas las parejas de imágenes híbridas en su formato a color (solo se tendrá en cuenta
 si la versión de gris es correcta).}
 
+Para esta sección, no se ha implementado ningún código nuevo. La función que se ve en el código \ref{alg:hybrid-img} funciona
+tanto para imágenes monobanda como tribanda.
+
+A continuación se pueden observar las versiones a color de las composiciones de imágenes híbridas:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/c-hyb1.png}
+\caption{Composición gato-perro.}
+\label{fig:c-hyb1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/c-hyb2.png}
+\caption{Composición Einstein-Marilyn.}
+\label{fig:c-hyb2}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/c-hyb3.png}
+\caption{Composición bicicleta-moto.}
+\label{fig:c-hyb3}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/c-hyb4.png}
+\caption{Composición ave-avión.}
+\label{fig:c-hyb4}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/c-hyb5.png}
+\caption{Composición pez-submarino.}
+\label{fig:c-hyb5}
+\end{figure}
+
+Se puede ver que en este caso, las composiciones son bastane más claras, ya que se ven bastante mejor que solo
+en escalas de grises. Los valores de $\sigma$ utilizados para cada par de imágenes son los mismos que en el caso anterior,
+y como se puede ver, han ofrecido unos buenos resultados.
+
+También, tal y como se hizo antes, se han crado pirámides Gaussianas de las imágenes híbridas, solo que esta vez a color,
+para ver cómo van evolucionando en este caso. A continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/c-hyb-pyr1.png}
+\caption{Pirámide Gaussiana de la composición gato-perro.}
+\label{fig:c-hyb-pyr1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/c-hyb-pyr2.png}
+\caption{Pirámide Gaussiana de la composición Einstein-Marilyn.}
+\label{fig:c-hyb-pyr2}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/c-hyb-pyr3.png}
+\caption{Pirámide Gaussiana de la composición bicicleta-moto.}
+\label{fig:c-hyb-pyr3}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/c-hyb-pyr4.png}
+\caption{Pirámide Gaussiana de la composición ave-avión.}
+\label{fig:c-hyb-pyr4}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/c-hyb-pyr5.png}
+\caption{Pirámide Gaussiana de la composición pez-submarino.}
+\label{fig:c-hyb-pyr5}
+\end{figure}
+
+Como se puede ver, de nuevo sucede como en el caso anterior. A medida que nos vamos alejando de la imágen (esto es, a medida
+que va disminuyendo su tamaño), dejamos de ver las frecuencias altas y vemos solo las bajas.
+
 \subsection{Imágen híbrida propia}
 
 \noindent \textbf{Realizar una imagen híbrida con al menos una pareja de imágenes de su elección que hayan
 sido extraídas de imágenes más grandes. Justifique la elección y todos los pasos que realiza.}
 
+Para realizar esta parte, se han extraído dos imágenes de la siguiente:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.35]{imagenes/zapabean.jpg}
+\caption{Imágen de Zapatero y Mr. Bean que se usará para crear una imágen híbrida.}
+\label{fig:zapa-bean}
+\end{figure}
+
+Se ha elegido esta imágen porque es la más proporcional que se ha consguido encontrar. Esto es, las dos imágenes que se extraigan
+pueden tener más o menos las mismas dimensiones, y muchos de los rasgos pueden coincidir (como por ejemplo la cara, el pelo y el
+traje). Otras imágenes tenían distinas proporciones y tamaños, con lo cuál cuadrarlas era mucho más complicado.
+
+Lo primero que se ha hecho es recortar una parte de cada lado de la imágen, creando dos imágenes de tamaño $360 \times 420$ píxels
+utilizando una herramienta online. También se han convertido los formatos de las imágenes recortadas a BMP, ya que el resto de
+imágenes estaban en este formato, posiblemente porque sea mucho más sencillo trabajar con este formato en vez de con otros.
+
+Los recortes realizados se pueden ver a continuación:
+
+\begin{figure}[H]
+\begin{subfigure}{.5\linewidth}
+\includegraphics[scale=0.38]{imagenes/mrbean2.png}
+\subcaption{Imágen de Mr. Bean.}
+\label{fig:mrbean}
+\end{subfigure}
+\begin{subfigure}{.5\linewidth}
+\includegraphics[scale=0.38]{imagenes/zapatero2.png}
+\subcaption{Imágen de Zapatero.}
+\label{fig:zapatero}
+\end{subfigure}
+\caption{Imágenes recortadas a utilizar.}
+\label{fig:resized}
+\end{figure}
+
+Con esto ya hecho, vamos a hacer la composición, tanto en blanco y negro como a color. Para ello, primero tenemos que ajustar
+los $\sigma$ a utilizar y el tamaño del \textit{kernel}. Para ello, vamos a usar un \textit{kernel} de tamaño 23. Para la imágen
+en baja frecuencia vamos a utilizar un $\sigma_{baja} = 19$, mientras que para la imágen de altas frecuencias vamos a utilizar
+un $\sigma_{alta} = 5$. De esta forma, la imágen de bajas frecuencias se suaviza mucho, mientras que la de altas no tanto. A
+continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/zapabean1.png}
+\caption{Composición Zapatero - Mr. Bean en blanco y negro.}
+\label{fig:zapabean-wb}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.3]{img/zapabean2.png}
+\caption{Composición Zapatero - Mr. Bean en color.}
+\label{fig:zapabean-color}
+\end{figure}
+
+Se puede ver que la composición es bastante buena, ya que las dos imágenes se superponen bastante bien. Coinciden en algunas partes,
+como por ejemplo el pelo y parte de la cara, aunque la cara de Zapatero es un poco más grande que la de Mr. Bean, con lo cuál
+se sale un poco.
+
+Tal y como hicimos antes, vamos a ver qué efecto observaríamos si nos vamos alejando. Para ello, vamos a construir las pirámides
+Gaussianas para las dos imágenes, utilizando un \textit{kernel} de tamaño 5 con $\sigma=3$ en cada eje. Los resultados son los
+siguientes:
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/zapabean-pyr1.png}
+\caption{Pirámide Gaussiana de la composición Zapatero - Mr. Bean en blanco y negro.}
+\label{fig:zapabean-pyr1}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.7]{img/zapabean-pyr2.png}
+\caption{Pirámide Gaussiana de la composición Zapatero - Mr. Bean en color.}
+\label{fig:zapabean-pyr2}
+\end{figure}
+
+Se puede apreciar como en los primeros niveles, la cara de Zapatero es más visible, mientras que cuanto más nos acerquemos
+a la imágen final (es decir, cuanto más nos alejemos de la imágen), más se acaba viendo a Mr. Bean. Por tanto, podemos
+decir que este es el comportamiento esperado, y que la composición es, por tanto, bastante buena.
+
 \newpage
 
 \begin{thebibliography}{5}
 
-\bibitem{nombre-referencia}
-Texto referencia
-\\\url{https://url.referencia.com}
+\bibitem{oliva}
+Aude Oliva, Antonio Torralba, Philippe. G. Schyns, \textit{Hybrid images}, Massachusetts Institute of Technology, 2006
+\\\url{http://cvcl.mit.edu/publications/OlivaTorralb_Hybrid_Siggraph06.pdf}
+
+\bibitem{opencv-border}
+OpenCV, \textit{Operation on Arrays, Border Types}
+\\\url{https://docs.opencv.org/master/d2/de8/group__core__array.html#ga209f2f4869e304c82d07739337eae7c5}
+
+\bibitem{opencv-filtering}
+OpenCV, \textit{Image Filtering}
+\\\url{https://docs.opencv.org/master/d4/d86/group__imgproc__filter.html}
 
 \end{thebibliography}
 
