@@ -1,0 +1,215 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[spanish,es-nodecimaldot]{babel}	% Utilizar español
+\usepackage[utf8]{inputenc}					% Caracteres UTF-8
+\usepackage{graphicx}						% Imagenes
+\usepackage[hidelinks]{hyperref}			% Poner enlaces sin marcarlos en rojo
+\usepackage{fancyhdr}						% Modificar encabezados y pies de pagina
+\usepackage{float}							% Insertar figuras
+\usepackage[textwidth=390pt]{geometry}		% Anchura de la pagina
+\usepackage[nottoc]{tocbibind}				% Referencias (no incluir num pagina indice en Indice)
+\usepackage{enumitem}						% Permitir enumerate con distintos simbolos
+\usepackage[T1]{fontenc}					% Usar textsc en sections
+\usepackage{amsmath}						% Símbolos matemáticos
+
+% Comando para poner el nombre de la asignatura
+\newcommand{\asignatura}{Visión por Computador}
+\newcommand{\autor}{Vladislav Nikolov Vasilev}
+\newcommand{\titulo}{Trabajo 1}
+\newcommand{\subtitulo}{Cuestiones de teoría}
+\newcommand{\answer}{\noindent\textbf{Solución}}
+\newcommand{\question}[1]{\noindent\textbf{#1}}
+\newcommand{\nonumbersection}[1]{\section*{#1}\addcontentsline{toc}{section}{#1}}
+
+% Configuracion de encabezados y pies de pagina
+\pagestyle{fancy}
+\lhead{\autor{}}
+\rhead{\asignatura{}}
+\lfoot{Grado en Ingeniería Informática}
+\cfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}		% Linea cabeza de pagina
+\renewcommand{\footrulewidth}{0.4pt}		% Linea pie de pagina
+
+\begin{document}
+\pagenumbering{gobble}
+
+% Pagina de titulo
+\begin{titlepage}
+
+\begin{minipage}{\textwidth}
+
+\centering
+
+\includegraphics[scale=0.5]{img/ugr.png}\\
+
+\textsc{\Large \asignatura{}\\[0.2cm]}
+\textsc{GRADO EN INGENIERÍA INFORMÁTICA}\\[1cm]
+
+\noindent\rule[-1ex]{\textwidth}{1pt}\\[1.5ex]
+\textsc{{\Huge \titulo\\[0.5ex]}}
+\textsc{{\Large \subtitulo\\}}
+\noindent\rule[-1ex]{\textwidth}{2pt}\\[3.5ex]
+
+\end{minipage}
+
+\vspace{0.5cm}
+
+\begin{minipage}{\textwidth}
+
+\centering
+
+\textbf{Autor}\\ {\autor{}}\\[2.5ex]
+\textbf{Rama}\\ {Computación y Sistemas Inteligentes}\\[2.5ex]
+\vspace{0.3cm}
+
+\includegraphics[scale=0.3]{img/etsiit.jpeg}
+
+\vspace{0.7cm}
+\textsc{Escuela Técnica Superior de Ingenierías Informática y de Telecomunicación}\\
+\vspace{1cm}
+\textsc{Curso 2018-2019}
+\end{minipage}
+\end{titlepage}
+
+\pagenumbering{arabic}
+\tableofcontents
+\thispagestyle{empty}				% No usar estilo en la pagina de indice
+
+\newpage
+
+\setlength{\parskip}{1em}
+
+\nonumbersection{Ejercicio 1}
+
+\question{Diga en una sola frase cuál cree que es el objetivo principal de la Visión por Computador. Diga también cuál es la
+principal propiedad de las imágenes de cara a la creación algoritmos que la procesen.}
+
+\answer
+
+\nonumbersection{Ejercicio 2}
+
+\question{Expresar las diferencias y semejanzas entre las operaciones de correlación y convolución. Dar una interpretación de
+cada una de ellas que en el contexto de uso en visión por computador.}
+
+\answer
+
+\nonumbersection{Ejercicio 3}
+
+\question{¿Cuál es la diferencia ``esencial'' entre el filtro de convolución y el de mediana? Justificar la respuesta.}
+
+\answer
+
+\nonumbersection{Ejercicio 4}
+
+\question{Identifique el ``mecanismo concreto'' que usa un filtro de máscara para transformar una imagen.}
+
+\answer
+
+\nonumbersection{Ejercicio 5}
+
+\question{¿De qué depende que una máscara de convolución pueda ser implementada por convoluciones 1D? Justificar la respuesta.}
+
+\answer
+
+\nonumbersection{Ejercicio 6}
+
+\question{Identificar las diferencias y consecuencias desde el punto de vista teórico y de la implementación entre:
+\begin{enumerate}[label=\alph*)]
+	\item Primero alisar la imagen y después calcular las derivadas sobre la
+imagen alisada.
+	\item Primero calcular las imágenes derivadas y después alisar dichas
+imágenes.
+\end{enumerate}
+Justificar los argumentos.
+}
+
+\answer
+
+\nonumbersection{Ejercicio 7}
+
+\question{Identifique las funciones de las que podemos extraer pesos correctos
+para implementar de forma eficiente la primera derivada de una imagen.
+Suponer alisamiento Gaussiano.}
+
+\answer
+
+\nonumbersection{Ejercicio 8}
+
+\question{Identifique las funciones de las que podemos extraer pesos correctos
+para implementar de forma eficiente la Laplaciana de una imagen. Suponer
+alisamiento Gaussiano.}
+
+\answer
+
+\nonumbersection{Ejercicio 9}
+
+\question{Suponga que le piden implementar de forma eficiente un algoritmo para
+el cálculo de la derivada de primer orden sobre una imagen usando
+alisamiento Gaussiano. Enumere y explique los pasos necesarios para
+llevarlo a cabo.}
+
+\answer
+
+\nonumbersection{Ejercicio 10}
+
+\question{Identifique semejanzas y diferencias entre la pirámide gaussiana y
+el espacio de escalas de una imagen, ¿cuándo usar una u otra? Justificar
+los argumentos.}
+
+\answer
+
+\nonumbersection{Ejercicio 11}
+
+\question{¿Bajo qué condiciones podemos garantizar una perfecta reconstrucción
+de una imagen a partir de su pirámide Laplaciana? Dar argumentos y
+discutir las opciones que considere necesario.}
+
+\answer
+
+\nonumbersection{Ejercicio 12}
+
+\question{ ¿Cuáles son las contribuciones más relevantes del algoritmo de
+Canny al cálculo de los contornos sobre una imagen? ¿Existe alguna
+conexión entre las máscaras de Sobel y el algoritmo de Canny? Justificar
+la respuesta.}
+
+\answer
+
+\nonumbersection{Ejercicio 13}
+
+\question{- Identificar pros y contras de k-medias como mecanismo para crear un
+vocabulario visual a partir del cual poder caracterizar patrones. ¿Qué
+ganamos y que perdemos? Justificar los argumentos.}
+
+\answer
+
+\nonumbersection{Ejercicio 14}
+
+\question{Identifique pros y contras del modelo de “Bolsa de Palabras” como
+mecanismo para caracterizar el contenido de una imagen. ¿Qué ganamos y
+que perdemos? Justificar los argumentos.}
+
+\answer
+
+\nonumbersection{Ejercicio 15}
+
+\question{Suponga que dispone de un conjunto de imágenes de dos tipos de
+clases bien diferenciadas. Suponga que conoce como implementar de forma
+eficiente el cálculo de las derivadas hasta el orden N de la imagen.
+Describa como crear un algoritmo que permita diferenciar, con garantías,
+imágenes de ambas clases. Justificar cada uno de los pasos que proponga.}
+
+\answer
+
+\newpage
+
+\begin{thebibliography}{5}
+
+\bibitem{nombre-referencia}
+Texto referencia
+\\\url{https://url.referencia.com}
+
+\end{thebibliography}
+
+\end{document}
+
