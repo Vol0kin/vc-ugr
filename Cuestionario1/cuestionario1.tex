@@ -225,6 +225,9 @@ siguiente forma:
 	M = C \otimes F
 \end{equation}
 
+Estos vecotes, $C$ y $F$ serán los que luego se puedan aplicar por filas y columnas utilizando la convolución 1D, reduciendo
+de forma significativa los tiempos de cálculo.
+
 Para que se dé esta situación, tiene que suceder que la matriz $M$ tenga \textbf{rango 1}. Para comprobarlo, bastaría con
 realizar la descomposición en valores singulares (\textit{SVD}) de la máscara $M$. Si nos encontramos que el resultado solo tiene
 un valor singular, es decir, que la matriz diagonal tiene todos sus elementos de la diagonal 0 excepto el primero (debido a que
