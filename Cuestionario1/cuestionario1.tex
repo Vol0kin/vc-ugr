@@ -198,11 +198,38 @@ convolución.
 
 \answer
 
+Los filtros utilizan la información del vecindario para transformar las imágenes. Esto es, se fijan en el píxel actual y
+en sus vecinos para generar una imágen de salida con nuevos valores. Algunos de estos filtros son lineales y generan
+un píxel de salida realizando una combinación lineal del píxel actual y sus vecinos. Otros, como por ejemplo el filtro
+de mediana, son filtros no lineales, y devuelven el valor mediano del píxel y sus vecinos como salida.
+
+Se utiliza este tipo de información porque, tal y como se ha dicho anteriormente, existe una dependencia entre el valor
+de un píxel concreto y los valores de sus vecinos. Píxels más lejanos pueden tener otros valores, pero a efectos prácticos,
+solo nos interesan aquellos que estén más cerca del píxel concreto, ya que van a tener un comportamiento similar a éste.
+De esta forma, podemos saber por ejemplo cuándo hay ruido presente en la imágen, ya que nos encontraremos con píxels que tienen
+valores anómalos si los comparamos con sus vecinos. Por tanto, para corregir ese ruido, podemos utilizar la información local,
+promediando o aplicando el tipo de filtro más adecuado según el tipo de ruido.
+
 \nonumbersection{Ejercicio 5}
 
 \question{¿De qué depende que una máscara de convolución pueda ser implementada por convoluciones 1D? Justificar la respuesta.}
 
 \answer
+
+Para que una máscara pueda ser implementada por convoluciones 1D, ésta tiene que ser separable. Es decir, dada una máscara
+$M$ de tamaño $m \times m$, ésta tiene que poder separarse en dos vectores: un vector $C$ de tamaño $m \times 1$ y
+un vector $F$ de tamaño $1 \times m$. De esta forma, $M$ puede ser obtenida realizando el \textit{outer product} de $C$ y $F$ de la
+siguiente forma:
+
+\begin{equation}
+	M = C \otimes F
+\end{equation}
+
+Para que se dé esta situación, tiene que suceder que la matriz $M$ tenga \textbf{rango 1}. Para comprobarlo, bastaría con
+realizar la descomposición en valores singulares (\textit{SVD}) de la máscara $M$. Si nos encontramos que el resultado solo tiene
+un valor singular, es decir, que la matriz diagonal tiene todos sus elementos de la diagonal 0 excepto el primero (debido a que
+los valores singulares están dispuestos en la diagonal en orden decreciente), entonces sabemos que la máscara tiene
+rango 1, y que por tanto es separable y puede ser aplicada mediante convoluciones 1D.
 
 \nonumbersection{Ejercicio 6}
 
@@ -217,6 +244,21 @@ Justificar los argumentos.
 }
 
 \answer
+
+Desde el punto de vista \textbf{teórico}, las dos operaciones que se describen anteriormente producen exactamente los
+mismos resultados debido a la propiedad conmutativa de la convolución. Es decir, da igual el orden en el que se apliquen
+los filtros ya que al final el resultado va a ser el mismo.
+
+Desde el punto de vista de la \textbf{implementación}, aunque hemos visto que teóricamente los resultados son los mismos, el
+número de operaciones que se deben hacer no son los mismos. En el primer caso se realizaría un alisamiento y $n$ cálculos
+de las derivadas. Por tanto, se realizarían $n + 1$ operaciones con filtros en total. En cambio, en el segundo caso,
+se realizarían primero $n$ cálculos de derivadas y, sobre cada una de las $n$ derivadas, se tendría que aplicar un filtro de
+alisamiento. Por tanto, el número total de operaciones serían $2n$, lo cuál es mucho más ineficiente que el primer caso.
+
+Por tanto, aunque desde el punto de vista teórico no exista una diferencia, hay que considerar también el punto de vista de la
+implementación, ya que elegir uno u otro puede tener impactos sobre el rendimiento general del programa. Si esta operación
+se tiene que aplicar para muchas imágenes, la primera opción es claramente la mejor, ya que ofrece el mismo resultado
+utilizando menos convoluciones.
 
 \nonumbersection{Ejercicio 7}
 
