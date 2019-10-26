@@ -216,23 +216,45 @@ promediando o aplicando el tipo de filtro más adecuado según el tipo de ruido.
 
 \answer
 
-Para que una máscara pueda ser implementada por convoluciones 1D, ésta tiene que ser separable. Es decir, dada una máscara
-$M$ de tamaño $m \times m$, ésta tiene que poder separarse en dos vectores: un vector $C$ de tamaño $m \times 1$ y
-un vector $F$ de tamaño $1 \times m$. De esta forma, $M$ puede ser obtenida realizando el \textit{outer product} de $C$ y $F$ de la
-siguiente forma:
+Para que una máscara pueda ser implementada por convoluciones 1D, ésta tiene que ser separable. Es decir, se debe de poder
+descomponer como el \textit{outer-product} de dos vectores, uno fila y uno columna, los cuáles serán utilizados para
+convolucionar la imágen.
+
+Para obtenerlos, podemos utilizar la descomposición en valores singulares (\textit{SVD}). Esta descomposición viene dada
+por la siguiente expresión:
 
 \begin{equation}
-	M = C \otimes F
+\label{eq:svd}
+	\mathbf{M} = \mathbf{U} \mathbf{\Sigma} \mathbf{V}^T
 \end{equation}
 
-Estos vecotes, $C$ y $F$ serán los que luego se puedan aplicar por filas y columnas utilizando la convolución 1D, reduciendo
-de forma significativa los tiempos de cálculo.
+\noindent donde $\mathbf{U}$ y $\mathbf{V}$ son matrices ortogonales y $\mathbf{\Sigma}$ es una matriz diagonal que contiene
+los valores singulares de la matriz $\mathbf{M}$. Esta descomposición puede expresarse también como una suma ponderada de
+matrices descomponibles de la siguiente forma:
 
-Para que se dé esta situación, tiene que suceder que la matriz $M$ tenga \textbf{rango 1}. Para comprobarlo, bastaría con
-realizar la descomposición en valores singulares (\textit{SVD}) de la máscara $M$. Si nos encontramos que el resultado solo tiene
-un valor singular, es decir, que la matriz diagonal tiene todos sus elementos de la diagonal 0 excepto el primero (debido a que
-los valores singulares están dispuestos en la diagonal en orden decreciente), entonces sabemos que la máscara tiene
-rango 1, y que por tanto es separable y puede ser aplicada mediante convoluciones 1D.
+\begin{equation}
+\label{eq:svd-sum}
+	\mathbf{M} = \sum_i \mathbf{A}_i = \sum_i \sigma_i \mathbf{U}_i \otimes \mathbf{V}_i
+\end{equation}
+
+\noindent donde $\sigma_i$ es el $i$-ésimo valor singular, y $\mathbf{U}_i$ y $\mathbf{V}_i$ son las $i$-ésimas columnas
+de las matrices $\mathbf{U}$ y $\mathbf{V}$, respectivamente. Estas dos matrices son las mismas que se obtienen al realizar
+la descomposición en valores singulares tal y como se puede ver en la ecuación \eqref{eq:svd}.
+
+Sin embargo, a nosotros nos interesa que la matriz $\mathbf{M}$ se pueda descomponer en una única pareja de vectores
+$\mathbf{U}_i$ y $\mathbf{V}_i$, para así no tener que realizar tantas operaciones. Para que esto suceda,
+la matriz $\mathbf{\Sigma}$ debería tener un único valor singular, lo cuál a su vez implicaría que la matriz $\mathbf{M}$
+tenga \textbf{rango 1}, ya que el rango viene dado por el número de valores singulares que se encuentren al realizar la
+descomposicion. Si sucede esto, la expresión que se puede ver en \eqref{eq:svd-sum} qudaría de la siguiente forma:
+
+\begin{equation}
+	\mathbf{M} = \sigma_i \mathbf{U}_i \otimes \mathbf{V}_i
+\end{equation}
+
+\noindent siendo el índice $i$ el del único valor singular no nulo de la matriz diagonal.
+
+De esta forma, concluimos que, para poder aplicar una máscara como convoluciones 1D, ésta tiene que ser \textbf{separable}
+y de \textbf{rango 1}.
 
 \nonumbersection{Ejercicio 6}
 
@@ -296,6 +318,24 @@ los argumentos.}
 
 \answer
 
+Las principales semejanzas es que ambas técnicas utilizan alisamiento Gaussiano para reducir la cantidad
+de ruido de la imágen, además de que ambos utilizan submuestreo para obtener imágenes más
+pequeñas de la original (es decir, se escogen determinados píxels de la imágen para obtener una
+más pequeña que esta) después de que se haya alisado con un filtro Gaussiano, obteniendo
+por tanto distintas escalas (octavas) de la imágen.
+
+Sin embargo, existen diferencias entre la pirámide Gaussiana y el espacio de escalas. Una de ellas es su uso.
+La pirámide Gaussiana sirve para obtener distintas escalas de una imágen mediante
+el alisamiento Gaussiano y el posterior submuestreo, obteniendo por tanto cada vez frecuencias más bajas de la imágen.
+En cambio, el espacio de escalas se utiliza para la detección de regiones relevantes a distintas escalas. Para ello,
+se vale no solo de alisar la imágen con un filtro Gaussiano, si no que también utiliza un filtro Laplaciano sobre el alisamiento
+para obtener los bordes, y posteriormente, una serie de técnicas extra para determinar las regiones relevantes. Estas
+operaciones se hacen en las distintas escalas para determinar regiones relevantes en cada una de ellas, ya que no serán las mismas
+en imágenes más grandes que en imágenes más pequeñas. Podemos ver de alguna forma que el espacio de escalas trabaja sobre
+la pirámide Gaussiana, ya que todas estas operaciones se hacen para cada escala u octava de la imágen, las cuáles pueden
+ser obtenidas mediante la pirámide.
+
+
 \nonumbersection{Ejercicio 11}
 
 \question{¿Bajo qué condiciones podemos garantizar una perfecta reconstrucción
@@ -303,6 +343,17 @@ de una imagen a partir de su pirámide Laplaciana? Dar argumentos y
 discutir las opciones que considere necesario.}
 
 \answer
+
+La imágen puede ser perfectamente reconstruida a partir de su pirámide Laplaciana, ya que todos
+los pasos llevados a cabo para construirla pueden ser revertidos. Esto se debe también a que cada nivel de la pirámide
+Laplaciana guarda información de las altas frecuencias que se han perdido entre un nivel de la pirámide Gaussiana y el siguiente.
+En el último nivel, es decir, el más alto, se guardan las frecuencias bajas para justamente realizar la reconstrucción.
+
+Para obtener la imágen original a partir de la pirámide, podemos partir del nivel más alto. Lo único que
+tendríamos que hacer sería reescalar la imágen al tamaño del nivel anterior y aplicar un alisamiento Gaussiano para
+interpolar los valores de los píxels nuevos. Ahora solo nos quedaría sumar la imagen reescalada y la del nivel anterior,
+obteniendo una imágen que correspondería al nivel anterior de la pirámide Gaussiana asociada. Con esta imágen, repetimos
+el proceso hasta llegar al último nivel, donde obtendremos la imágen original.
 
 \nonumbersection{Ejercicio 12}
 
