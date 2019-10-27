@@ -2,7 +2,7 @@
 \usepackage[spanish,es-nodecimaldot]{babel}	% Utilizar español
 \usepackage[utf8]{inputenc}					% Caracteres UTF-8
 \usepackage{graphicx}						% Imagenes
-\usepackage[hidelinks]{hyperref}			% Poner enlaces sin marcarlos en rojo
+\PassOptionsToPackage{hyphens}{url}\usepackage[hidelinks]{hyperref}			% Poner enlaces sin marcarlos en rojo
 \usepackage{fancyhdr}						% Modificar encabezados y pies de pagina
 \usepackage{float}							% Insertar figuras
 \usepackage[textwidth=390pt]{geometry}		% Anchura de la pagina
@@ -10,7 +10,6 @@
 \usepackage{enumitem}						% Permitir enumerate con distintos simbolos
 \usepackage[T1]{fontenc}					% Usar textsc en sections
 \usepackage{amsmath}						% Símbolos matemáticos
-
 % Comando para poner el nombre de la asignatura
 \newcommand{\asignatura}{Visión por Computador}
 \newcommand{\autor}{Vladislav Nikolov Vasilev}
@@ -145,8 +144,8 @@ extra. Algunas de ellas son, por ejemplo, la conmutatividad, la asociatividad, l
 Dentro de la visión por computador, la correlación se suele utilizar para el \textit{template matching} o búsqueda de patrones
 dentro de una imágen, buscando la posición en la que se podría encontrar el patrón dentro de la imágen. La convolución,
 debido a los propiedades mencionadas anteriormente, especialmente por la asociativa, es especialmente
-utilizada en la aplicación de filtros que transforman la imágen, ya sean filtros de alisamiento como para detectar bordes.
-Esto se debe a que permite componer filtros complejos a partir de más sencillos y aplicarlos posteriormente sobre la imágen,
+utilizada en la aplicación de filtros que transforman la imágen, ya sean filtros de alisamiento como para la detección de bordes.
+Esto se debe a que permite componer filtros complejos a partir de más sencillos y aplicarlos posteriormente sobre la imagen,
 en vez de ir aplicándolos uno por uno.
 
 \nonumbersection{Ejercicio 3}
@@ -189,8 +188,8 @@ Y por tanto, tenemos que:
 
 \[mediana(v_1) + mediana(v_2) \neq mediana(v_1 + v_2)\]
 
-Por tanto, hemos probado que el filtro de mediana es no lineal, y por tanto, tiene un comportamiento diferente a la
-convolución.
+Por tanto, hemos probado visto que el filtro de mediana no cumple la propiedad de superposición, y por tanto, es no lineal.
+Esto implica que tiene un comportamiendo diferente a la convolución.
 
 \nonumbersection{Ejercicio 4}
 
@@ -230,7 +229,7 @@ por la siguiente expresión:
 
 \noindent donde $\mathbf{U}$ y $\mathbf{V}$ son matrices ortogonales y $\mathbf{\Sigma}$ es una matriz diagonal que contiene
 los valores singulares de la matriz $\mathbf{M}$. Esta descomposición puede expresarse también como una suma ponderada de
-matrices descomponibles de la siguiente forma:
+matrices descomponibles de la siguiente forma\cite{bib:svd}
 
 \begin{equation}
 \label{eq:svd-sum}
@@ -306,13 +305,40 @@ el gradiente de la Gaussiana. Por tanto, podríamos calcular la derivada de la G
 $[-3\sigma, 3\sigma]$, escogiendo los valores de forma acorde al tamaño de máscara. De esta forma, obtendremos los pesos
 de la máscara, la cuál podríamos aplicar luego mediante convoluciones 1D, por ejemplo.
 
-Los pèsos obtenidos serán mejores que los que pueden ofrecer ciertos operadores como Sobel o Prewitt, ya que éstos intentan
+Los pesos obtenidos serán mejores que los que pueden ofrecer ciertos operadores como Sobel o Prewitt, ya que éstos intentan
 aproximar los valores de la derivada.
 
 Al ser la Gaussiana separable, sus derivadas también lo serán. Por tanto, podemos obtener la derivada para el eje $X$ o para
 el eje $Y$ de forma relativamente sencilla. Como son simétricas, lo único que cambiará es la variable que se utilice en cada
 eje ($x$ o $y$, respectivamente). Por tanto, solo nos bastaría calcular la derivada de forma analítica para una de las variables.
 Muestrear las derivadas posteriormente es trivial y no es costoso desde el punto de vista computacional.
+
+Suponiendo que la función Gaussiana 2D es la siguiente:
+
+\begin{equation}
+	G_\sigma(x, y) = \frac{1}{2\pi\sigma^2}e^{-\frac{(x^2 + y^2)}{2\sigma^2}}
+\end{equation}
+
+Esta función puede ser separada, tal y como se ha dicho antes, de la siguiente forma:
+
+\begin{equation}
+\label{eq:gauss-desc}
+	G_\sigma(x, y) = G_\sigma(x) G_\sigma(y) = \bigg(\frac{1}{\sqrt{2\pi}\sigma^2}e^{-\frac{x^2}{2\sigma^2}}\bigg)
+	\bigg(\frac{1}{\sqrt{2\pi}\sigma^2}e^{-\frac{y^2}{2\sigma^2}}\bigg)
+\end{equation}
+
+Si derivamos cualquiera de los dos factores, obtenemos lo siguiente:
+
+\begin{equation}
+	\frac{\partial G_\sigma(u)}{\partial u} = -\frac{u}{\sqrt{2\pi}\sigma^3}e^{-\frac{u^2}{2\sigma^2}}
+	= -\frac{u}{\sigma^2}G_\sigma(u)
+\end{equation}
+
+\noindent donde $u$ es una variable genérica ($x$ o $y$, en nuestro caso). Se puede ver como la expresión de la derivada
+incluye un alisamiento en el eje, ya que aparece la función Gaussiana en la expresión. Viendo la expresión \eqref{eq:gauss-desc},
+vemos que podemos aplicar la derivada sobre el eje $X$, sobre el eje $Y$ o sobre ambos. Si se aplica la derivada solo sobre
+uno de los dos ejes, sobre el otro se aplicaría un alisamiento Gaussiano, y por tanto, los pesos se tendrían que extraer de
+esa función.
 
 \nonumbersection{Ejercicio 8}
 
@@ -325,21 +351,21 @@ alisamiento Gaussiano.}
 Sabemos que el operador de la Laplaciana es el siguiente:
 
 \begin{equation}
-	\nabla f = \frac{\partial^2f}{\partial x^2} + \frac{\partial^2f}{\partial y^2}
+	\nabla^2 f = \frac{\partial^2f}{\partial x^2} + \frac{\partial^2f}{\partial y^2}
 \end{equation}
 
 Si aplicamos alisamiento Gaussiano sobre la imágen, la expresión quedaría de la siguiente forma:
 
 \begin{equation}
 \label{eq:laplacian-gaussian}
-	\nabla (g \star f) = \frac{\partial^2(g \star f)}{\partial x^2} + \frac{\partial^2(g \star f)}{\partial y^2}
+	\nabla^2 (g \star f) = \frac{\partial^2(g \star f)}{\partial x^2} + \frac{\partial^2(g \star f)}{\partial y^2}
 \end{equation}
 
 De nuevo, aplicando el teorema derivativo de la convolución, obtendríamos la siguiente expresión:
 
 \begin{equation}
 \label{eq:laplacian-efficient}
-	\nabla (g \star f) = \frac{\partial^2g}{\partial x^2} \star f + \frac{\partial^2g}{\partial y^2} \star f
+	\nabla^2 (g \star f) = \frac{\partial^2g}{\partial x^2} \star f + \frac{\partial^2g}{\partial y^2} \star f
 \end{equation}
 
 El resultado que obtenemos en la expresión \eqref{eq:laplacian-efficient} sería el mismo que se obtendría en
@@ -350,6 +376,17 @@ sacar los pesos de la máscara, los cuáles pueden ser aplicados luego mediante 
 Tal y como pasó antes, al ser la Gaussiana una función simétrica y separable, se puede calcular solo una de las segundas
 derivadas y cambiar luego la variable utilizada. Evaluar la función resultante, de nuevo es muy sencillo, y no es muy
 costoso computacionalmente. Por tanto, podríamos obtener los pesos de forma bastante eficiente.
+
+La expresión de la segunda derivada de la función Gaussiana que se puede ver en \eqref{eq:gauss-desc}, para cualquiera de
+las dos variables es la siguiente:
+
+\begin{equation}
+	\frac{\partial^2 G_\sigma(u)}{\partial u^2} = \frac{u^2 - \sigma^2}{\sqrt{2\pi}\sigma^5}e^{-\frac{u^2}{2\sigma^2}}
+	= \frac{u^2 - \sigma^2}{\sigma^4}G_\sigma(u)
+\end{equation}
+
+\noindent siendo $u$ una variable genérica (tanto $x$ como $y$). Siguiendo la expresión \eqref{eq:laplacian-efficient},
+tendremos que aplicar las segundas derivadas en cada uno de los ejes y luego juntar el resultado.
 
 \nonumbersection{Ejercicio 9}
 
@@ -363,11 +400,10 @@ llevarlo a cabo.}
 Para hacer una implementación de forma eficiente se podrían seguir los siguientes pasos:
 
 \begin{enumerate}
-	\item Obtener la primera derivadad de la Guassiana y muestrearla, tal y como se ha especificado en el ejercicio 7.
-	\item Aplicar mediante convoluciones 1D la derivada de la Gaussina por filas y por columnas, ya que esta es separable.
-	De esta forma, en vez de aplicar una convolución 2D, la cuál tiene una eficiencia de $\mathcal{O}(m^2n^2)$, teniendo una
-	imagen de tamaño $m \times m$ y una máscara de tamaño $n \times n$, tendríamos dos convoluciones 1D las cuáles
-	tienen una eficiencia $\mathcal{O}(m^2n)$. 
+	\item Establecer un valor de $\sigma$ y un tamaño de máscara adecuado.
+	\item Obtener las máscaras separables tal y como se ha especificado en el ejercicio 7.
+	\item Aplicar mediante una convolución 1D la máscara del eje $X$ sobre las filas.
+	\item Aplicar mediante una convolución 1D la máscara del eje $Y$ sobre las columnas al resultado anterior.
 \end{enumerate}
 
 \nonumbersection{Ejercicio 10}
@@ -500,6 +536,35 @@ ya que estos pueden afectar a la calidad de los resultados.
 mecanismo para caracterizar el contenido de una imagen. ¿Qué ganamos y
 que perdemos? Justificar los argumentos.}
 
+Las principales ventajas del modelo son las siguientes:
+
+\begin{itemize}
+	\item Es una técnica relativamente sencilla de comprender para poder implementarla luego.
+	\item Se puede implementar muy rápido.
+	\item En la práctica ofrece, en general, unos resultados muy buenos, que en algunos casos pueden compararse a
+	técnicas más sofisticadas.
+	\item Al extraer las caracterísitcas mediante técnicas como \textit{SIFT}, ofrece robustez frente a transformaciones lineales
+	no muy grandes en las imágenes.
+\end{itemize}
+
+Sin embargo, también encontramos algunas desventajas, como por ejemplo las siguientes:
+
+\begin{itemize}
+	\item Es computacionalmente costoso. Extraer las características mediante alguna técnica como \textit{SIFT} y después
+	crear \textit{clusters} de palabras visuales es un proceso relativamente lento, y más aún si tenemos muchas imágenes.
+	\item Las características que se extraen no siempre son intuitivas, lo cuál puede llevar a problemas a la hora de
+	intentar comprender los resultados.
+	\item Debido a que normalmente se usa un k-medias para crear el vocabulario visual, se tiene que establecer a priori
+	el número de palabras visuales que lo conformarán. Esto puede ser un problema, ya que obliga a probar hasta dar con el número
+	de palabras más adecuado.
+	\item Si las imágenes presentan muchas transformaciones no lineales o transformaciones lineales muy grandes,
+	los resultados que se obtendrán no serán muy buenos, ya que SIFT no es robusto frente a éstos. En el mundo real,
+	estos cambios se dan mucho, con lo cuál se complica que los resultados sean los esperados.
+	\item Los descriptores que se extraen no tienen información espacial de la imagen. Es decir, no se conoce como
+	tal de qué parte de esta se ha extraido, lo cuál es un problema muy grande, ya que en las imagenes la información
+	espacial es vital y no es algo que se pueda ignorar.
+\end{itemize}
+
 \answer
 
 \nonumbersection{Ejercicio 15}
@@ -512,13 +577,116 @@ imágenes de ambas clases. Justificar cada uno de los pasos que proponga.}
 
 \answer
 
+Para resolver un problema como este, podemos probar a atacarlo con la \textbf{Bolsa de palabras visuales} y añadiendo alguna
+técnica de aprendizaje supervisado para clasificar las imágenes. Los pasos a seguir serían los siguientes:
+
+\begin{enumerate}
+	\item \textbf{Extracción de características}. Para ello, podemos utilizar un algoritmo como \textit{SIFT}, el cuál
+	construye un espacio de escalas y extrae puntos clave, asignándoles después orientaciones y creando descriptores
+	de estos puntos clave. A la hora de extraer los puntos clave, normalmente se utiliza la Laplaciana de Gaussiana.
+	Sin embargo, normalmente esto es costoso de calcular, con lo cuál se aproxima mediante Diferencias de Gaussianas.
+	Si disponemos de una forma eficiente de calcular las derivadas hasta el orden N, podemos aplicarlo para obtener unos
+	mejores resultados, ya que no estaríamos utilizando una aproximación. Se elige una técnica como esta debido a que
+	es robusta a transformaciones lineales no muy grandes.
+	\item \textbf{Aprender el vocabulario visual}. Para ello, aplicamos algún tipo de algoritmo de aprendizaje no supervisado
+	para agrupar los descriptores de las regiones relevantes de alguna forma. Podemos utilizar algo como k-medias, ya que
+	es uno de los algoritmos de \textit{clustering} más rápidos. Si necesitamos más robustez, podemos utilizar alguna mejora
+	de este algoritmo, como k-medias++, el cuál ofrece una mejor inicialización de los centroides. Tendremos que decidir
+	en cuántos grupos vamos a segmentar los descriptores.
+	\item \textbf{Cuantificación vectorial}. Para esto, dada una imagen, extraemos sus regiones relevantes, buscamos
+	cuales son las palabras visuales más cercanas a estas regiones y creamos un histograma. De esta forma, obtenemos
+	un vector de características, con el cuál podremos entrenar luego nuestro modelo.
+	\item \textbf{Entrenar un modelo de aprendizaje supervisado}. Tenemos que etiquetar cada vector de características
+	y luego entrenar algún modelo, como por ejemplo un SVM, una red neuronal o un modelo de regresión logística.
+\end{enumerate}
+
+Con esto hecho, ya solo nos quedaría la parte de clasificar las nuevas entradas. Para ello, cuando queramos clasificar una
+nueva imagen obtendríamos sus descriptores, a partir de éstos un vector de características y usaríamos el modelo
+entrenado para que nos diga de qué clase es.
+
+Como se puede ver, este enfoque combina técnicas de extracción de características clásicas con métodos más complejos, como
+son los modelos de aprendizaje supervisado.
+
 \newpage
 
-\begin{thebibliography}{5}
+\begin{thebibliography}{20}
 
-\bibitem{nombre-referencia}
-Texto referencia
-\\\url{https://url.referencia.com}
+\bibitem{bib:svd}
+Wikipedia. \textit{Singular Value Decomposition}
+\\\url{https://en.wikipedia.org/wiki/Singular_value_decomposition#Separable_models}
+
+\bibitem{bib:svd2}
+Universidad de Princeton. \textit{SVD and Linear Systems}
+\\\url{http://pillowlab.princeton.edu/teaching/statneuro2018/slides/notes03a_SVDandLinSys.pdf}
+
+\bibitem{bib:linear-filters}
+Universidad de Cornell. \textit{Lecture 2: Linear filters}
+\\\url{https://www.cs.cornell.edu/courses/cs6670/2011sp/lectures/lec02_filter.pdf}
+
+\bibitem{bib:gaussian-smooth}
+\textit{Gaussian Smoothing and Gaussian Derivatives}
+\\\url{https://staff.fnwi.uva.nl/r.vandenboomgaard/IPCV20172018/LectureNotes/IP/LocalStructure/GaussianDerivatives.html}
+
+\bibitem{bib:gauss-filtering}
+Cris Luengo. \textit{Gaussian Filtering}
+\\\url{http://www.crisluengo.net/archives/22}
+
+\bibitem{bib:shift}
+Universidad de Princeton. \textit{Lecture 22: Linear Shift-Invariant (LSI) Systems and Convolution}
+\\\url{http://pillowlab.princeton.edu/teaching/mathtools16/slides/lec22_LSIsystems.pdf}
+
+\bibitem{bib:correlation}
+Universidad de Maryland. \textit{Correlation and Convolution}
+\\\url{http://www.cs.umd.edu/~djacobs/CMSC426/Convolution.pdf}
+
+\bibitem{bib:pyramids}
+Universidad Estatal de Pensilvania. \textit{Lecture 10: Pyramids and Scale Space}
+\\\url{http://www.cse.psu.edu/~rtc12/CSE486/lecture10.pdf}
+
+\bibitem{bib:pyramids2}
+MIT. \textit{Lecture 6, 2016}
+\\\url{http://6.869.csail.mit.edu/fa16/lecture/lecture6.pdf}
+
+\bibitem{bib:canny}
+Wikipedia. \textit{Canny edge detector}
+\\\url{https://en.wikipedia.org/wiki/Canny_edge_detector}
+
+\bibitem{bib:sift}
+Wikipedia. \textit{Scale-invariant feature transform}
+\\\url{https://en.wikipedia.org/wiki/Scale-invariant_feature_transform}
+
+\bibitem{bib:sift2}
+AI Shack. \textit{SIFT: Theory and Practice}
+\\\url{http://aishack.in/tutorials/sift-scale-invariant-feature-transform-introduction/}
+
+\bibitem{bib:bovw}
+Pyimagesearch. \textit{The bag of (visual) words model}
+\\\url{https://gurus.pyimagesearch.com/the-bag-of-visual-words-model/}
+
+\bibitem{bib:bovw2}
+Universidad de Standford. \textit{Lecture: Visual Bag of Words}
+\\\url{http://vision.stanford.edu/teaching/cs131_fall1718/files/14_BoW_bayes.pdf}
+
+\bibitem{bib:bovw3}
+Universidad Estatal de Pensilvania. \textit{Bag-of-features models}
+\\\url{http://www.cse.psu.edu/~rtc12/CSE586/lectures/cse586gmmemMotivationBoF.pdf}
+
+\bibitem{bib:bovw4}
+Universidad de Standford. \textit{Lecture 15: Object recognition: Bag of Words models \& Part-based generative models}
+\\\url{http://vision.stanford.edu/teaching/cs231a_autumn1112/lecture/lecture15_bow_part-based_cs231a_marked.pdf}
+
+\bibitem{bib:spatial-pyramid}
+Quora. \textit{How should we understand the Spatial Pyramid Matching?}
+\\\url{https://www.quora.com/How-should-we-understand-the-Spatial-Pyramid-Matching}
+
+\bibitem{bib:kmeans++}
+Wikipedia. \textit{k-means++}
+\\\url{https://en.wikipedia.org/wiki/K-means%2B%2B}
+
+\bibitem{bib:gauss}
+\textit{1D and 2D Gaussian Derivatives}
+\\\url{http://campar.in.tum.de/Chair/HaukeHeibelGaussianDerivatives}
+
 
 \end{thebibliography}
 
