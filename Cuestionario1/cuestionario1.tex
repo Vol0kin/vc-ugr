@@ -364,6 +364,34 @@ la respuesta.}
 
 \answer
 
+El algoritmo de Canny fue una de las primeras propuestas en conseguir unos resultados muy buenos en el
+cálculo de los contornos de una imagen. Antes de eso se habían producido intentos de encontrar los contornos utilizando
+gradientes y eligiendo aquellos valores por encima de un umbral, pero los resultados eran, en general, bastante confusos
+y malos.
+
+El algoritmo de Canny está compuesto por una serie pasos que deben llevarse a cabo antes de conseguir el resultado
+final. Estos pasos son los siguiente:
+
+\begin{enumerate}
+	\item Aplicar un filtro Gaussiano para alisar la imagen, eliminando el ruido.
+	\item Calcular la orientación y la intensidad de los gradientes de la imágen. Para ello, se utiliza
+	algún operador de derivada, como por ejemplo el \textbf{filtro de Sobel}, para obtener las derivadas en
+	los ejes $X$ e $Y$ y posteriormente hacer los cálculos correspondientes para obtener los gradientes.
+	\item Hacer la supresión de no máximos para eliminar para hacer que los bordes sean más finos, eliminando
+	aquellos valores (poniéndolos a 0) que no sean máximos locales.
+	\item Pasar dos umbrales: uno alto y otro bajo. Los píxels con valores inferiores al umbral bajo se eliminan. Los
+	que tienen un valor superior al alto son píxels de un \textit{borde fuerte}. Si son valores intermedios, se marcan
+	como píxels de \textit{borde débil}, los cuáles pueden ser causados por ruido o por dependencia de los de
+	\textit{borde fuerte}.
+	\item El último paso es la histéresis, donde se realiza un análisis de las regiones de los píxels de \textit{borde débil},
+	mirando si están conectados a un píxel de \textit{borde fuerte}, en cuyo caso se conservan, o si no lo están, en cuyo
+	caso se eliminan.
+\end{enumerate}
+
+Los tres últimos pasos fueron muy novedosos en su época, ya que no se habían probado a utilizar en la detección
+de contornos. Por tanto, la técnica revolucionó la forma en la que se detectaban contornos por los buenos resultados
+que permitía obtener y por su potencia y relativa sencillez.
+
 \nonumbersection{Ejercicio 13}
 
 \question{Identificar pros y contras de k-medias como mecanismo para crear un
@@ -371,6 +399,40 @@ vocabulario visual a partir del cual poder caracterizar patrones. ¿Qué
 ganamos y que perdemos? Justificar los argumentos.}
 
 \answer
+
+Las ventajas de utilizar k-medias como mecanismo para crear un vocabulario visual son las siguientes:
+
+\begin{itemize}
+	\item Es un algoritmo sencillo de comprender e implementar en caso de no disponer de un \textit{framework} que lo tenga
+	ya implementado.
+	\item Dentro de los algoritmos de \textit{clustering}, es de los más rápidos. Tiene una complejidad en tiempo de
+	$\mathcal{O}(nkdi)$, donde $n$ es el número de puntos a clasificar, $k$ el número de clústers, $d$ el número de
+	dimensiones de los puntos e $i$ el número de iteraciones hasta converger.
+	\item Obtiene en general unos resultados bastante buenos y que pueden ser fácilmente entendibles, ya que se agrupan
+	elementos según su distancia a un determinado centroide.
+	\item Puede ser ajustado a una gran variedad de problemas, convirtiéndose por tanto en una técnica flexible.
+\end{itemize}
+
+Sin embargo, no todo es perfecto. El algoritmo de k-medias también tiene sus desventajas. Algunas de ellas son las siguientes:
+
+\begin{itemize}
+	\item Los centroides iniciales se inician de forma aleatoria, con lo cuál, los resultados entre ejecuciones pueden variar.
+	\item Es muy sensible a \textit{outliers}. Esto es, si dentro de un \textit{cluster} $c$ existe un punto $p$ que está muy
+	alejado de $c$, y el resto de elementos están muy cerca de $c$ (suponiendo que $c$ es el centroide más cercano
+	a $p$), entonces este punto va a tirar mucho hacia sí el centroide del \textit{cluster} al actualizar su valor, lo cuál
+	puede hacer que puntos que anteriormente estaban en el \textit{cluster} (y que deberían estarlo) dejen de pertenecer a
+	este grupo de puntos. Por tanto, de alguna forma, esto puede afectar a la calidad de las soluciones encontradas.
+	\item Determinar el número de \textit{clusters} a obtener puede llegar a ser complicado, ya que no hay ninguna regla escrita
+	que nos permita determinar el mejor número de $k$. La clave es probar algunos valores y ver cuál es el que se ajusta
+	mejor al problema concreto.
+	\item Si los puntos tienen muchas dimensiones, la convergencia va a ser mucho más lenta. Esto se debe a que, al tener más
+	dimensiones, los puntos tienen más opciones de distar entre sí unos de otros. Con pocas dimensiones, hay menos opciones.
+\end{itemize}
+
+Por tanto, dentro del problema de crear vocabulario visual, ganamos en rapidez y sencillez de uso y de comprensión de los
+resultados. Sin embargo, nuestro mayor problema será determinar cómo de grande queremos que sea el tamaño del vocabulario (es
+decir, escoger el valor de $k$), además de que deberíamos tener cuidado de que no nos encontremos demasiados \textit{outliers},
+ya que estos pueden afectar a la calidad de los resultados.
 
 \nonumbersection{Ejercicio 14}
 
