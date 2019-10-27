@@ -293,6 +293,27 @@ Suponer alisamiento Gaussiano.}
 
 \answer
 
+Suponiendo que queremos calcular la derivadad de una imagen sobre la que aplicamos alisamiento Gaussiano mediante
+convoluciones, esto se podría expresar de la forma $\partial(g \star f)$, donde $f$ es la imagen y $g$ el alisamiento
+Gaussiano. Si aplicamos el teorema derivativo de la convolución, podemos obtener la siguiente expresión:
+
+\begin{equation}
+	\partial(g \star f) = \partial g \star f
+\end{equation}
+
+De aquí, podemos ver que es lo mismo aplicar un alisamiento Gaussiano y luego derivar el resultado que directamente aplicar
+el gradiente de la Gaussiana. Por tanto, podríamos calcular la derivada de la Gaussiana y muestrearla en el rango
+$[-3\sigma, 3\sigma]$, escogiendo los valores de forma acorde al tamaño de máscara. De esta forma, obtendremos los pesos
+de la máscara, la cuál podríamos aplicar luego mediante convoluciones 1D, por ejemplo.
+
+Los pèsos obtenidos serán mejores que los que pueden ofrecer ciertos operadores como Sobel o Prewitt, ya que éstos intentan
+aproximar los valores de la derivada.
+
+Al ser la Gaussiana separable, sus derivadas también lo serán. Por tanto, podemos obtener la derivada para el eje $X$ o para
+el eje $Y$ de forma relativamente sencilla. Como son simétricas, lo único que cambiará es la variable que se utilice en cada
+eje ($x$ o $y$, respectivamente). Por tanto, solo nos bastaría calcular la derivada de forma analítica para una de las variables.
+Muestrear las derivadas posteriormente es trivial y no es costoso desde el punto de vista computacional.
+
 \nonumbersection{Ejercicio 8}
 
 \question{Identifique las funciones de las que podemos extraer pesos correctos
@@ -300,6 +321,35 @@ para implementar de forma eficiente la Laplaciana de una imagen. Suponer
 alisamiento Gaussiano.}
 
 \answer
+
+Sabemos que el operador de la Laplaciana es el siguiente:
+
+\begin{equation}
+	\nabla f = \frac{\partial^2f}{\partial x^2} + \frac{\partial^2f}{\partial y^2}
+\end{equation}
+
+Si aplicamos alisamiento Gaussiano sobre la imágen, la expresión quedaría de la siguiente forma:
+
+\begin{equation}
+\label{eq:laplacian-gaussian}
+	\nabla (g \star f) = \frac{\partial^2(g \star f)}{\partial x^2} + \frac{\partial^2(g \star f)}{\partial y^2}
+\end{equation}
+
+De nuevo, aplicando el teorema derivativo de la convolución, obtendríamos la siguiente expresión:
+
+\begin{equation}
+\label{eq:laplacian-efficient}
+	\nabla (g \star f) = \frac{\partial^2g}{\partial x^2} \star f + \frac{\partial^2g}{\partial y^2} \star f
+\end{equation}
+
+El resultado que obtenemos en la expresión \eqref{eq:laplacian-efficient} sería el mismo que se obtendría en
+la expresión \eqref{eq:laplacian-gaussian}. Por tanto, podríamos calcular las segundas derivadas parciales de la Gaussiana,
+muestrear las segundas derivadas en el rango $[-3\sigma, 3\sigma]$ acorde al tamaño de la máscara. De aquí podríamos
+sacar los pesos de la máscara, los cuáles pueden ser aplicados luego mediante convoluciones 1D.
+
+Tal y como pasó antes, al ser la Gaussiana una función simétrica y separable, se puede calcular solo una de las segundas
+derivadas y cambiar luego la variable utilizada. Evaluar la función resultante, de nuevo es muy sencillo, y no es muy
+costoso computacionalmente. Por tanto, podríamos obtener los pesos de forma bastante eficiente.
 
 \nonumbersection{Ejercicio 9}
 
@@ -309,6 +359,16 @@ alisamiento Gaussiano. Enumere y explique los pasos necesarios para
 llevarlo a cabo.}
 
 \answer
+
+Para hacer una implementación de forma eficiente se podrían seguir los siguientes pasos:
+
+\begin{enumerate}
+	\item Obtener la primera derivadad de la Guassiana y muestrearla, tal y como se ha especificado en el ejercicio 7.
+	\item Aplicar mediante convoluciones 1D la derivada de la Gaussina por filas y por columnas, ya que esta es separable.
+	De esta forma, en vez de aplicar una convolución 2D, la cuál tiene una eficiencia de $\mathcal{O}(m^2n^2)$, teniendo una
+	imagen de tamaño $m \times m$ y una máscara de tamaño $n \times n$, tendríamos dos convoluciones 1D las cuáles
+	tienen una eficiencia $\mathcal{O}(m^2n)$. 
+\end{enumerate}
 
 \nonumbersection{Ejercicio 10}
 
@@ -417,8 +477,8 @@ Sin embargo, no todo es perfecto. El algoritmo de k-medias también tiene sus de
 
 \begin{itemize}
 	\item Los centroides iniciales se inician de forma aleatoria, con lo cuál, los resultados entre ejecuciones pueden variar.
-	\item Es muy sensible a \textit{outliers}. Esto es, si dentro de un \textit{cluster} $c$ existe un punto $p$ que está muy
-	alejado de $c$, y el resto de elementos están muy cerca de $c$ (suponiendo que $c$ es el centroide más cercano
+	\item Es muy sensible a \textit{outliers}. Esto es, si dentro de un \textit{cluster} con centroide $c$ existe un punto $p$
+	que está muy alejado de $c$, y el resto de elementos están muy cerca de $c$ (suponiendo que $c$ es el centroide más cercano
 	a $p$), entonces este punto va a tirar mucho hacia sí el centroide del \textit{cluster} al actualizar su valor, lo cuál
 	puede hacer que puntos que anteriormente estaban en el \textit{cluster} (y que deberían estarlo) dejen de pertenecer a
 	este grupo de puntos. Por tanto, de alguna forma, esto puede afectar a la calidad de las soluciones encontradas.
