@@ -117,7 +117,7 @@ x_train, y_train, x_test, y_test = cargarImagenes()
 # Establecer parametros
 img_rows = 32
 img_cols = 32
-epochs = 10
+epochs = 20
 batch_size = 32
 
 # Creacion del modelo
@@ -134,9 +134,11 @@ model.add(Dense(units=25, activation='softmax'))
 ######### DEFINICIÓN DEL OPTIMIZADOR Y COMPILACIÓN DEL MODELO ###########
 #########################################################################
 
+optimizer = Adam()
+
 # Compilar el modelo
 model.compile(loss=keras.losses.categorical_crossentropy,
-              optimizer=keras.optimizers.Adam(),
+              optimizer=optimizer,
               metrics=['accuracy'])
 
 # Una vez tenemos el modelo base, y antes de entrenar, vamos a guardar los
@@ -144,28 +146,44 @@ model.compile(loss=keras.losses.categorical_crossentropy,
 # después y comparar resultados entre no usar mejoras y sí usarlas.
 weights = model.get_weights()
 
+# Imprimir resumen del modelo
+print(model.summary())
+
 #########################################################################
 ###################### ENTRENAMIENTO DEL MODELO #########################
 #########################################################################
 
-# Crear un generador de datos para las particiones de entrenamiento y validacion
-datagen = ImageDataGenerator(validation_split=0.1)
-
 # Entrenar el modelo
-history = model.fit(x_train, y_train, validation_split=0.1, epochs=epochs, batch_size=batch_size, verbose=1)
+history = model.fit(x_train, y_train,
+                    validation_split=0.1,
+                    epochs=epochs,
+                    batch_size=batch_size,
+                    verbose=1)
 
 
-# Imprimir resumen del modelo
-print(model.summary())
 
 # Mostrar graficas
 mostrarEvolucion(history)
+
+#########################################################################
+# Restaurar los pesos
+model.set_weights(weights)
+
+# Reentrenar
+model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
+
 
 #########################################################################
 ################ PREDICCIÓN SOBRE EL CONJUNTO DE TEST ###################
 #########################################################################
 
 # A completar
+prediction = model.predict(x_test, batch_size=batch_size, verbose=1)
+
+accuracy = calcularAccuracy(y_test, prediction)
+
+print(accuracy)
+
 
 #########################################################################
 ########################## MEJORA DEL MODELO ############################
