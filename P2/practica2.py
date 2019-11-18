@@ -115,14 +115,13 @@ def mostrarEvolucion(hist):
 x_train, y_train, x_test, y_test = cargarImagenes()
 
 # Establecer parametros
-img_rows = 32
-img_cols = 32
-epochs = 40
+input_shape = (32, 32, 3)
+epochs = 30
 batch_size = 32
 
 # Creacion del modelo
 model = Sequential()
-model.add(Conv2D(6, kernel_size=(5, 5), activation='relu', padding='valid', input_shape=(img_rows, img_cols, 3)))
+model.add(Conv2D(6, kernel_size=(5, 5), activation='relu', padding='valid', input_shape=input_shape))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Conv2D(16, kernel_size=(5, 5), activation='relu', padding='valid'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
@@ -173,7 +172,6 @@ accuracy = calcularAccuracy(y_test, prediction)
 print("Test accuracy: {}".format(accuracy))
 
 
-
 #########################################################################
 ########################## MEJORA DEL MODELO ############################
 #########################################################################
@@ -184,42 +182,40 @@ print("Test accuracy: {}".format(accuracy))
 # en qué grado mejora cada uno de ellos.
 
 # 1. Normalizacion de los datos
-# La normalización de los datos de entrada hace que
-# el entrenamiento sea más fácil y más sólido. Utilice la clase
-# ImageDataGenerator con los parámetros correctos para que los datos estén bien
-# condicionados (media=0, std dev=1) para mejorar el entrenamiento. Después
-# de las ediciones, asegúrese de que test_transform tenga los mismos parámetros
-# de normalización de datos que train_transform.
 
-# Crear instancia de ImageDataGenerator
-# Se va a utilizar para normalizar los datos
-datagen = ImageDataGenerator(featurewise_center=True,
-                             featurewise_std_normalization=True,
-                             validation_split=0.1)
+# Crear instancias de ImageDataGenerator, una para train y al otra para test
+# Datagen de train tiene tambien split entre tain y validación
+datagen_train = ImageDataGenerator(featurewise_center=True,
+                                   featurewise_std_normalization=True,
+                                   validation_split=0.1)
+datagen_test = ImageDataGenerator(featurewise_center=True,
+                                  featurewise_std_normalization=True)
 
+# Entrenar generadores
+datagen_train.fit(x_train)
+datagen_test.fit(x_train)
 
-# Entrenar generador con los datos de entrenamiento
-datagen.fit(x_train)
-
-# Restaurar los pesos
+# Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
 
 # Entrenar el modelo
-history = model.fit_generator(datagen.flow(x_train, y_train, batch_size=batch_size, subset="training"),
+history = model.fit_generator(datagen_train.flow(x_train, y_train, batch_size=batch_size, subset="training"),
                               steps_per_epoch=len(x_train)*0.9/batch_size,
                               epochs=epochs,
-                              validation_data=datagen.flow(x_train, y_train, batch_size=batch_size, subset="validation"),
+                              validation_data=datagen_train.flow(x_train, y_train, batch_size=batch_size, subset="validation"),
                               validation_steps=len(x_train)*0.1/batch_size)
 
 # Mostrar graficas
 mostrarEvolucion(history)
 
-#########################################################################
-################ PREDICCIÓN SOBRE EL CONJUNTO DE TEST ###################
-#########################################################################
-
 # Predecir los datos
-prediction = model.evaluate(datagen.flow(x_test, y_test), verbose=1)
+prediction = model.predict_generator(datagen_test.flow(x_test, batch_size=1, shuffle=False),
+                                     steps=len(x_test),
+                                     verbose=1)
+
 
 # Obtener accuracy de test y mostrarla
-print("Test accuracy: {}".format(prediction[1]))
+accuracy = calcularAccuracy(y_test, prediction)
+print("Test accuracy: {}".format(accuracy))
+
+# 2. Aumento de los datos
