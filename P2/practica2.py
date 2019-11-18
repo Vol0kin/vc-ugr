@@ -117,7 +117,7 @@ x_train, y_train, x_test, y_test = cargarImagenes()
 # Establecer parametros
 img_rows = 32
 img_cols = 32
-epochs = 20
+epochs = 40
 batch_size = 32
 
 # Creacion del modelo
@@ -134,6 +134,7 @@ model.add(Dense(units=25, activation='softmax'))
 ######### DEFINICIÓN DEL OPTIMIZADOR Y COMPILACIÓN DEL MODELO ###########
 #########################################################################
 
+# Establecer optimizador a utilizar
 optimizer = Adam()
 
 # Compilar el modelo
@@ -154,35 +155,23 @@ print(model.summary())
 #########################################################################
 
 # Entrenar el modelo
-history = model.fit(x_train, y_train,
-                    validation_split=0.1,
-                    epochs=epochs,
-                    batch_size=batch_size,
-                    verbose=1)
-
-
+history = model.fit(x_train, y_train, validation_split=0.1, epochs=epochs,
+                    batch_size=batch_size, verbose=1)
 
 # Mostrar graficas
-mostrarEvolucion(history)
-
-#########################################################################
-# Restaurar los pesos
-model.set_weights(weights)
-
-# Reentrenar
-model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
-
+#mostrarEvolucion(history)
 
 #########################################################################
 ################ PREDICCIÓN SOBRE EL CONJUNTO DE TEST ###################
 #########################################################################
 
-# A completar
+# Predecir los datos
 prediction = model.predict(x_test, batch_size=batch_size, verbose=1)
 
+# Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
+print("Test accuracy: {}".format(accuracy))
 
-print(accuracy)
 
 
 #########################################################################
@@ -193,3 +182,44 @@ print(accuracy)
 # augmentation debe hacerse con la clase ImageDataGenerator.
 # Se recomienda ir entrenando con cada paso para comprobar
 # en qué grado mejora cada uno de ellos.
+
+# 1. Normalizacion de los datos
+# La normalización de los datos de entrada hace que
+# el entrenamiento sea más fácil y más sólido. Utilice la clase
+# ImageDataGenerator con los parámetros correctos para que los datos estén bien
+# condicionados (media=0, std dev=1) para mejorar el entrenamiento. Después
+# de las ediciones, asegúrese de que test_transform tenga los mismos parámetros
+# de normalización de datos que train_transform.
+
+# Crear instancia de ImageDataGenerator
+# Se va a utilizar para normalizar los datos
+datagen = ImageDataGenerator(featurewise_center=True,
+                             featurewise_std_normalization=True,
+                             validation_split=0.1)
+
+
+# Entrenar generador con los datos de entrenamiento
+datagen.fit(x_train)
+
+# Restaurar los pesos
+model.set_weights(weights)
+
+# Entrenar el modelo
+history = model.fit_generator(datagen.flow(x_train, y_train, batch_size=batch_size, subset="training"),
+                              steps_per_epoch=len(x_train)*0.9/batch_size,
+                              epochs=epochs,
+                              validation_data=datagen.flow(x_train, y_train, batch_size=batch_size, subset="validation"),
+                              validation_steps=len(x_train)*0.1/batch_size)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
+#########################################################################
+################ PREDICCIÓN SOBRE EL CONJUNTO DE TEST ###################
+#########################################################################
+
+# Predecir los datos
+prediction = model.evaluate(datagen.flow(x_test, y_test), verbose=1)
+
+# Obtener accuracy de test y mostrarla
+print("Test accuracy: {}".format(prediction[1]))
