@@ -13,7 +13,7 @@ import keras.utils as np_utils
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D
+from keras.layers import Conv2D, MaxPooling2D, Activation
 
 from keras.optimizers import Adam
 from keras.optimizers import SGD
@@ -97,7 +97,8 @@ def mostrarEvolucion(hist):
     plt.legend(['Training loss', 'Validation loss'])
     plt.show()
 
-    acc = hist.history['accuracy']
+    key = 'acc' if 'acc' in hist.history.keys() else 'accuracy'
+    acc = hist.history[key]
     val_acc = hist.history['val_accuracy']
     
     plt.plot(acc)
@@ -121,13 +122,17 @@ batch_size = 32
 
 # Creacion del modelo
 model = Sequential()
-model.add(Conv2D(6, kernel_size=(5, 5), activation='relu', padding='valid', input_shape=input_shape))
+model.add(Conv2D(6, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
+model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Conv2D(16, kernel_size=(5, 5), activation='relu', padding='valid'))
+model.add(Conv2D(16, kernel_size=(5, 5), padding='valid'))
+model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Flatten())
-model.add(Dense(units=50, activation='relu'))
-model.add(Dense(units=25, activation='softmax'))
+model.add(Dense(units=50))
+model.add(Activation('relu'))
+model.add(Dense(units=25))
+model.add(Activation('softmax'))
 
 #########################################################################
 ######### DEFINICIÓN DEL OPTIMIZADOR Y COMPILACIÓN DEL MODELO ###########
@@ -171,7 +176,6 @@ prediction = model.predict(x_test, batch_size=batch_size, verbose=1)
 accuracy = calcularAccuracy(y_test, prediction)
 print("Test accuracy: {}".format(accuracy))
 
-
 #########################################################################
 ########################## MEJORA DEL MODELO ############################
 #########################################################################
@@ -195,15 +199,26 @@ datagen_test = ImageDataGenerator(featurewise_center=True,
 datagen_train.fit(x_train)
 datagen_test.fit(x_train)
 
+# Crear flow de entrenamiento y validacion
+train_iter = datagen_train.flow(x_train,
+                                y_train,
+                                batch_size=batch_size,
+                                subset="training")
+
+validation_iter = datagen_train.flow(x_train,
+                                     y_train,
+                                     batch_size=batch_size,
+                                     subset="validation")
+
 # Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
 
 # Entrenar el modelo
-history = model.fit_generator(datagen_train.flow(x_train, y_train, batch_size=batch_size, subset="training"),
-                              steps_per_epoch=len(x_train)*0.9/batch_size,
+history = model.fit_generator(train_iter,
+                              steps_per_epoch=len(train_iter),
                               epochs=epochs,
-                              validation_data=datagen_train.flow(x_train, y_train, batch_size=batch_size, subset="validation"),
-                              validation_steps=len(x_train)*0.1/batch_size)
+                              validation_data=validation_iter,
+                              validation_steps=len(validation_iter))
 
 # Mostrar graficas
 mostrarEvolucion(history)
