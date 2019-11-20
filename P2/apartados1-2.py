@@ -97,9 +97,11 @@ def mostrarEvolucion(hist):
     plt.legend(['Training loss', 'Validation loss'])
     plt.show()
 
-    key = 'acc' if 'acc' in hist.history.keys() else 'accuracy'
-    acc = hist.history[key]
-    val_acc = hist.history['val_accuracy']
+    key_acc = 'acc' if 'acc' in hist.history.keys() else 'accuracy'
+    key_val_acc = 'val_acc' if 'val_acc' in hist.history.keys() else 'val_accuracy'
+
+    acc = hist.history[key_acc]
+    val_acc = hist.history[key_val_acc]
     
     plt.plot(acc)
     plt.plot(val_acc)
@@ -139,12 +141,14 @@ model.add(Activation('softmax'))
 #########################################################################
 
 # Establecer optimizador a utilizar
-optimizer = Adam()
+optimizer = SGD()
 
 # Compilar el modelo
-model.compile(loss=keras.losses.categorical_crossentropy,
-              optimizer=optimizer,
-              metrics=['accuracy'])
+model.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
 
 # Una vez tenemos el modelo base, y antes de entrenar, vamos a guardar los
 # pesos aleatorios con los que empieza la red, para poder reestablecerlos
@@ -159,18 +163,28 @@ print(model.summary())
 #########################################################################
 
 # Entrenar el modelo
-history = model.fit(x_train, y_train, validation_split=0.1, epochs=epochs,
-                    batch_size=batch_size, verbose=1)
+history = model.fit(
+    x_train,
+    y_train,
+    validation_split=0.1,
+    epochs=epochs,
+    batch_size=batch_size,
+    verbose=1
+)
 
 # Mostrar graficas
-#mostrarEvolucion(history)
+mostrarEvolucion(history)
 
 #########################################################################
 ################ PREDICCIÓN SOBRE EL CONJUNTO DE TEST ###################
 #########################################################################
 
 # Predecir los datos
-prediction = model.predict(x_test, batch_size=batch_size, verbose=1)
+prediction = model.predict(
+    x_test,
+    batch_size=batch_size,
+    verbose=1
+)
 
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
@@ -189,44 +203,58 @@ print("Test accuracy: {}".format(accuracy))
 
 # Crear instancias de ImageDataGenerator, una para train y al otra para test
 # Datagen de train tiene tambien split entre tain y validación
-datagen_train = ImageDataGenerator(featurewise_center=True,
-                                   featurewise_std_normalization=True,
-                                   validation_split=0.1)
-datagen_test = ImageDataGenerator(featurewise_center=True,
-                                  featurewise_std_normalization=True)
+datagen_train = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1
+)
+datagen_test = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True
+)
 
 # Entrenar generadores
 datagen_train.fit(x_train)
 datagen_test.fit(x_train)
 
 # Crear flow de entrenamiento y validacion
-train_iter = datagen_train.flow(x_train,
-                                y_train,
-                                batch_size=batch_size,
-                                subset="training")
+train_iter = datagen_train.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset="training"
+)
 
-validation_iter = datagen_train.flow(x_train,
-                                     y_train,
-                                     batch_size=batch_size,
-                                     subset="validation")
+validation_iter = datagen_train.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset="validation"
+)
 
 # Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
 
 # Entrenar el modelo
-history = model.fit_generator(train_iter,
-                              steps_per_epoch=len(train_iter),
-                              epochs=epochs,
-                              validation_data=validation_iter,
-                              validation_steps=len(validation_iter))
+epochs = 25
+
+history = model.fit_generator(
+    train_iter,
+    steps_per_epoch=len(train_iter),
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(validation_iter)
+)
 
 # Mostrar graficas
 mostrarEvolucion(history)
 
 # Predecir los datos
-prediction = model.predict_generator(datagen_test.flow(x_test, batch_size=1, shuffle=False),
-                                     steps=len(x_test),
-                                     verbose=1)
+prediction = model.predict_generator(
+    datagen_test.flow(x_test, batch_size=1, shuffle=False),
+    steps=len(x_test),
+    verbose=1
+)
 
 
 # Obtener accuracy de test y mostrarla
@@ -234,3 +262,58 @@ accuracy = calcularAccuracy(y_test, prediction)
 print("Test accuracy: {}".format(accuracy))
 
 # 2. Aumento de los datos
+
+# Datagen con aumento de datos
+datagen_train_aug = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1,
+    horizontal_flip=True,
+    zoom_range=0.3
+)
+
+# Entrenar generador con datos de train
+datagen_train_aug.fit(x_train)
+
+# Crear flow de entrenamiento y validacion
+train_iter = datagen_train.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset="training"
+)
+
+validation_iter = datagen_train.flow(
+  x_train,
+  y_train,
+  batch_size=batch_size,
+  subset="validation"
+)
+
+# Restaurar los pesos del modelo antes de continuar
+model.set_weights(weights)
+
+# Entrenar el modelo
+history = model.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
+# Predecir los datos
+prediction = model.predict_generator(
+    datagen_test.flow(x_test, batch_size=1, shuffle=False),
+    steps=len(x_test),
+    verbose=1
+)
+
+
+# Obtener accuracy de test y mostrarla
+accuracy = calcularAccuracy(y_test, prediction)
+print("Test accuracy: {}".format(accuracy))
+
