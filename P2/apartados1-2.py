@@ -163,6 +163,7 @@ print(model.summary())
 #########################################################################
 
 # Entrenar el modelo
+"""
 history = model.fit(
     x_train,
     y_train,
@@ -173,7 +174,7 @@ history = model.fit(
 )
 
 # Mostrar graficas
-mostrarEvolucion(history)
+#mostrarEvolucion(history)
 
 #########################################################################
 ################ PREDICCIÓN SOBRE EL CONJUNTO DE TEST ###################
@@ -189,7 +190,7 @@ prediction = model.predict(
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
 print("Test accuracy: {}".format(accuracy))
-
+"""
 #########################################################################
 ########################## MEJORA DEL MODELO ############################
 #########################################################################
@@ -236,8 +237,7 @@ validation_iter = datagen_train.flow(
 model.set_weights(weights)
 
 # Entrenar el modelo
-epochs = 25
-
+"""
 history = model.fit_generator(
     train_iter,
     steps_per_epoch=len(train_iter),
@@ -247,7 +247,7 @@ history = model.fit_generator(
 )
 
 # Mostrar graficas
-mostrarEvolucion(history)
+#mostrarEvolucion(history)
 
 # Predecir los datos
 prediction = model.predict_generator(
@@ -260,9 +260,9 @@ prediction = model.predict_generator(
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
 print("Test accuracy: {}".format(accuracy))
-
+"""
 # 2. Aumento de los datos
-
+epochs = 50
 # Datagen con aumento de datos
 datagen_train_aug = ImageDataGenerator(
     featurewise_center=True,
@@ -276,14 +276,14 @@ datagen_train_aug = ImageDataGenerator(
 datagen_train_aug.fit(x_train)
 
 # Crear flow de entrenamiento y validacion
-train_iter = datagen_train.flow(
+train_iter = datagen_train_aug.flow(
     x_train,
     y_train,
     batch_size=batch_size,
     subset="training"
 )
 
-validation_iter = datagen_train.flow(
+validation_iter = datagen_train_aug.flow(
   x_train,
   y_train,
   batch_size=batch_size,
@@ -292,7 +292,7 @@ validation_iter = datagen_train.flow(
 
 # Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
-
+"""
 # Entrenar el modelo
 history = model.fit_generator(
     train_iter,
@@ -316,4 +316,62 @@ prediction = model.predict_generator(
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
 print("Test accuracy: {}".format(accuracy))
+"""
+# 3. Red más profunda
 
+# Definicion del nuevo modelo
+model_v2 = Sequential()
+model_v2.add(Conv2D(6, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
+model_v2.add(Activation('relu'))
+model_v2.add(Conv2D(16, kernel_size=(5, 5), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v2.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v2.add(Flatten())
+model_v2.add(Dense(units=128))
+model_v2.add(Activation('relu'))
+model_v2.add(Dense(units=50))
+model_v2.add(Activation('relu'))
+model_v2.add(Dense(units=25))
+model_v2.add(Activation('softmax'))
+
+# Compilar el modelo
+model_v2.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
+
+weights_v2 = model_v2.get_weights()
+
+print(model_v2.summary())
+
+# Entrenar el modelo
+history = model_v2.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
+# Predecir los datos
+prediction = model_v2.predict_generator(
+    datagen_test.flow(x_test, batch_size=1, shuffle=False),
+    steps=len(x_test),
+    verbose=1
+)
+
+
+# Obtener accuracy de test y mostrarla
+accuracy = calcularAccuracy(y_test, prediction)
+print("Test accuracy: {}".format(accuracy))
