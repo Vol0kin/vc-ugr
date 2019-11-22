@@ -127,9 +127,11 @@ model = Sequential()
 model.add(Conv2D(6, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
+
 model.add(Conv2D(16, kernel_size=(5, 5), padding='valid'))
 model.add(Activation('relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
+
 model.add(Flatten())
 model.add(Dense(units=50))
 model.add(Activation('relu'))
@@ -163,7 +165,7 @@ print(model.summary())
 #########################################################################
 
 # Entrenar el modelo
-"""
+print('Training base model')
 history = model.fit(
     x_train,
     y_train,
@@ -174,7 +176,7 @@ history = model.fit(
 )
 
 # Mostrar graficas
-#mostrarEvolucion(history)
+mostrarEvolucion(history)
 
 #########################################################################
 ################ PREDICCIÓN SOBRE EL CONJUNTO DE TEST ###################
@@ -189,8 +191,8 @@ prediction = model.predict(
 
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
-print("Test accuracy: {}".format(accuracy))
-"""
+print('Test accuracy: {}'.format(accuracy))
+
 #########################################################################
 ########################## MEJORA DEL MODELO ############################
 #########################################################################
@@ -223,21 +225,21 @@ train_iter = datagen_train.flow(
     x_train,
     y_train,
     batch_size=batch_size,
-    subset="training"
+    subset='training'
 )
 
 validation_iter = datagen_train.flow(
     x_train,
     y_train,
     batch_size=batch_size,
-    subset="validation"
+    subset='validation'
 )
 
 # Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
 
 # Entrenar el modelo
-"""
+print('Training normalization')
 history = model.fit_generator(
     train_iter,
     steps_per_epoch=len(train_iter),
@@ -247,81 +249,188 @@ history = model.fit_generator(
 )
 
 # Mostrar graficas
-#mostrarEvolucion(history)
+mostrarEvolucion(history)
 
-# Predecir los datos
-prediction = model.predict_generator(
-    datagen_test.flow(x_test, batch_size=1, shuffle=False),
-    steps=len(x_test),
-    verbose=1
-)
-
-
-# Obtener accuracy de test y mostrarla
-accuracy = calcularAccuracy(y_test, prediction)
-print("Test accuracy: {}".format(accuracy))
-"""
+###############################################################################
 # 2. Aumento de los datos
+
+# Aumentar el numero de epocas para ver mejor la evolucion
 epochs = 50
-# Datagen con aumento de datos
-datagen_train_aug = ImageDataGenerator(
+
+# Datagen con flip horizontal
+datagen_train_flip = ImageDataGenerator(
     featurewise_center=True,
     featurewise_std_normalization=True,
     validation_split=0.1,
-    horizontal_flip=True,
-    zoom_range=0.3
+    horizontal_flip=True
 )
 
 # Entrenar generador con datos de train
-datagen_train_aug.fit(x_train)
+datagen_train_flip.fit(x_train)
 
 # Crear flow de entrenamiento y validacion
-train_iter = datagen_train_aug.flow(
+train_iter_flip = datagen_train_flip.flow(
     x_train,
     y_train,
     batch_size=batch_size,
-    subset="training"
+    subset='training'
 )
 
-validation_iter = datagen_train_aug.flow(
-  x_train,
-  y_train,
-  batch_size=batch_size,
-  subset="validation"
+validation_iter_flip = datagen_train_flip.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='validation'
 )
 
 # Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
-"""
+
 # Entrenar el modelo
+print('Training with data augmentation: horizontal_flip=True')
 history = model.fit_generator(
-    train_iter,
+    train_iter_flip,
     steps_per_epoch=len(x_train)*0.9/batch_size,
     epochs=epochs,
-    validation_data=validation_iter,
+    validation_data=validation_iter_flip,
     validation_steps=len(x_train)*0.1/batch_size
 )
 
 # Mostrar graficas
 mostrarEvolucion(history)
 
-# Predecir los datos
-prediction = model.predict_generator(
-    datagen_test.flow(x_test, batch_size=1, shuffle=False),
-    steps=len(x_test),
-    verbose=1
+# Datagen con zoom de 0.2
+datagen_train_zoom = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1,
+    zoom_range=0.2
 )
 
+# Entrenar generador con datos de train
+datagen_train_zoom.fit(x_train)
 
-# Obtener accuracy de test y mostrarla
-accuracy = calcularAccuracy(y_test, prediction)
-print("Test accuracy: {}".format(accuracy))
+# Crear flow de entrenamiento y validacion
+train_iter_zoom = datagen_train_zoom.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='training'
+)
+
+validation_iter_zoom = datagen_train_zoom.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='validation'
+)
+
+# Restaurar los pesos del modelo antes de continuar
+model.set_weights(weights)
+
+# Entrenar el modelo
+print('Training with data augmentation: zoom_range=0.2')
+history = model.fit_generator(
+    train_iter_zoom,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter_zoom,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
+# Datagen con rotacion de 25
+datagen_train_rot = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1,
+    rotation_range=25
+)
+
+# Entrenar generador con datos de train
+datagen_train_rot.fit(x_train)
+
+# Crear flow de entrenamiento y validacion
+train_iter_rot = datagen_train_rot.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='training'
+)
+
+validation_iter_rot = datagen_train_rot.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='validation'
+)
+
+# Restaurar los pesos del modelo antes de continuar
+model.set_weights(weights)
+
+# Entrenar el modelo
+print('Training with data augmentation: rotation_range=25')
+history = model.fit_generator(
+    train_iter_rot,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter_rot,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
+# Datagen con flip horizontal y zoom de 0.2
+datagen_train_fz = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1,
+    horizontal_flip=True,
+    zoom_range=0.2
+)
+
+# Entrenar generador con datos de train
+datagen_train_fz.fit(x_train)
+
+# Crear flow de entrenamiento y validacion
+train_iter_fz = datagen_train_fz.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='training'
+)
+
+validation_iter_fz = datagen_train_fz.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='validation'
+)
+
+# Restaurar los pesos del modelo antes de continuar
+model.set_weights(weights)
+
+# Entrenar el modelo
+print('Training with data augmentation: horizontal_flip=True, zoom_range=0.2')
+history = model.fit_generator(
+    train_iter_fz,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter_fz,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
 """
 # 3. Red más profunda
 
 # Definicion del nuevo modelo
 model_v2 = Sequential()
-model_v2.add(Conv2D(6, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
+model_v2.add(Conv2D(8, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
 model_v2.add(Activation('relu'))
 model_v2.add(Conv2D(16, kernel_size=(5, 5), padding='valid'))
 model_v2.add(Activation('relu'))
@@ -363,7 +472,8 @@ history = model_v2.fit_generator(
 
 # Mostrar graficas
 mostrarEvolucion(history)
-
+"""
+"""
 # Predecir los datos
 prediction = model_v2.predict_generator(
     datagen_test.flow(x_test, batch_size=1, shuffle=False),
@@ -374,4 +484,5 @@ prediction = model_v2.predict_generator(
 
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
-print("Test accuracy: {}".format(accuracy))
+print('Test accuracy: {}'.format(accuracy))
+"""
