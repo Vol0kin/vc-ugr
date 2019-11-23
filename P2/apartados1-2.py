@@ -695,47 +695,105 @@ mostrarEvolucion(history)
 epochs = 50
 
 # Definicion del nuevo modelo
-model_batch = Sequential()
-model_batch.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
-model_batch.add(BatchNormalization())
-model_batch.add(Activation('relu'))
-model_batch.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
-model_batch.add(BatchNormalization())
-model_batch.add(Activation('relu'))
-model_batch.add(MaxPooling2D(pool_size=(2, 2)))
-model_batch.add(Dropout(0.2))
+model_batch_pre = Sequential()
+model_batch_pre.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch_pre.add(Dropout(0.2))
 
-model_batch.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
-model_batch.add(BatchNormalization())
-model_batch.add(Activation('relu'))
-model_batch.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
-model_batch.add(BatchNormalization())
-model_batch.add(Activation('relu'))
-model_batch.add(MaxPooling2D(pool_size=(2, 2)))
-model_batch.add(Dropout(0.5))
+model_batch_pre.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch_pre.add(Dropout(0.5))
 
-model_batch.add(Flatten())
-model_batch.add(Dense(units=128))
-model_batch.add(Activation('relu'))
-model_batch.add(Dense(units=50))
-model_batch.add(Activation('relu'))
-model_batch.add(Dense(units=25))
-model_batch.add(Activation('softmax'))
+model_batch_pre.add(Flatten())
+model_batch_pre.add(Dense(units=128))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(Dense(units=50))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(Dense(units=25))
+model_batch_pre.add(Activation('softmax'))
 
 # Compilar el modelo
-model_batch.compile(
+model_batch_pre.compile(
     loss=keras.losses.categorical_crossentropy,
     optimizer=optimizer,
     metrics=['accuracy']
 )
 
-weights_batch = model_batch.get_weights()
+# Guardar los pesos
+weights_batch_pre = model_batch_pre.get_weights()
 
-print(model_batch.summary())
-
+print(model_batch_pre.summary())
+"""
 # Entrenar el modelo
 print('Training first batch normalization model')
-history = model_v3.fit_generator(
+history = model_batch_pre.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+"""
+# Definicion del nuevo modelo
+model_batch_post = Sequential()
+model_batch_post.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch_post.add(Dropout(0.2))
+
+model_batch_post.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch_post.add(Dropout(0.5))
+
+model_batch_post.add(Flatten())
+model_batch_post.add(Dense(units=128))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(Dense(units=50))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(Dense(units=25))
+model_batch_post.add(Activation('softmax'))
+
+# Compilar el modelo
+model_batch_post.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
+
+# Guardar los pesos
+weights_batch_post = model_batch_post.get_weights()
+
+print(model_batch_post.summary())
+"""
+# Entrenar el modelo
+print('Training second batch normalization model')
+history = model_batch_post.fit_generator(
     train_iter,
     steps_per_epoch=len(x_train)*0.9/batch_size,
     epochs=epochs,
@@ -746,9 +804,45 @@ history = model_v3.fit_generator(
 # Mostrar graficas
 mostrarEvolucion(history)
 
+
+# Reestablecer pesos
+model_batch_pre.set_weights(weights_batch_pre)
+
+# Reentrenar modelo utilizando aumento de datos
+print('Training first batch normalization model with data augmentation')
+history = model_batch_pre.fit_generator(
+    train_iter_flip,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter_flip,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
 """
+# Ajuste final
+
+epochs = 60
+
+# Reestablecer pesos
+model_batch_pre.set_weights(weights_batch_pre)
+
+# Reentrenar modelo utilizando aumento de datos
+print('Training first batch normalization model with data augmentation')
+history = model_batch_pre.fit_generator(
+    train_iter_flip,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter_flip,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
 # Predecir los datos
-prediction = model_v2.predict_generator(
+prediction = model_batch_pre.predict_generator(
     datagen_test.flow(x_test, batch_size=1, shuffle=False),
     steps=len(x_test),
     verbose=1
@@ -758,7 +852,7 @@ prediction = model_v2.predict_generator(
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
 print('Test accuracy: {}'.format(accuracy))
-"""
+
 
 
 """
