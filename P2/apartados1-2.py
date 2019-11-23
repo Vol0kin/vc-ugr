@@ -13,7 +13,7 @@ import keras.utils as np_utils
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D, Activation
+from keras.layers import Conv2D, MaxPooling2D, Activation, Dropout, BatchNormalization
 
 from keras.optimizers import Adam
 from keras.optimizers import SGD
@@ -163,7 +163,7 @@ print(model.summary())
 #########################################################################
 ###################### ENTRENAMIENTO DEL MODELO #########################
 #########################################################################
-
+"""
 # Entrenar el modelo
 print('Training base model')
 history = model.fit(
@@ -192,7 +192,7 @@ prediction = model.predict(
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
 print('Test accuracy: {}'.format(accuracy))
-
+"""
 #########################################################################
 ########################## MEJORA DEL MODELO ############################
 #########################################################################
@@ -234,7 +234,7 @@ validation_iter = datagen_train.flow(
     batch_size=batch_size,
     subset='validation'
 )
-
+"""
 # Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
 
@@ -250,7 +250,7 @@ history = model.fit_generator(
 
 # Mostrar graficas
 mostrarEvolucion(history)
-
+"""
 ###############################################################################
 # 2. Aumento de los datos
 
@@ -282,7 +282,7 @@ validation_iter_flip = datagen_train_flip.flow(
     batch_size=batch_size,
     subset='validation'
 )
-
+"""
 # Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
 
@@ -426,8 +426,11 @@ history = model.fit_generator(
 # Mostrar graficas
 mostrarEvolucion(history)
 """
+###############################################################################
 # 3. Red más profunda
 
+epochs = 35
+"""
 # Definicion del nuevo modelo
 model_v2 = Sequential()
 model_v2.add(Conv2D(8, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
@@ -461,7 +464,104 @@ weights_v2 = model_v2.get_weights()
 
 print(model_v2.summary())
 
+
 # Entrenar el modelo
+print('Training first "enhanced" model with no Dropout')
+history = model_v2.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
+# Definicion del nuevo modelo
+model_v3 = Sequential()
+model_v3.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v3.add(Flatten())
+model_v3.add(Dense(units=128))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=50))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=25))
+model_v3.add(Activation('softmax'))
+
+# Compilar el modelo
+model_v3.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
+
+weights_v3 = model_v3.get_weights()
+
+print(model_v3.summary())
+
+# Entrenar el modelo
+print('Training second "enhanced" model with no Dropout')
+history = model_v3.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+"""
+# Definicion del nuevo modelo
+model_v2 = Sequential()
+model_v2.add(Conv2D(8, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
+model_v2.add(Activation('relu'))
+model_v2.add(Conv2D(16, kernel_size=(5, 5), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(MaxPooling2D(pool_size=(2, 2)))
+model_v2.add(Dropout(0.2))
+
+model_v2.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(MaxPooling2D(pool_size=(2, 2)))
+model_v2.add(Dropout(0.5))
+
+model_v2.add(Flatten())
+model_v2.add(Dense(units=128))
+model_v2.add(Activation('relu'))
+model_v2.add(Dense(units=50))
+model_v2.add(Activation('relu'))
+model_v2.add(Dense(units=25))
+model_v2.add(Activation('softmax'))
+
+# Compilar el modelo
+model_v2.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
+
+weights_v2 = model_v2.get_weights()
+
+print(model_v2.summary())
+
+"""
+# Entrenar el modelo
+print('Training first "enhanced" model with Dropout')
 history = model_v2.fit_generator(
     train_iter,
     steps_per_epoch=len(x_train)*0.9/batch_size,
@@ -473,6 +573,179 @@ history = model_v2.fit_generator(
 # Mostrar graficas
 mostrarEvolucion(history)
 """
+# Definicion del nuevo modelo
+model_v3 = Sequential()
+model_v3.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+model_v3.add(Dropout(0.2))
+
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+model_v3.add(Dropout(0.5))
+
+model_v3.add(Flatten())
+model_v3.add(Dense(units=128))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=50))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=25))
+model_v3.add(Activation('softmax'))
+
+# Compilar el modelo
+model_v3.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
+
+weights_v3 = model_v3.get_weights()
+
+print(model_v3.summary())
+"""
+# Entrenar el modelo
+print('Training second "enhanced" model with Dropout')
+history = model_v3.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+"""
+# Establecer epocas
+epochs = 50
+"""
+# Restaurar pesos
+model_v2.set_weights(weights_v2)
+
+# Entrenar el modelo
+print('Training first "enhanced" model with Dropout')
+history = model_v2.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
+# Restaurar pesos
+model_v3.set_weights(weights_v3)
+
+# Entrenar el modelo
+print('Training first "enhanced" model with Dropout')
+history = model_v3.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
+
+# Restaurar pesos
+model_v2.set_weights(weights_v2)
+
+# Entrenar el modelo
+print('Training first "enhanced" model with Dropout')
+history = model_v2.fit_generator(
+    train_iter_flip,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter_flip,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
+# Restaurar pesos
+model_v3.set_weights(weights_v3)
+
+# Entrenar el modelo
+print('Training first "enhanced" model with Dropout')
+history = model_v3.fit_generator(
+    train_iter_flip,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter_flip,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+"""
+###############################################################################
+# 4. Capas de normalizacion
+
+epochs = 50
+
+# Definicion del nuevo modelo
+model_batch = Sequential()
+model_batch.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
+model_batch.add(BatchNormalization())
+model_batch.add(Activation('relu'))
+model_batch.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_batch.add(BatchNormalization())
+model_batch.add(Activation('relu'))
+model_batch.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch.add(Dropout(0.2))
+
+model_batch.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_batch.add(BatchNormalization())
+model_batch.add(Activation('relu'))
+model_batch.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_batch.add(BatchNormalization())
+model_batch.add(Activation('relu'))
+model_batch.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch.add(Dropout(0.5))
+
+model_batch.add(Flatten())
+model_batch.add(Dense(units=128))
+model_batch.add(Activation('relu'))
+model_batch.add(Dense(units=50))
+model_batch.add(Activation('relu'))
+model_batch.add(Dense(units=25))
+model_batch.add(Activation('softmax'))
+
+# Compilar el modelo
+model_batch.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
+
+weights_batch = model_batch.get_weights()
+
+print(model_batch.summary())
+
+# Entrenar el modelo
+print('Training first batch normalization model')
+history = model_v3.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas
+mostrarEvolucion(history)
+
 """
 # Predecir los datos
 prediction = model_v2.predict_generator(
@@ -485,4 +758,33 @@ prediction = model_v2.predict_generator(
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
 print('Test accuracy: {}'.format(accuracy))
+"""
+
+
+"""
+Idea para el bonus
+model_v3 = Sequential()
+model_v3.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(32, kernel_size=(1, 1), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v3.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(32, kernel_size=(1, 1), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v3.add(Flatten())
+model_v3.add(Dense(units=128))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=50))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=25))
+model_v3.add(Activation('softmax'))
 """
