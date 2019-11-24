@@ -41,6 +41,9 @@ import matplotlib.pyplot as plt
 from keras.optimizers import SGD
 
 # Importar modelos y capas específicas que se van a usar
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Model
+from keras.layers import Dense
 
 
 # Importar el modelo ResNet50 y su respectiva función de preprocesamiento,
@@ -154,41 +157,129 @@ def mostrarEvolucion(hist):
     plt.show()
 
 # Cargar los datos
-x_train, y_train, x_test, y_test = cargarDatos("imagenes")
+x_train, y_train, x_test, y_test = cargarDatos('imagenes')
 
 """## Usar ResNet50 preentrenada en ImageNet como un extractor de características"""
 
-# Definir un objeto de la clase ImageDataGenerator para train y otro para test
-# con sus respectivos argumentos.
-# A completar
+# Definir parametros de entrenamiento
+batch_size = 32
+epochs = 35
 
+# Establecer optimizador
+optimizer = SGD()
+
+# Definir un objeto de la clase ImageDataGenerator para train y otro para test
+# con sus respectivos argumentos
+# Generador de entrenamiento
+datagen_train = ImageDataGenerator(
+    validation_split=0.1,
+    preprocessing_function=preprocess_input
+)
+
+# Generador de test
+datagen_test = ImageDataGenerator(
+    preprocessing_function=preprocess_input
+)
+
+# Crear iteradores para entrenamiento y validacion
+train_iter = datagen_train.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='training'
+)
+
+validation_iter = datagen_train.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='validation'
+)
 
 # Definir el modelo ResNet50 (preentrenado en ImageNet y sin la última capa).
-# A completar
+resnet50 = ResNet50(include_top=False, weights='imagenet', pooling='avg')
+
+# Poner cada capa como no entrenable
+for layer in resnet50.layers:
+    layer.trainable = False
+
+# Crear modelo completo, incluyendo las capas densas
+x = resnet50.output
+x = Dense(1024, activation='relu')(x)
+x = Dense(200, activation='softmax')(x)
+
+model = Model(inputs=resnet50.input, outputs=x)
+
+# Compilar el modelo
+model.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
+
+# Entrenar el modelo
+history = model.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas de evolucion
+mostrarEvolucion(history)
+
+# Predecir los datos
+prediction = model.predict_generator(
+    datagen_test.flow(x_test, batch_size=1, shuffle=False),
+    steps=len(x_test),
+    verbose=1
+)
 
 
-# Extraer las características las imágenes con el modelo anterior.
-# A completar
-
-# Las características extraídas en el paso anterior van a ser la entrada
-# de un pequeño modelo de dos capas Fully Conected, donde la última será la que 
-# nos clasifique las clases de Caltech-UCSD (200 clases). De esta forma, es 
-# como si hubiéramos fijado todos los parámetros de ResNet50 y estuviésemos
-# entrenando únicamente las capas añadidas. Definir dicho modelo.
-# A completar: definición del modelo, del optimizador y compilación y
-# entrenamiento del modelo.
-# En la función fit() puedes usar el argumento validation_split
+# Obtener accuracy de test y mostrarla
+accuracy = calcularAccuracy(y_test, prediction)
+print('Test accuracy: {}'.format(accuracy))
 
 """## Reentrenar ResNet50 (fine tunning)"""
 
-# Definir un objeto de la clase ImageDataGenerator para train y otro para test
-# con sus respectivos argumentos.
-# A completar
+# Definir el modelo ResNet50 (preentrenado en ImageNet y sin la última capa).
+resnet50 = ResNet50(include_top=False, weights='imagenet', pooling='avg')
+
+# Crear modelo entero
+x = resnet50.output
+x = Dense(1024, activation='relu')(x)
+x = Dense(200, activation='softmax')(x)
+
+model = Model(inputs=resnet50.input, outputs=x)
+
+# Compilar el modelo
+model.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
+
+# Entrenar el modelo
+history = model.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+
+# Mostrar graficas de evolucion
+mostrarEvolucion(history)
+
+# Predecir los datos
+prediction = model.predict_generator(
+    datagen_test.flow(x_test, batch_size=1, shuffle=False),
+    steps=len(x_test),
+    verbose=1
+)
 
 
-# Añadir nuevas capas al final de ResNet50 (recuerda que es una instancia de
-# la clase Model).
-
-
-# Compilación y entrenamiento del modelo.
-# A completar.
+# Obtener accuracy de test y mostrarla
+accuracy = calcularAccuracy(y_test, prediction)
+print('Test accuracy: {}'.format(accuracy))

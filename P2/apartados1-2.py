@@ -13,7 +13,7 @@ import keras.utils as np_utils
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D, Activation, Dropout, BatchNormalization
+from keras.layers import Conv2D, MaxPooling2D, Activation, BatchNormalization
 
 from keras.optimizers import Adam
 from keras.optimizers import SGD
