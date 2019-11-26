@@ -327,7 +327,47 @@ para ver hasta dónde somos capaces de llegar.
 
 \section{\textsc{Mejora del modelo}}
 
-En esta sección vamos a ir reaizando una serie de mejoras sobre el modelo.
+En esta sección, vamos a ir proponiendo una serie de mejoras que podemos hacer sobre el modelo. Estas mejoras son acumulativas,
+es decir, que se van realizando una sobre la otra, siempre y cuando ofrezcan unos buenos resultados.
+
+Para cada caso, vamos a discutir brevemente qué es lo que se va a mejorar, qué parámetros se van a utilizar y cuáles son los
+resultados obtenidos. Para cada experimento mostraremos gráficas, iguál que las que se pueden ver en la figura
+\ref{fig:basenet-history}.
+
+Una vez que hayamos encontrado un modelo bueno (es decir, uno que no sufre ni de \textit{overfit} ni de \textit{underfit}, y
+ofrece unos valores de error y precisión razonables en el conjunto de validación), utilizaremos el conjunto de test para
+ver cómo de bien lo hace, y es entonces cuando podremos comparar dichos resultados con el modelo base, para poder ver hasta
+dónde hemos llegado. En ningún otro caso utilizaremos dicho conjunto, ya que no es buena idea dejarnos llevar por los resultados
+obtenidos en test para decir que un modelo es mejor que otro; para eso tenemos el conjunto de validación.
+
+\subsection{Normalización de los datos}
+
+La primera mejora que vamos a introducir es la normalización de los datos de entrada, haciendo que éstos tengan media
+$\mu = 0$ y desviación típica $\sigma = 1$. Se introduce esta mejora porque se sabe que gracias a la normalización se pueden
+obtener unos mejores resultados, además de que el entrenamiento de la red se puede llegar a acelerar.
+
+La manera más fácil de normalizar los datos es utilizar un generador de la clase $ImageDataGenerator$. Para crearlo, podemos
+utilizar el siguiente fragmento de código:
+
+\begin{lstlisting}
+datagen_train = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1
+)
+\end{lstlisting}
+
+De esta forma, creamos un generador para los datos de entrenamiento, el cuál hará que la media sea 0 (con el parámetro
+$featurewise\_center = True$), normalizará la desviación típica (con el parámetro $featurewise\_std\_normalization = True$)
+y creará una partición de validación con el 10\% de los datos de entrenamiento (parámetro $validation\_split = 0.1$).
+
+\subsection{Aumento de datos}
+
+\subsection{Aumento de la profundidad de la red}
+
+\subsection{Mejora extra: regularización mediante Dropout}
+
+\subsection{Capas de normalización}
 
 \section{\textsc{Transferencia de modelos y ajuste fino con ResNet50 para la base de datos Caltech-UCSD}}
 
