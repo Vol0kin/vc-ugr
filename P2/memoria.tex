@@ -10,6 +10,8 @@
 \usepackage{enumitem}						% Permitir enumerate con distintos simbolos
 \usepackage[T1]{fontenc}					% Usar textsc en sections
 \usepackage{amsmath}						% Símbolos matemáticos
+\usepackage{natbib}
+\usepackage{subcaption}
 
 % Comando para poner el nombre de la asignatura
 \newcommand{\asignatura}{Visión por Computador}
@@ -57,6 +59,7 @@
 \rfoot{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}		% Linea cabeza de pagina
 \renewcommand{\footrulewidth}{0.4pt}		% Linea pie de pagina
+
 
 \begin{document}
 \pagenumbering{gobble}
@@ -109,7 +112,7 @@
 
 \section{\textsc{BaseNet en CIFAR100}}
 
-Antes de empezar con la traducción de la arquitectura proporcionada de BaseNet, hace falta establecer la forma
+Antes de empezar con la traducción de la arquitectura proporcionada de \textit{BaseNet}, hace falta establecer la forma
 de la entrada de la primera capa de la red. Esto es necesario, ya que el modelo necesita conocer dicho tamaño para poder
 ser compilado sin ningún tipo de error. Como las imágenes de \textit{CIFAR100} tienen un tamaño de $32 \times 32$
 píxels, y tienen 3 canales, la dimensión de la entrada va a ser la siguiente:
@@ -146,24 +149,192 @@ este caso) y un MaxPooling de tamaño $2 \times 2$. El parámetro $padding = val
 aplicar la convolución allá donde se pueda ajustar el \textit{kernel}; es decir, como en las regiones de los bordes no se
 puede, se van a ignorar estas zonas, lo cuál implica que la salida no va a tener el mismo tamaño que la entrada. Este módulo
 convolucional se repite otra vez. Después de eso, nos encontramos con las capas densas, las cuáles van a actuar como
-clasificador. La capa $Flatten$ es necesario ponerla, ya que coge la salida de la anterior y la aplana, dejándola como
-un vector de características que sirve como entrada al modelo denso. La última capa, la de activación \textit{softmax}
-es la que va a dar la salida, clasificando las entradas.
+clasificador. La capa $Flatten$ es necesario ponerla, ya que coge la salida de la anterior, la cuál es un bloque de tamaño
+$5 \times 5 \times 16$ (16 imágenes $5 \times 5$), y aplana dicho bloque, convirtiéndolo en un vector de 400 características,
+el cuál sirve como entrada al modelo denso. La última capa, la de activación \textit{softmax} es la que va a dar la salida,
+un vector de probabilidades para cada clase. En este caso, la salida va a ser un vector de 25 posiciones, ya que estamos
+en un problema donde hay 25 clases.
 
+Con el modelo ya definido, y antes de compilarlo, tenemos que establecer algunas cosas más:
+
+\begin{itemize}
+	\item \textbf{Optimizador}. El optimizador que se va a utilizar en este caso es el \textbf{SGD} o \textit{Stochastic
+	Gradient Descent}. 	Este es uno de los optimizadores más populares e importantes dentro del \textit{machine learning}.
+	Se utiliza mucho con redes neuronales, ya sean redes normales o profundas, y es conocido por su robustez y por ofrecer
+	unos muy buenos resultados	en general, además de ser bastante rápido a diferencia de otros optimizadores, como por ejemplo
+	Adam. En este caso, se va a utilizar con los parámetros por defecto. Es decir, se tendrá un \textit{learning rate} de 0.01,
+	y no se utilizará momentum ni el momentum de Nesterov. Estos parámetros parecen razonables, ya que el \textit{learning
+	rate} no es ni demasaido pequeño ni demasiado grande. Además, como es un poco difícil ajustar el momento, se ha preferido
+	no tocar este parámetro.
+	\item \textbf{Tamaño del \textit{batch}}. Otro elemento muy importante a determinar es el tamaño del \textit{batch}, si bien
+	no es necesario conocerlo en el momento en el que se compila el modelo. Para un problema como este, teniendo en cuenta que
+	tenemos unos 11250 datos de entrenamiento, un tamaño de \textit{batch} razonable es de 32. Este es un tamaño muy utilizado,
+	ya que en general ofrece unos buenos resultados, ya que permite converger a buenos óptimos y hace que el modelo
+	generalice bastante bien. Con un tamaño menor se estaría explorando demasiado el espacio, mientras que con uno mayor se
+	estaría explotando una zona del espacio, lo cuál puede llegar a producir problemas, como que no se generalice demasiado
+	bien \cite{DBLP:journals/corr/KeskarMNST16}, cosa que no nos interesa.
+	\item \textbf{Número de épocas}. Éste es quizás el parámetro más difícil de decidir a priori, ya que no tenemos mucha
+	información. Por tanto, ya que a medida que vayamos haciendo pruebas podremos ver las curvas de entrenamiento y validación,
+	podremos decidir en función de éstas cuántas épocas debemos entrenar los modelos. Para empezar, podemos fijar unas 30 épocas,
+	ya que parece un número razonable.
+\end{itemize}
+
+Con esto ya visto, podemos compilar nuestro modelo. Lo primero que tenemos que hacer es definir el optimizador. Como vamos
+a utilizar SGD, lo hacemos de la siguiente forma:
+
+\begin{lstlisting}
+# Establecer optimizador a utilizar
+optimizer = SGD()
+\end{lstlisting}
+
+Para compilar el modelo, lo haremos de la siguiente forma:
+
+\begin{lstlisting}
+# Compilar el modelo
+model.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=optimizer,
+    metrics=['accuracy']
+)
+\end{lstlisting}
+
+Como estamos en un problema de clasificación y la salida que va a dar el modelo es un vector de probabilidades para múltiples
+clases, especificamos que la función de pérdida que se utilizará es la entropía cruzada o \textit{Categorical Cross-Entropy},
+la cuál es muy utilizada en problemas de clasificación para múltples clases. Especificamos también cuál será el optimizador
+a utilizar, e indicamos que la métrica que nos interesa es la precisión o \textit{accuracy}, que representa la proporción
+de aciertos sobre el número total de elementos. Existen muchas otras métricas que se pueden utilizar, pero la \textit{accuracy}
+es la más sencilla de entender.
+
+Con el modelo ya compilado, podemos visualizarlo de la siguiente forma:
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.28]{img/base-model.png}
+  \caption{Esquema que representa el modelo \textit{BaseNet}.}
+  \label{fig:base-model}
+\end{figure}
+
+Aquí es donde podemos ver mejor la estructura del modelo. Se puede ver de forma más clara que antes la estructua secuencial
+que tiene, además de cada una de las capas y de los tamaños de las entradas y de las salidas de éstas.
+
+Teniendo el modelo ya construido y compilado, para hacernos una idea de como de bueno es, podemos entrenarlo y probarlo
+con el conjunto de test. Es muy importante, antes de empezar, guardar los pesos que tiene el modelo. De esta forma, podremos
+restablecerlos posteriormente, para poder reentrenar el modelo. Para guardar los pesos, podemos hacerlo de la siguiente
+forma:
+
+\begin{lstlisting}
+# Guardar los pesos iniciales del modelo
+weights = model.get_weights()
+\end{lstlisting}
+
+Ahora ya podemos proceder al entrenamiento. Es muy importante destacar que, con los datos de entrenamiento de los que disponemos,
+solo se tiene que entrenar con el 90\% de éstos; el 10\% restante se tiene que dejar para validar el modelo, y de esta forma poder
+obtener unas gráficas para el error y la \textit{accuracy} en los conjuntos de entrenamiento y de validación. Estos
+valores que se obtienen para el conjunto de validación son, en general, una buena aproximación de lo que se puede obtener
+en el conjunto de test, si la muestra es lo suficientemente representativa de la población total, claro está.
+
+Para entrenar el modelo, lo hacemos de la siguiente forma:
+
+\begin{lstlisting}
+# Entrenar el modelo
+history = model.fit(
+    x_train,
+    y_train,
+    validation_split=0.1,
+    epochs=epochs,
+    batch_size=batch_size,
+    verbose=1
+)
+\end{lstlisting}
+
+Especificamos que se utilizan las particiones de entrenamiento $x\_train$ (las imágenes) e $y\_train$ (la etiqueta asociada
+a cada una de las imágenes del conjunto de entrenamiento). Además, con $validation\_split = 0.1$ indicamos que solo el
+10\% de los datos se utilizarán para validar el modelo. Se especifica también el tamaño del \textit{batch} (recordemos que
+lo habíamos fijado a 32) y el número de épocas (30 inicialmente). El parámetro $verbose$ es solo para mostrar el progreso
+del entrenamiento; no tiene ningún otro fin.
+
+Este método devuelve una historia, la cuál se almacena en la variable $history$. Esta historia contiene trazas de la evolución
+de los valores de la función de pérdida y de \textit{accuracy} en los conjuntos de entrenamiento y de validación.
+Para este caso, hemos obtenido los siguientes resultados:
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.5\textwidth}
+    \includegraphics[scale=0.42]{img/base-model-loss.png}
+    \caption{Evolución de la función de pérdida.}
+    \label{fig:base-model-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}[t]{0.5\textwidth}
+    \includegraphics[scale=0.42]{img/base-model-acc.png}
+    \caption{Evolución de la \textit{accuracy}.}
+    \label{fig:base-model-acc}
+  \end{subfigure}
+  \caption{Historia del modelo \textit{BaseNet}.}
+  \label{fig:basenet-history}
+\end{figure}
+
+Podemos ver que no se produce \textit{overfit}, ya que a medida que el valor del error o de la función de pérdida va
+bajando en el conjunto de entrenamiento, también lo hace en el de validación, hasta que llega a las últimas épocas, donde dicho
+valor se queda más o menos se queda un poco por encima del de entrenamiento, pareciendo que se estanca.
+En ningún momento el error en validación llega a subir. Si esto hubiese sucedido, podríamos haber afirmado de forma clara
+que se ha producido \textit{overfit} en nuestro modelo. Si miramos también la \textit{accuracy}, podemos ver que, a medida
+que va subiendo dicho valor en el conjunto de entrenamiento, también lo hace en el de validación.
+Aquí de nuevo sucede algo como en el caso de la función de pérdida, ya que parece que en las últimas épocas este valor se va
+quedando un poco estancado, aunque no dista mucho del valor obtenido en el conjunto de entrenamiento.
+
+Sin embargo, aunque el modelo no padezca de \textit{overfit}, sí que lo hace de \textit{underfit}: la evolución de los valores
+de la función de pérdida y de la \textit{accuracy}, aunque en un principio parecen buenos ya que el error va disminuyendo y la
+precisión aumentando, no es del todo satisfactoria. Podemos ver claramente como el error, aún en el conjunto de entrenamiento,
+sigue siendo bastante alto (en las últimas épocas se queda en torno a $1.8$, valor bastante alto), y en el caso de la
+precisión se queda en torno a $0.45$. En el caso del conjunto de validación, aunque al principio los valores sean más o
+menos parejos con el conjunto de entrenamiento en ambas gráficas, podemos ver como al cabo de aproximadamente unas 15-20 épocas
+los valores empiezan a ser dispares. En el caso de la función de pérdida, al final, los valores que se obtienen están en torno a 2,
+mientras que en la precisión los valores obtenidos no superan el $0.4$, quedándose por debajo de los obtenidos en entrenamiento.
+
+En líneas generales, estos resultados son demasiado pobres: lo ideal hubiese sido alcanzar un error cercano a 1 o
+más bajo y una precisión superior a 0.5 en el conjunto de entrenamiento, y que los valores obtenidos en el conjunto de
+validación hubiesen seguido casi perfectamente a los de entrenamiento. Por tanto, de aquí podemos extraer que todavía
+existe mucho margen de mejora.
+
+Es importante destacar, antes de continuar, que todos los resultados que se obtienen dependen de la ejecución. Es decir,
+que para dos ejecuciones puede que los resultados no sean exactamente los mismos; sin embargo, podemos decir que estarán
+bastante cerca, en general, ya que los datos son los mismos.
+
+Para tener una idea de cómo de bien funciona nuestro modelo base con el conjunto de test, y para tener un valor de
+\textit{accuracy} que podemos utilizar para comparar este modelo base con las mejoras futuras, vamos a hacer que prediga
+las etiquetas del conjunto $x\_test$ (las imágenes de test), y compararemos dichos valores con los reales, los cuáles están
+en la variable $y\_test$. Para hacer dicha predición, podemos hacerla de la siguiente forma:
+
+\begin{lstlisting}
+# Predecir los datos
+prediction = model.predict(
+    x_test,
+    batch_size=batch_size,
+    verbose=1
+)
+\end{lstlisting}
+
+De esta forma, especificamos que el modelo prediga las etiquetas asociadas al conjunto $x\_test$ y se le especifica un tamaño
+de \textit{batch}, que será el número de elementos máximos que se predigan de golpe; es decir, no se va mandar a CPU/GPU un
+conjunto de datos de mayor tamaño que el especificado. El parámetro $verbose$ es, de nuevo, para mostrar el proceso.
+
+El valor de \textit{accuracy} comparando los valores predichos con los reales gira en torno a $0.4$ tras realizar
+algunas pruebas. Dicho valor, a pesar de no ser del todo horrible para un modelo tan simple, es bastante bajo, y creemos
+que tiene cierto margen de mejora. ya que posiblemente, con realizar algunas modificaciones, podamos llegar una \textit{accuracy}
+igual o superior a $0.5$. Por tanto, vamos a intentar mejorar nuestro modelo en la próxma sección,
+para ver hasta dónde somos capaces de llegar.
 
 \section{\textsc{Mejora del modelo}}
+
+En esta sección vamos a ir reaizando una serie de mejoras sobre el modelo.
 
 \section{\textsc{Transferencia de modelos y ajuste fino con ResNet50 para la base de datos Caltech-UCSD}}
 
 \newpage
 
-\begin{thebibliography}{5}
-
-\bibitem{nombre-referencia}
-Texto referencia
-\\\url{https://url.referencia.com}
-
-\end{thebibliography}
+\bibliographystyle{plain}
+\bibliography{mybib}
 
 \end{document}
 
