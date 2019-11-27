@@ -242,10 +242,10 @@ model.set_weights(weights)
 print('Training normalization')
 history = model.fit_generator(
     train_iter,
-    steps_per_epoch=len(train_iter),
+    steps_per_epoch=len(x_train)*0.9/batch_size,
     epochs=epochs,
     validation_data=validation_iter,
-    validation_steps=len(validation_iter)
+    validation_steps=len(x_train)*0.1/batch_size
 )
 
 # Mostrar graficas

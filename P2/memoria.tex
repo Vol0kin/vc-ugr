@@ -361,6 +361,114 @@ De esta forma, creamos un generador para los datos de entrenamiento, el cuál ha
 $featurewise\_center = True$), normalizará la desviación típica (con el parámetro $featurewise\_std\_normalization = True$)
 y creará una partición de validación con el 10\% de los datos de entrenamiento (parámetro $validation\_split = 0.1$).
 
+Como el generador utiliza normalización, hace falta entrenarlo con los datos de entrenamiento. Esto lo podemos hacer
+de la siguiente forma:
+
+\begin{lstlisting}
+# Entrenar generadores
+datagen_train.fit(x_train)
+\end{lstlisting}
+
+Con el generador ya entrenado, podemos obtener los iteradores que se van a utilizar a la hora de entrenar el modelo. Habrá
+un iterador para el conjunto de entrenamiento y otro para el conjunto de validación. Obtener estos iteradores se puede
+hacer de la siguiente forma:
+
+\begin{lstlisting}
+# Crear flow de entrenamiento y validacion
+train_iter = datagen_train.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='training'
+)
+
+validation_iter = datagen_train.flow(
+    x_train,
+    y_train,
+    batch_size=batch_size,
+    subset='validation'
+)
+\end{lstlisting}
+
+En el primer caso, creamos un iterador de entrenamiento, utilizando para ello los datos de $x\_train$ e $y\_train$. Es aquí
+donde especificamos el tamaño del \textit{batch} (recordemos que se ha establecido que sea 32), y se indica que los datos
+pertenecen al subconjunto de \textit{training} (esto es porque se ha especificado en el generador que se utilice
+$validation\_split = 0.1$). Para el conjunto de validación el proceso es casi igual, solo que el subconjunto del que
+se extraerán los datos es \textit{validation}.
+
+Es importane destacar que a la hora de crear los iteradores (al llamar a los métodos $flow$), los
+datos son barajados (por defecto el parámetro $shuffle$ está puesto a \textbf{True}). Esto es importante, ya que si no,
+Keras solo cogería el primer 10\% de los datos como validación, lo cuál puede hacer que el conjunto de validación no represente
+para nada al conjunto de entrenamiento, y por tanto, los resultados obtenidos en validación sean pésimos.
+
+Una vez hecho esto. ya podemos entrenar el modelo. Como en este caso utilizamos generadores, no podemos utilizar el
+método $fit()$ tal y como hicimos anteriormente, si no que tendremos que utilizar el método $fit\_generator()$. El entrenamiento
+que se ha realizado se puede ver en el siguiente fragmento de código:
+
+\begin{lstlisting}
+history = model.fit_generator(
+    train_iter,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+\end{lstlisting}
+
+Especificamos que para entrenar se va a utilizar el iterador $train\_iter$ creado anteriormente. Por cada época se van a
+realizar $len(x\_train)*0.9/batch\_size$ pasos (esto es, del tamaño del conjunto de entrenamiento original se cogerá el
+90\% de dicho tamaño, que representa el porcentaje de datos que se utilizarán para entrenar, y este número de elementos
+se dividirá entre el tamaño del \textit{batch}, que es 32; de esta forma se sabe cuántos pasos hay que dar para el tamaño de
+\textit{batch} especificado). Luego se indica cuántas épocas se quieren entrenar (de momento, viendo los resultados que se han
+obtenido en el apartado anterior, vamos a conservar su valor anterior, que es 35, ya que no se produce un \textit{overfit} que
+nos indique que haga falta rebajar dicho número). Se indica que como datos de validación se va a utilizar el $validation\_iter$
+creado anteriormente y se indica el número de pasos que se van a hacer a la hora de validar, lo cuál se hace de forma similar
+a cómo se hizo con el conjunto de entrenamiento, solo que se utilizará el 10\% del tamaño del conjunto de entrenamiento.
+
+Con el entrenamiento ya hecho, vamos a estudiar las gráficas para ver qué tal ha ido:
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/norm-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:norm-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+  	\includegraphics[scale=0.4]{img/norm-acc.png}
+  	\subcaption{Evolución de la \textit{accuracy}.}
+  	\label{fig:norm-acc}
+  \end{subfigure}
+  \caption{Historia del modelo \textit{BaseNet} con normalización.}
+  \label{fig:norm-history}
+\end{figure}
+
+Como podemos ver, comparando los resultados con los que se pueden ver en la figura \ref{fig:basenet-history} los valores de
+pérdida son menores en el conjunto de entrenamiento que los que teníamos anteriormente. Además, el valor de \textit{accuracy}
+es más alto que el que habíamos obtenido en el caso anterior para el el conjunto de entrenamiento. Sin embargo, si estudiamos
+los resultados obtenidos en validación, vemos que no ha habido ninguna mejora significativa, ya que los resultados son bastante
+parecidos a los que teníamos anteriormente.
+
+Además de eso, si estudiamos los valores de entrenamiento y de validación de forma conjunta, podemos ver que, a diferencia
+de lo que sucedía en la figura \ref{fig:basenet-history}, aquí los resultados en validación se quedan mucho más cortos cuando
+llegamos a las últimas épocas. Al principio, los valores van bastante pegados, pero a medida que aumentan el número de épocas,
+éstos se van despegando, hasta llegar al resultado final que podemos ver en las gráfias de la figura \ref{fig:norm-history}.
+
+En líneas generales podemos ver que los valores de la función de pérdida en validación se quedan bastante por encima de los de
+entrenamiento, y la \textit{accuracy} se queda bastante por debajo de la de entrenamiento. Aparte, en ambos parece que se estanca
+en las últimas épocas, mientras que los valores obtenidos en entrenamiento siguen mejorando. Por tanto, podemos detectar cierto
+\textit{overfit}, ya que aunque se mejore en entrenamiento, no hay mejoras reales en validación, con lo cuál parece
+que el modelo está comenzando a memorizar los datos de entrenamiento. Posiblemente, de haber entrenado algunas épocas más,
+los valores de validación hubiesen empezado a empeorar.
+
+Tras este breve análisis podemos ver que, a pesar de que normalizar ha permitido mejorar los resultados obtenidos en entrenamiento,
+los de validación aún se quedan muy cortos. Por tanto, ha habido cierta mejora, pero no significativa. Esto puede deberse a que
+solo se normaliza la entrada, y a media que se van haciendo convoluciones, dicha normalización se pierde. Con lo cuál, parece
+lógico que se tengan que introducir capas de normalización en la red para que los datos siempre estén normalizados, aunque
+esto lo haremos más adelante. De momento, conservaremos la normalización, ya que es una mejora que siempre ayuda y, si conseguimos
+combinarla con alguna otra mejora, puede que los resultados sean bastante mejores.
+
 \subsection{Aumento de datos}
 
 \subsection{Aumento de la profundidad de la red}
