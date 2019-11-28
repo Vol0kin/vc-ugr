@@ -763,7 +763,11 @@ tantas épocas, y por tanto el tiempo de entrenamiento es menor. Además, como v
 épocas, los modelos estaban muy cerca de padecer de sobreajuste, con lo cuál parece sensato reducir el número de épocas para
 intentar evitar que esto suceda para estos nuevos modelos.
 
-Una vez comentado este detalle, vamos a pasar a estudiar los resultados obtenidos.
+Otra cosa importante a destacar es que primero se entrenarán los modelos utilizando solo la normalización. Posteriormente,
+si todo va bien, entrenaremos con aumento de datos, aplicando un \textit{flip} horizontal sobre las imágenes, y miraremos si
+existe mejora.
+
+Una vez comentado estos detalles, vamos a pasar a estudiar los resultados obtenidos.
 
 \begin{figure}[H]
   \centering
@@ -816,13 +820,254 @@ se está intentando minimizar. Esto nos llevará a unos resultados como los que 
 son muy buenos mientras que los de validación son muy malos.
 
 Este problema puede ser difícil de solventar, ya que no hay una única manera de intentar reducir el \textit{overfit}.
-Una idea simple sería parar el entrenamiento antes de que empiece a sobreajustar. En este caso, sería parar el entrenamiento
-alrededor de las 10-15 épocas. Sin embargo, si hacemos eso, el modelo que obtendremos será bastante malo, ya que no habrá
-aprendido lo suficiente debido a que los valores del error y la precisión serán bastante malos en general.
-Por tanto, para solventar este problema podemos probar a utilizar una técnica de regularización como \textbf{Dropout}, la cuál
-procederemos a ver a continuación.
+Una idea simple sería aplicar \textit{early stopping}, parando el entrenamiento antes de que empiece a sobreajustar.
+En este caso, sería parar el entrenamiento alrededor de las 10-15 épocas. Sin embargo, si hacemos eso, el modelo que
+obtendremos será bastante malo, ya que no habrá aprendido lo suficiente debido a que los valores del error y la precisión
+serán bastante malos en general (como podemos ver en las gráficas). Por tanto, para solventar este problema podemos probar
+a utilizar una técnica de regularización como \textbf{Dropout}, la cuál procederemos a ver a continuación.
 
 \subsection{Mejora extra: regularización mediante Dropout}
+
+La forma más sencilla de regularizar nuestros modelos es el \textbf{Dropout}. Este proceso consiste en escoger una proporción
+de las neuronas de una capa de forma aleatoria y en desactivar las conexiones de dichas neuronas con las neuronas
+de la capa siguiente, de forma que no participan en el proceso. Luego, a la hora de predecir, no se realiza Dropout, ya
+que participan todas las conexiones. En cambio, los valores predichos son ponderados en función del número de veces que
+esa conexión se haya dejado activa. Está demostrado que, en general, este proceso ayuda a reducir el \textit{overfit},
+y por tanto, hace que la red sea capaz de generalizar mejor. Sin embargo, como cualquier método de regularización,
+hace falta usarlo con cuidado, ya que insertar demasiadas capas de Dropout puede llevar a una regularización excesiva
+del modelo, y por tanto, que el modelo sufra de \textit{underfitting}, ya que los valores que pueden tomar los parámetros
+se habrán limitado en exceso.
+
+Para regularizar nuestros modelos, vamos a insertar una capa de Dropout después de cada módulo convolucional (recordemos que
+un módulo está formado por un conjunto de capas \textbf{Convolución-Convolución-Max Pooling}). No existe como tal una regla de
+oro que nos diga dónde insertar las capas de Dropout, ya que eso depende mucho del modelo. En este caso se ha decidido
+poner una capa de Dropout al final de cada módulo convolucional porque se considera que el sobreajuste viene a raíz de pasar
+de un módulo convolucional a otro debido a que al final de uno se reduce la imagen a la mitad, y al principio del siguiente
+se aplican convoluciones para extraer características. Al tener imagenes tan pequeñas en general, los tamaños se reducen muy
+rápido, con lo cual, al tener convoluciones que producen salidas bastante grandes, se empiezan a extraer
+características muy particulares de dichas imágenes, lo que al final provoca que se acaben memorizando los datos de entrenamiento.
+Al regularizar no se deja que se entrenen todos los parámetros de la red a la vez, sino solo una parte. De esta forma,
+se llega a evitar el problema comentado anteriormente.
+
+Cuando insertemos capas de Dropout, hace falta especificar la proporción de conexiones que vamos a desactivar. En algunos
+artículos se aconseja que si se utiliza Dropout en la red convolucional (no en las capas totalmente conectadas) que
+la proporción de conexiones que se desactiven sea pequeña \cite{inproceedings}. Por tanto, siendo $p$ la proporción
+de conexiones a desactivar, vamos a hacer que $p = 0.2$. De esta forma, estamos desactivando un número de conexiones
+pequeño, pero aún así suficiente para regularizar la red.
+
+Con esto comentado, vamos a ver cómo quedarían los dos modelos anteriores aplicando Dropout. El código que define
+la arquitectura del primer modelo, al que llamaremos \textit{Modelo A}, se puede ver a continuación:
+
+\begin{lstlisting}
+# Definicion del nuevo modelo
+model_v2 = Sequential()
+model_v2.add(Conv2D(8, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
+model_v2.add(Activation('relu'))
+model_v2.add(Conv2D(16, kernel_size=(5, 5), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(MaxPooling2D(pool_size=(2, 2)))
+model_v2.add(Dropout(0.2))
+
+model_v2.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(MaxPooling2D(pool_size=(2, 2)))
+model_v2.add(Dropout(0.5))
+
+model_v2.add(Flatten())
+model_v2.add(Dense(units=128))
+model_v2.add(Activation('relu'))
+model_v2.add(Dense(units=50))
+model_v2.add(Activation('relu'))
+model_v2.add(Dense(units=25))
+model_v2.add(Activation('softmax'))
+\end{lstlisting}
+
+El segundo modelo, al que llamaremos \textit{Modelo B}, introduciendo regularización, se puede representar de la siguiente manera:
+
+\begin{lstlisting}
+# Definicion del nuevo modelo
+model_v3 = Sequential()
+model_v3.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+model_v3.add(Dropout(0.2))
+
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+model_v3.add(Dropout(0.5))
+
+model_v3.add(Flatten())
+model_v3.add(Dense(units=128))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=50))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=25))
+model_v3.add(Activation('softmax'))
+\end{lstlisting}
+
+Estos modelos tienen que ser compilados y entrenados de la misma forma que hemos visto antes. Utilizaremos de nuevo 35 épocas,
+para comparar si ha habido mejora al utilizar regularización respecto a los resultados que hemos obtenido anteriormente. De nuevo,
+de momento solo utilizaremos normalización al utilizar los generadores. Si existe mejora, probaremos a utilizar el generador
+que utiliza aumento de datos de \textit{flip} horizontal.
+
+A continuación podemos ver las gráficas obtenidas para ambos modelos:
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep1-drop-loss-35.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:deep1-drop-loss-35}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep1-drop-acc-35.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:deep1-drop-acc-35}
+  \end{subfigure}
+  \caption{Historia del \textit{Modelo A}.}
+  \label{fig:history-deep1-drop-35}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep2-drop-loss-35.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:deep2-drop-loss-35}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep2-drop-acc-35.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:deep2-drop-acc-35}
+  \end{subfigure}
+  \caption{Historia del \textit{Modelo B}.}
+  \label{fig:history-deep2-drop-35}
+\end{figure}
+
+Si comparamos estas gráficas con las figuras \ref{fig:history-deep1-nodrop} y \ref{fig:history-deep2-nodrop}, podemos ver
+que los modelos han mejorado un montón. Ahora en ambos los resultados obtenidos en validación se parecen mucho más a los
+de entrenamiento, ya que en ambos casos, las curvas van más pegadas. Además, se ha eliminado completamente el \textit{overfit},
+ya que los resultados obtenidos en validación van mejorando a medida que los de entrenamiento mejoran. Podemos ver
+claramente que en las gráficas de la evolución del error no se produce un incremento en validación en las últimas épocas,
+cosa que sí que sucedía en los casos anteriores.
+
+Ahora, si analizamos los resultados, podemos ver que en general son muy buenos. El error en ambos casos se sitúa por debajo
+de 2, y la precisión está por encima de 0.4, tal y como pasaba con los resultados que se pueden ver en la figura
+\ref{fig:history-aug-flip}, aunque en este caso son mejores, ya que no hay sobreajuste. En general, los resultados obtenidos
+por el \textit{Modelo B} en validación son mejores debido a que el error en validación es menor y la \textit{accuracy} es
+mayor. Además, los valores obtenidos para el conjunto de entrenamiento son bastante parejos, y son bastante mejores que
+los obtenidos en el \textit{Modelo A}.
+
+Ya que los resultados obtenidos con 35 épocas han sido bastante buenos, vamos a subir de nuevo el número de épocas a 50,
+para ver si se pueden mantener al entrenar los modelos durante más épocas. Que suceda esto sería lo ideal, ya que, al entrenar
+más, podríamos tener un modelo que generalice mejor, siempre y cuando los resultados obtenidos en validación sigan
+el mismo comportamiento que los obtenidos anteriormente.
+
+Por tanto, restablecemos los pesos de los modelos y los entrenamos de nuevo. Los resultados obtenidos se pueden
+ver a continuación:
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep1-drop-loss-50.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:deep1-drop-loss-50}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep1-drop-acc-50.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:deep1-drop-acc-50}
+  \end{subfigure}
+  \caption{Historia del \textit{Modelo A}.}
+  \label{fig:history-deep1-drop-50}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep2-drop-loss-50.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:deep2-drop-loss-50}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep2-drop-acc-50.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:deep2-drop-acc-50}
+  \end{subfigure}
+  \caption{Historia del \textit{Modelo B}.}
+  \label{fig:history-deep2-drop-50}
+\end{figure}
+
+Podemos ver que, en general, al haber aumentado el número de épocas, los valores de validación han mejorado en ambos modelos tanto para los valores
+de la función de pérdida como para la \textit{accuracy}. En general, para el \textit{Modelo A}, los resultados obtenidos en validación
+están más pegados a los valores de entrenamiento que los obtenidos en el \textit{Modelo B}. No obstante, los obtenidos en el \textit{Modelo B}
+son mucho mejores que los obtenidos en el \textit{Modelo A}, tanto en validación como en entrenamiento. Es en este modelo donde, por primera vez,
+se consigue una \textit{accuracy} en validación superior al 0.5, lo cuál son buenas noticias, ya que hemos conseguido mejorar bastante el modelo
+base, el cuál no llegaba ni al 0.4, tal y como se puede ver en la figura \ref{fig:basenet-history}. Así que, en general, aumentar el número
+de épocas ha sido una buena idea.
+
+Para elegir el mejor modelo, vamos a probar a entrenar ambos modelos con aumento de datos, para ver cuál se comporta mejor. Las gráficas
+obtenidas son las siguientes:
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.38]{img/deep1-aug-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:deep1-aug-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.38]{img/deep1-aug-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:deep1-aug-acc}
+  \end{subfigure}
+  \caption{Historia del \textit{Modelo A}.}
+  \label{fig:deep1-aug}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep2-aug-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:deep2-aug-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep2-aug-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:deep2-aug-acc}
+  \end{subfigure}
+  \caption{Historia del \textit{Modelo B}.}
+  \label{fig:deep2-aug}
+\end{figure}
+
+En ambos casos los resultados son muy buenos, siendo incluso mejores que los que obtuvimos utilizando solo la normalización. Podemos ver aquí cómo
+los resultados obtenidos en el conjunto de validación en ambos modelos se ajustan mejor a los obtenidos en entrenamiento que antes. Además,
+en este caso, la \textit{accuracy} obtenida con el \textit{Modelo A} en las últimas épocas llega al 0.5, superando a la que tenía anteriormente.
+Por tanto, introducir aumento de datos ha mejorado significativamente los resultados obtenidos en el \textit{Modelo A}.
+
+En el caso del \textit{Modelo B}, podemos ver como el error en validación se ve reducido más aún, y la \textit{accuracy} comienza a acercarse
+a 0.6. Además, el error obtenido en este caso es bastante menor que el del \textit{Modelo A}. Si observamos el error en entrenamiento,
+podemos ver que en este caso es mayor que el que se ve en la figua \ref{fig:history-deep2-drop-50}, aunque esto no nos preocupa mucho, ya que
+en validación obtiene mejores resultados.
+
+Por tanto, como veredicto final, vamos a quedarnos con el \textit{Modelo B}, ya que es el que ha obtenido unos mejores resultados en el conjunto
+de validación y, además, no presenta \textit{overfit}. Por tanto, hemos conseguido crear una arquitectura más profunda que es capaz de conseguir
+unos buenos resultados y que, de momento, parece que es capaz de generalizar bastante bien. Veremos si con la próxima mejora somos capaces
+de sacar el máximo potencial al modelo.
 
 \subsection{Capas de normalización}
 
