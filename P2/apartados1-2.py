@@ -163,7 +163,7 @@ print(model.summary())
 #########################################################################
 ###################### ENTRENAMIENTO DEL MODELO #########################
 #########################################################################
-"""
+
 # Entrenar el modelo
 print('Training base model')
 history = model.fit(
@@ -192,7 +192,7 @@ prediction = model.predict(
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
 print('Test accuracy: {}'.format(accuracy))
-"""
+
 #########################################################################
 ########################## MEJORA DEL MODELO ############################
 #########################################################################
@@ -234,7 +234,7 @@ validation_iter = datagen_train.flow(
     batch_size=batch_size,
     subset='validation'
 )
-"""
+
 # Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
 
@@ -250,7 +250,7 @@ history = model.fit_generator(
 
 # Mostrar graficas
 mostrarEvolucion(history)
-"""
+
 ###############################################################################
 # 2. Aumento de los datos
 
@@ -282,7 +282,7 @@ validation_iter_flip = datagen_train_flip.flow(
     batch_size=batch_size,
     subset='validation'
 )
-"""
+
 # Restaurar los pesos del modelo antes de continuar
 model.set_weights(weights)
 
@@ -339,7 +339,7 @@ history = model.fit_generator(
 )
 
 # Mostrar graficas
-mostrarEvolucion(history)
+#mostrarEvolucion(history)
 
 # Datagen con rotacion de 25
 datagen_train_rot = ImageDataGenerator(
@@ -381,7 +381,7 @@ history = model.fit_generator(
 )
 
 # Mostrar graficas
-mostrarEvolucion(history)
+#mostrarEvolucion(history)
 
 # Datagen con flip horizontal y zoom de 0.2
 datagen_train_fz = ImageDataGenerator(
@@ -425,7 +425,7 @@ history = model.fit_generator(
 
 # Mostrar graficas
 mostrarEvolucion(history)
-"""
+
 ###############################################################################
 # 3. Red más profunda
 
@@ -852,33 +852,3 @@ prediction = model_batch_pre.predict_generator(
 # Obtener accuracy de test y mostrarla
 accuracy = calcularAccuracy(y_test, prediction)
 print('Test accuracy: {}'.format(accuracy))
-
-
-
-"""
-Idea para el bonus
-model_v3 = Sequential()
-model_v3.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
-model_v3.add(Activation('relu'))
-model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
-model_v3.add(Activation('relu'))
-model_v3.add(Conv2D(32, kernel_size=(1, 1), padding='valid'))
-model_v3.add(Activation('relu'))
-model_v3.add(MaxPooling2D(pool_size=(2, 2)))
-
-model_v3.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
-model_v3.add(Activation('relu'))
-model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
-model_v3.add(Activation('relu'))
-model_v3.add(Conv2D(32, kernel_size=(1, 1), padding='valid'))
-model_v3.add(Activation('relu'))
-model_v3.add(MaxPooling2D(pool_size=(2, 2)))
-
-model_v3.add(Flatten())
-model_v3.add(Dense(units=128))
-model_v3.add(Activation('relu'))
-model_v3.add(Dense(units=50))
-model_v3.add(Activation('relu'))
-model_v3.add(Dense(units=25))
-model_v3.add(Activation('softmax'))
-"""

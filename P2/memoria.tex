@@ -471,11 +471,362 @@ combinarla con alguna otra mejora, puede que los resultados sean bastante mejore
 
 \subsection{Aumento de datos}
 
+La siguiente mejora que podemos probar es el aumento de datos. De esta forma, a partir de los datos que tenemos para entrenar
+el modelo, podemos generar nuevos datos aplicándoles transformaciones, como por ejemplo rotaciones, zoom, espejo, etc. Para
+estudiar si existe mejora al aplicar esta técnica, vamos a probar una serie de transformaciones que utilizaremos en combinación
+con la normalización, ya que siempre es útil normalizar los datos de entrada. Las transformaciones a probar son las siguientes:
+
+\begin{itemize}
+  \item \textbf{\textit{Flip} horizontal}. Este aumento consiste en voltear la imagen en el eje horizontal. Puede ser
+  una mejora interesante debido a que va a invertir la imagen, y por ende los elementos de la imagen, con lo cuál podemos llegar
+  a tener la imagen normal en alguna de las épocas de entrenamiento, y la imagen volteada en otra, la cuál será tratada como una
+  nueva   muestra de entrenamiento. Por tanto, es posible que ayude a generalizar mejor.
+  \item \textbf{Zoom}. Este aumento consiste en realizar un zoom sobre la imagen, tanto para alejarse de ella como para
+  acercarse. Podría ser interesante aplicar este aumento ya que nos podría ofrecer información sobre una misma imagen a distintas
+  escalas, desde más cerca o más lejos por ejemplo.
+  \item \textbf{Rotación}. Este aumento rota la imagen en $\alpha$ grados en cualquiera de los dos sentidos. Es un aumento que puede
+  ser útil cuando la imagen no ha sido tomada en condiciones óptimas (por ejemplo, con algún tipo de rotación, haciendo que los
+  objetos estén de lado). De esta forma, se puede aprender más mirando un mismo objeto con distintas orientaciones.
+  \item \textbf{\textit{Flip} horizontal + zoom}. Esta es una mejora que combina tanto el \textit{flip} com el zoom, con
+  el objetivo de ver si al invertir la imagen y hacer zoom se puede aprender más, y por tanto, generalizar mejor, ya que se
+  tienen nuevos elementos en el conjunto de entrenamiento a distintas esclas.
+\end{itemize}
+
+Ya que en este apartado vamos a generar nuevas imágenes, podemos probar a aumentar el número de épocas de 35 a 50, ya que con
+pocas épocas no se va a notar nada el aumento. Esto se debe a que los aumentos se generan sobre la marcha, y tienen una probabilidad
+de aparecer o no. Con lo cuál, podría darse la mala suerte de que no salgan muchos aumentos en pocas épocas, y entonces es
+como si estuviésemos entrenando con los datos normales. Además, así podremos ver si al insertar nuevos datos y aumentar
+el número de épocas, podemos disminuir un poco el \textit{overfit} que se producía, tal y como se puede ver en la figura
+\ref{fig:norm-history}.
+
+Antes de ver los resultados que ofrece cada uno de estos aumentos, hace falta conocer cómo se hacen los aumentos.
+Gracias a la clase $ImageDataGeneratos$ podemos hacerlo de forma bastante sencilla, ya que podemos especificar qué
+aumentos queremos hacer (recordemos que también vamos a especificar que se normalicen los datos y que vamos a crear
+una partición de validación).
+
+Para especificar que queremos hacer un \textbf{\textit{flip} horizontal}, además de aplicar normalización y crear
+un conjunto de validación, podemos hacerlos de la siguiente forma:
+
+\begin{lstlisting}
+# Datagen con flip horizontal
+datagen_train_flip = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1,
+    horizontal_flip=True
+)
+\end{lstlisting}
+
+Lo único diferente a lo que hacíamos anteriormente es especificar el parámetro $horizontal\_flip$ poniéndolo a \textbf{True}.
+
+Podemos declarar un generador con \textbf{zoom} de la siguiente forma:
+
+\begin{lstlisting}
+# Datagen con zoom de 0.2
+datagen_train_zoom = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1,
+    zoom_range=0.2
+)
+\end{lstlisting}
+
+El parámetro $zoom\_range$ controla la escala del zoom, tanto para alejarse como para acercarse de la imagen. En este caso,
+se ha especificado que dicho valor sea 0.2, un valor no muy grande y que es comunmente.
+
+Para declarar un generador que utilice \textbf{rotación}, podemos utilizar algo como lo que se ve a continuación:
+
+\begin{lstlisting}
+# Datagen con rotacion de 25
+datagen_train_rot = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1,
+    rotation_range=25
+)
+\end{lstlisting}
+
+La rotación se especifica con el parámetro $rotation\_range$. En este caso, se ha especificado que se rote como máximo
+$25º$ en cualquiera de los dos sentidos. Se ha escogido este valor porque se cree que es razonable que se realicen pequeñas
+rotaciones sobre la imagen en vez de rotaciones muy abruptas.
+
+Finalmente, podemos crear un generador que combine \textbf{\textit{flip} horizontal} junto con \textbf{zoom} de la
+siguiente forma:
+
+\begin{lstlisting}
+# Datagen con flip horizontal y zoom de 0.2
+datagen_train_fz = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True,
+    validation_split=0.1,
+    horizontal_flip=True,
+    zoom_range=0.2
+)
+\end{lstlisting}
+
+Aquí no hay nada nuevo que comentar, ya que es una combinación de dos de los generadores vistos anteriormente.
+
+Para utilizar los generadores, de nuevo tenemos que utilizar el método $fit()$ tal y como hicimos antes, además de crear
+los iteradores correspondientes. Para entrenar el modelo, de nuevo podemos utilizar el método $fit\_generator()$.
+
+Una vez comentados los aspectos generales, vamos a analizar los resultados obtenidos para cada tipo de aumento de datos,
+comparándolos con lo que teníamos anteriormente y entre ellos, y decidiendo cuál es el mejor para este problema.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/aug-flip-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:aug-flip-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/aug-flip-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:aug-flip-acc}
+  \end{subfigure}
+  \caption{Historia del aumento de datos con \textit{flip} horizontal.}
+  \label{fig:history-aug-flip}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/aug-zoom-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:aug-zoom-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/aug-zoom-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:aug-zoom-acc}
+  \end{subfigure}
+  \caption{Historia del aumento de datos con zoom.}
+  \label{fig:history-aug-zoom}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/aug-rot-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:aug-rot-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/aug-rot-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:aug-rot-acc}
+  \end{subfigure}
+  \caption{Historia del aumento de datos con rotación.}
+  \label{fig:history-aug-rot}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/aug-flipzoom-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:aug-flipzoom-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/aug-flipzoom-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:aug-flipzoom-acc}
+  \end{subfigure}
+  \caption{Historia del aumento de datos con \textit{flip} horizontal y zoom.}
+  \label{fig:history-aug-flipzoom}
+\end{figure}
+
+En general, si miramos los resultados, podemos ver que hay aumentos de datos, como por ejemplo el zoom y la rotación
+que no aportan casi ninguna mejora, ya que los resultados obtenidos para entrenamiento son bastante buenos, mientras
+que en validación se queda bastante corto, tanto en las gráficas de error como en la de \textit{accuracy}. El error
+en validación se queda, en ambos casos, muy cerca de 2, mientras que el de entrenamiento baja hasta 1.5-1.6. La
+\textit{accuracy} en validación se queda en torno a 0.4 en validación, mientras que en entrenamiento supera los
+0.5 en ambos casos. Estos resultados recuerdan mucho a los que se pueden ver en la figura \ref{fig:norm-history}, y por
+tanto, no representan una mejora suficiente como para volver a utilizarlos en el futuro.
+
+En cambio, si comparamos los resultados obtenidos para los casos en los que se utiliza \textit{flip} horizontal, vemos
+que sí que se produce cierta mejora respecto a los modelos anteriores, y a los otros modelos con aumentos de zoom y rotación.
+En los dos modelos que se usa el \textit{flip} horizontal el error en validación se sitúa por debajo de 2, mejorando por tanto 
+los resultados obtenidos por el modelo base y por el modelo con solo la normalización. La \textit{accuracy} en validación
+también ha sufrido un ligero incremento, situándose en ambos casos por encima de 0.4. Por tanto, el modelo mejora ciertamente
+al utilizar \textit{flip} horizontal.
+
+Ahora bien, si comparamos ambos modelos, vemos que en el caso en el que solo se hace el \textit{flip}, los valores en
+validación son un poco mejores que los obtenidos al aumentar los datos con \textit{flip} y zoom. Sin embargo, en este
+segundo caso, los resultados de validación se quedan más cerca de los de entrenamiento. Por tanto, en el segundo caso,
+se podría decir que se está generalizando mejor, a pesar de que los resultados son, en general, un poco peores. A pesar
+de eso, parece que en ambos modelos las curvas de validación se van a estancar en unas pocas épocas más, mientras
+que las de entrenamiento continuarán mejorando. Por tanto, ninguno de los dos modelos está libre de potencial
+\textit{overfit}.
+
+Si nos basamos en como de bien se puede generalizar, la opción clara, de momento, sería escoger como mejor aumento
+de datos el que realiza un \textit{flip} junto con un zoom. Sin embargo, si nos atendemos a los resultados obtenidos
+en validación, el mejor es el que hace solo el \textit{flip}. Como el modelo puede ser regularizado para reducir
+el \textit{overfit}, vamos a escoger como \textbf{mejor aumento} el que \textbf{solo realiza un \textit{flip} horizontal}
+por habernos ofrecido unos mejores resultados en validación.
+
 \subsection{Aumento de la profundidad de la red}
+
+La siguiente mejora que nos podemos plantear es aumentar la profundidad de la red. Para ello, se van a proponer dos
+arquitecturas. Ambas se compararán, y se elegirá la mejor. En un principio, ambas se compararán solo con la normalización,
+y después se mirará como son afectadas por el aumento de datos con \textit{flip} horizontal (el aumento que mejores resultados
+ha proporcionado).
+
+Ambos modelos están compuestos por dos módulos convolucionales, cada uno con dos capas convolucionales, y una capa
+de \textit{max pooling} al final. Además, en ambos modelos se ha pasado a tener 3 capas totalmente conectadas, formando
+una red de $128 \times 50 \times 25$ neuronas que se encargarán de clasificar según la información extraída por la red
+convolucional, y en los dos modelos el número de canales va creciendo a medida que se van haciendo convoluciones.
+Al tener una arquitectura como esta, no se reduce el tamaño de las imágenes tan rápidamente como pasaba antes,
+ya que antes de cada \textit{max pool} hay dos convoluciones en vez de una.
+
+A pesar de las similitudes que tienen los dos modelos, existen dos diferencia importante entre ellos: el tamaño del
+\textit{kernel} de las convoluciones y el número de canales de salida:
+
+\begin{itemize}
+  \item En el caso de la primera red, el primer módulo convolucional está compuesto por dos convoluciones $5 \times 5$, con
+  8 y 16 canales de salida, respectivamente. El segundo módulo está compuesto por dos capas convolucionales con \textit{kernel}
+  de tamaño $3 \times 3$, y con 32 y 64 canales de salida.
+  \item En la segunda red los dos módulos utilizan convoluciones de tamaño $3 \times 3$, y el número de canales es 16 y 32 para
+  el primer módulo convolucional y de 64 y 64 para el segundo módulo.
+\end{itemize}
+
+En el primer modelo, las convoluciones del primer módulo se han hecho así para imitar las que hace \textit{BaseNet}, solo
+que se ha cambiado el número de canales de salida de la primera convolución. Las del segundo módulo tienen un tamaño
+de $3 \times 3$ para no reducir demasiado la imagen, además de que las convoluciones de este tamaño son más rápidas
+que las $5 \times 5$. El número de canales de salida es siempre una potencia de 2. No hay ningún motivo para que
+sea un número potencia de 2, ya que la red no va a obtener mejores resultados por tener canales de salida de tamaño
+potencia de 2.
+
+En el segundo modelo, todas las convoluciones son de $3 \times 3$ porque son menos costosas desde el punto de vista
+computacional. Todos los canales de salida de las capas convolucionales son, de nuevo, potencias de 2. Sin embargo,
+a diferencia del modelo anterior, el número de canales de la primera capa convoluciona es de 16, y se incrementa
+hasta un máximo de 64, ya que se cree que no tiene sentido hacer canales más grandes debido a que éstos pueden
+llevar a un \textit{overfit} excesivo sin regularizar.
+
+Una vez que hemos comentado los aspectos generales de ambas arquitecturas, vamos a ver cómo sería la implementación
+de ellas. El código correspondiente al primer modelo es el siguiente:
+
+\begin{lstlisting}
+# Definicion del nuevo modelo
+model_v2 = Sequential()
+model_v2.add(Conv2D(8, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
+model_v2.add(Activation('relu'))
+model_v2.add(Conv2D(16, kernel_size=(5, 5), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v2.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v2.add(Activation('relu'))
+model_v2.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v2.add(Flatten())
+model_v2.add(Dense(units=128))
+model_v2.add(Activation('relu'))
+model_v2.add(Dense(units=50))
+model_v2.add(Activation('relu'))
+model_v2.add(Dense(units=25))
+model_v2.add(Activation('softmax'))
+\end{lstlisting}
+
+El segundo modelo se ha declarado de la siguiente forma:
+
+\begin{lstlisting}
+# Definicion del nuevo modelo
+model_v3 = Sequential()
+model_v3.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_v3.add(Activation('relu'))
+model_v3.add(MaxPooling2D(pool_size=(2, 2)))
+
+model_v3.add(Flatten())
+model_v3.add(Dense(units=128))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=50))
+model_v3.add(Activation('relu'))
+model_v3.add(Dense(units=25))
+model_v3.add(Activation('softmax'))
+\end{lstlisting}
+
+Una vez compilados los modelos, vamos a entrenarlos y a ver los resultados que obtenemos. Es importante destacar que, para entrenar
+estos modelos, el número de épocas ha sido reducido 35. De esta forma, si los modelos tardan más en entrenarse, no se realizan
+tantas épocas, y por tanto el tiempo de entrenamiento es menor. Además, como vimos en la sección anterior, al haber entrenado 50
+épocas, los modelos estaban muy cerca de padecer de sobreajuste, con lo cuál parece sensato reducir el número de épocas para
+intentar evitar que esto suceda para estos nuevos modelos.
+
+Una vez comentado este detalle, vamos a pasar a estudiar los resultados obtenidos.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep1-nodrop-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:deep1-nodrop-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep1-nodrop-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:deep1-nodrop-acc}
+  \end{subfigure}
+  \caption{Historia del primer modelo profundo.}
+  \label{fig:history-deep1-nodrop}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep2-nodrop-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:deep2-nodrop-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/deep2-nodrop-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:deep2-nodrop-acc}
+  \end{subfigure}
+  \caption{Historia del segundo modelo profundo.}
+  \label{fig:history-deep2-nodrop}
+\end{figure}
+
+Se puede observar a simple vista que los resultados obtenidos son muy malos. En ambos casos, el \textit{overfit} es
+evidente, ya que los valores del error en validación empiezan a subir a partir de las 15 épocas, mientras que los valores
+del error en entrenamiento sigue constante. Esto también se refleja en las gráficas de \textit{accuracy}, donde podemos
+ver que la precisión en el conjunto de entrenamiento va mejorando, mientras que la del conjunto de validación se queda
+estancada y no mejora nada. Toda esta situación llevará a que la red no sea capaz de generalizar correctamente, ya que al
+existir sobreajuste, la red acaba memorizando los datos de entrenamiento, y obtendrá unos resultados pésimos con nuevos
+datos que nunca antes ha visto.
+
+Este problema se debe a que hemos aumentado la profundidad de la red, y con eso, el número de parámetros de la red.
+Estos parámetros pueden tomar cualquier valor, ya que no hay ninguna restricción sobre ellos.
+Cuando sucede esto, los parámetros se pueden ``descontrolar'', tomando valores que le permiten ajustarse
+más a los datos de entrenamiento, y por tanto, disminuir el error en el conjunto de entrenamiento, ya que es lo que
+se está intentando minimizar. Esto nos llevará a unos resultados como los que podemos ver en las figuras
+\ref{fig:history-deep1-nodrop} y \ref{fig:history-deep2-nodrop}, donde los resultados en el conjunto de entrenamiento
+son muy buenos mientras que los de validación son muy malos.
+
+Este problema puede ser difícil de solventar, ya que no hay una única manera de intentar reducir el \textit{overfit}.
+Una idea simple sería parar el entrenamiento antes de que empiece a sobreajustar. En este caso, sería parar el entrenamiento
+alrededor de las 10-15 épocas. Sin embargo, si hacemos eso, el modelo que obtendremos será bastante malo, ya que no habrá
+aprendido lo suficiente debido a que los valores del error y la precisión serán bastante malos en general.
+Por tanto, para solventar este problema podemos probar a utilizar una técnica de regularización como \textbf{Dropout}, la cuál
+procederemos a ver a continuación.
 
 \subsection{Mejora extra: regularización mediante Dropout}
 
 \subsection{Capas de normalización}
+
+\subsection{Ajuste del modelo final}
 
 \section{\textsc{Transferencia de modelos y ajuste fino con ResNet50 para la base de datos Caltech-UCSD}}
 
