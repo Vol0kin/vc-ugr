@@ -4,8 +4,6 @@
 ############ CARGAR LAS LIBRERÍAS NECESARIAS ############################
 #########################################################################
 
-# A completar: esquema disponible en las diapositivas
-
 import numpy as np
 import keras
 import matplotlib.pyplot as plt
@@ -28,8 +26,6 @@ from keras import backend as K
 #########################################################################
 ######## FUNCIÓN PARA CARGAR Y MODIFICAR EL CONJUNTO DE DATOS ###########
 #########################################################################
-
-# A completar: función disponible en las diapositivas
 
 def cargarImagenes():
     # Cargamos Cifar100. Cata imagen tiene tamaño
@@ -73,8 +69,6 @@ def cargarImagenes():
 ######## FUNCIÓN PARA OBTENER EL ACCURACY DEL CONJUNTO DE TEST ##########
 #########################################################################
 
-# A completar: función disponible en las diapositivas
-
 def calcularAccuracy(labels, preds):
     labels = np.argmax(labels, axis=1)
     preds = np.argmax(preds, axis=1)
@@ -108,7 +102,6 @@ def mostrarEvolucion(hist):
     plt.legend(['Training accuracy', 'Validation accuracy'])
     plt.show()
 
-# A completar: función disponible en las diapositivas
 
 #########################################################################
 ################## DEFINICIÓN DEL MODELO BASENET ########################
@@ -204,21 +197,17 @@ print('Test accuracy: {}'.format(accuracy))
 
 # 1. Normalizacion de los datos
 
-# Crear instancias de ImageDataGenerator, una para train y al otra para test
+# Crear instancias de ImageDataGenerator, una para train
 # Datagen de train tiene tambien split entre tain y validación
 datagen_train = ImageDataGenerator(
     featurewise_center=True,
     featurewise_std_normalization=True,
     validation_split=0.1
 )
-datagen_test = ImageDataGenerator(
-    featurewise_center=True,
-    featurewise_std_normalization=True
-)
 
-# Entrenar generadores
+
+# Entrenar generador
 datagen_train.fit(x_train)
-datagen_test.fit(x_train)
 
 # Crear flow de entrenamiento y validacion
 train_iter = datagen_train.flow(
@@ -430,7 +419,7 @@ mostrarEvolucion(history)
 # 3. Red más profunda
 
 epochs = 35
-"""
+
 # Definicion del nuevo modelo
 model_v2 = Sequential()
 model_v2.add(Conv2D(8, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
@@ -523,7 +512,10 @@ history = model_v3.fit_generator(
 
 # Mostrar graficas
 mostrarEvolucion(history)
-"""
+
+#######################################
+# Uso de Dropout
+
 # Definicion del nuevo modelo
 model_v2 = Sequential()
 model_v2.add(Conv2D(8, kernel_size=(5, 5), padding='valid', input_shape=input_shape))
@@ -559,7 +551,7 @@ weights_v2 = model_v2.get_weights()
 
 print(model_v2.summary())
 
-"""
+
 # Entrenar el modelo
 print('Training first "enhanced" model with Dropout')
 history = model_v2.fit_generator(
@@ -572,7 +564,7 @@ history = model_v2.fit_generator(
 
 # Mostrar graficas
 mostrarEvolucion(history)
-"""
+
 # Definicion del nuevo modelo
 model_v3 = Sequential()
 model_v3.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
@@ -607,7 +599,7 @@ model_v3.compile(
 weights_v3 = model_v3.get_weights()
 
 print(model_v3.summary())
-"""
+
 # Entrenar el modelo
 print('Training second "enhanced" model with Dropout')
 history = model_v3.fit_generator(
@@ -620,10 +612,10 @@ history = model_v3.fit_generator(
 
 # Mostrar graficas
 mostrarEvolucion(history)
-"""
+
 # Establecer epocas
 epochs = 50
-"""
+
 # Restaurar pesos
 model_v2.set_weights(weights_v2)
 
@@ -688,11 +680,9 @@ history = model_v3.fit_generator(
 
 # Mostrar graficas
 mostrarEvolucion(history)
-"""
+
 ###############################################################################
 # 4. Capas de normalizacion
-
-epochs = 50
 
 # Definicion del nuevo modelo
 model_batch_pre = Sequential()
@@ -735,20 +725,20 @@ model_batch_pre.compile(
 weights_batch_pre = model_batch_pre.get_weights()
 
 print(model_batch_pre.summary())
-"""
+
 # Entrenar el modelo
 print('Training first batch normalization model')
 history = model_batch_pre.fit_generator(
-    train_iter,
+    train_iter_flip,
     steps_per_epoch=len(x_train)*0.9/batch_size,
     epochs=epochs,
-    validation_data=validation_iter,
+    validation_data=validation_iter_flip,
     validation_steps=len(x_train)*0.1/batch_size
 )
 
 # Mostrar graficas
 mostrarEvolucion(history)
-"""
+
 # Definicion del nuevo modelo
 model_batch_post = Sequential()
 model_batch_post.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
@@ -790,27 +780,10 @@ model_batch_post.compile(
 weights_batch_post = model_batch_post.get_weights()
 
 print(model_batch_post.summary())
-"""
+
 # Entrenar el modelo
 print('Training second batch normalization model')
 history = model_batch_post.fit_generator(
-    train_iter,
-    steps_per_epoch=len(x_train)*0.9/batch_size,
-    epochs=epochs,
-    validation_data=validation_iter,
-    validation_steps=len(x_train)*0.1/batch_size
-)
-
-# Mostrar graficas
-mostrarEvolucion(history)
-
-
-# Reestablecer pesos
-model_batch_pre.set_weights(weights_batch_pre)
-
-# Reentrenar modelo utilizando aumento de datos
-print('Training first batch normalization model with data augmentation')
-history = model_batch_pre.fit_generator(
     train_iter_flip,
     steps_per_epoch=len(x_train)*0.9/batch_size,
     epochs=epochs,
@@ -820,15 +793,25 @@ history = model_batch_pre.fit_generator(
 
 # Mostrar graficas
 mostrarEvolucion(history)
-"""
+
+###############################################################################
 # Ajuste final
 
 epochs = 60
 
+# Crear generador de test
+datagen_test = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True
+)
+
+# Entrenar generador
+datagen_test.fit(x_train)
+
 # Reestablecer pesos
 model_batch_pre.set_weights(weights_batch_pre)
 
-# Reentrenar modelo utilizando aumento de datos
+# Entrenar modelo utilizando aumento de datos
 print('Training first batch normalization model with data augmentation')
 history = model_batch_pre.fit_generator(
     train_iter_flip,

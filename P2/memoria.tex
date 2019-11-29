@@ -1009,16 +1009,19 @@ ver a continuación:
   \label{fig:history-deep2-drop-50}
 \end{figure}
 
-Podemos ver que, en general, al haber aumentado el número de épocas, los valores de validación han mejorado en ambos modelos tanto para los valores
-de la función de pérdida como para la \textit{accuracy}. En general, para el \textit{Modelo A}, los resultados obtenidos en validación
-están más pegados a los valores de entrenamiento que los obtenidos en el \textit{Modelo B}. No obstante, los obtenidos en el \textit{Modelo B}
-son mucho mejores que los obtenidos en el \textit{Modelo A}, tanto en validación como en entrenamiento. Es en este modelo donde, por primera vez,
-se consigue una \textit{accuracy} en validación superior al 0.5, lo cuál son buenas noticias, ya que hemos conseguido mejorar bastante el modelo
-base, el cuál no llegaba ni al 0.4, tal y como se puede ver en la figura \ref{fig:basenet-history}. Así que, en general, aumentar el número
-de épocas ha sido una buena idea.
+Podemos ver que, en general, al haber aumentado el número de épocas, los valores de validación
+han mejorado en ambos modelos tanto para los valores de la función de pérdida como para la
+\textit{accuracy}. En general, para el \textit{Modelo A}, los resultados obtenidos en validación
+están más pegados a los valores de entrenamiento que los obtenidos en el \textit{Modelo B}. No
+obstante, los obtenidos en el \textit{Modelo B} son mucho mejores que los obtenidos en el
+\textit{Modelo A}, tanto en validación como en entrenamiento. Es en este modelo donde, por primera
+vez, se consigue una \textit{accuracy} en validación superior al 0.5, lo cuál son buenas noticias,
+ya que hemos conseguido mejorar bastante el modelo base, el cuál no llegaba ni al 0.4, tal y como
+se puede ver en la figura \ref{fig:basenet-history}. Así que, en general, aumentar el número de
+épocas ha sido una buena idea.
 
-Para elegir el mejor modelo, vamos a probar a entrenar ambos modelos con aumento de datos, para ver cuál se comporta mejor. Las gráficas
-obtenidas son las siguientes:
+Para elegir el mejor modelo, vamos a probar a entrenar ambos modelos con aumento de datos, para ver
+cuál se comporta mejor. Las gráficas obtenidas son las siguientes:
 
 \begin{figure}[H]
   \centering
@@ -1054,26 +1057,319 @@ obtenidas son las siguientes:
   \label{fig:deep2-aug}
 \end{figure}
 
-En ambos casos los resultados son muy buenos, siendo incluso mejores que los que obtuvimos utilizando solo la normalización. Podemos ver aquí cómo
-los resultados obtenidos en el conjunto de validación en ambos modelos se ajustan mejor a los obtenidos en entrenamiento que antes. Además,
-en este caso, la \textit{accuracy} obtenida con el \textit{Modelo A} en las últimas épocas llega al 0.5, superando a la que tenía anteriormente.
-Por tanto, introducir aumento de datos ha mejorado significativamente los resultados obtenidos en el \textit{Modelo A}.
+En ambos casos los resultados son muy buenos, siendo incluso mejores que los que obtuvimos
+utilizando solo la normalización. Podemos ver aquí cómo los resultados obtenidos en el conjunto
+de validación en ambos modelos se ajustan mejor a los obtenidos en entrenamiento que antes. Además,
+en este caso, la \textit{accuracy} obtenida con el \textit{Modelo A} en las últimas épocas llega al
+0.5, superando a la que tenía anteriormente. Por tanto, introducir aumento de datos ha mejorado
+significativamente los resultados obtenidos en el \textit{Modelo A}.
 
-En el caso del \textit{Modelo B}, podemos ver como el error en validación se ve reducido más aún, y la \textit{accuracy} comienza a acercarse
-a 0.6. Además, el error obtenido en este caso es bastante menor que el del \textit{Modelo A}. Si observamos el error en entrenamiento,
-podemos ver que en este caso es mayor que el que se ve en la figua \ref{fig:history-deep2-drop-50}, aunque esto no nos preocupa mucho, ya que
-en validación obtiene mejores resultados.
+En el caso del \textit{Modelo B}, podemos ver como el error en validación se ve reducido más aún,
+y la \textit{accuracy} comienza a acercarse a 0.6. Además, el error obtenido en este caso es bastante
+menor que el del \textit{Modelo A}. Si observamos el error en entrenamiento, podemos ver que en este
+caso es mayor que el que se ve en la figua \ref{fig:history-deep2-drop-50}, aunque esto no nos preocupa
+mucho, ya que en validación obtiene mejores resultados.
 
-Por tanto, como veredicto final, vamos a quedarnos con el \textit{Modelo B}, ya que es el que ha obtenido unos mejores resultados en el conjunto
-de validación y, además, no presenta \textit{overfit}. Por tanto, hemos conseguido crear una arquitectura más profunda que es capaz de conseguir
-unos buenos resultados y que, de momento, parece que es capaz de generalizar bastante bien. Veremos si con la próxima mejora somos capaces
-de sacar el máximo potencial al modelo.
+Por tanto, como veredicto final, vamos a quedarnos con el \textit{Modelo B}, ya que es el que ha
+obtenido unos mejores resultados en el conjunto de validación y, además, no presenta \textit{overfit}.
+Por tanto, hemos conseguido crear una arquitectura más profunda que es capaz de conseguir unos buenos
+resultados y que, de momento, parece que es capaz de generalizar bastante bien. Veremos si con la
+próxima mejora somos capaces de sacar el máximo potencial al modelo.
 
 \subsection{Capas de normalización}
 
+La última mejora que queremos introducir en el modelo es la \textit{Batch Normalization} o normalización
+por lotes. Esto es, se introducen algunas capas en la red que se encargan de aprender valores con
+los cuáles pueden transformar los datos para intentar normalizarlos. Esta es una técnica que permite
+regularizar la red, reducir los tiempos de entrenamiento y obtener unos resultados mejores en general.
+
+Se ha decidido insertar una capa de normalización después de cada capa convolucional y de cada
+capa totalmente conectada. De esta forma, después de cada operación, los datos serán normalizados,
+con lo cuál no se perderá esa normalización que se hace sobre los datos de entrada. Además, se cree
+que el rendimiento de la red mejorará al utilizar una normalización después de cada convolucional y
+totalmente conectada. Si en las gráficas se ve que se produce \textit{underfitting} porque a lo mejor
+se ha regularizado demasiado, se reducirá el número de capas de normalización. No obstante, en un principio,
+se cree que el impacto será más bien positivo, y que permitirá a la red generalizar mejor. El único
+lugar donde no se pondrá normalización es después de la capa de \textit{softmax} ya que no tiene sentido
+(esta capa es la salida de la red, y da probabilidades; por tanto, no tiene sentido utilizar normalización
+ahí).
+
+El problema de introducir normalización viene a la hora de determinar dónde ponerla, si antes o después de
+la función de activación. Para ello, vamos a construir dos modelos: uno primero al que llamaremos
+\textit{Modelo Pre}, donde la normalización estará antes de la función de activación; y un segundo modelo
+al que llamaremos \textit{Modelo Post}, en el que la capa de normalización estará justo después de la función
+de activación.
+
+El \textit{Modelo Pre} se define de la siguiente forma:
+
+\begin{lstlisting}
+# Definicion del nuevo modelo
+model_batch_pre = Sequential()
+model_batch_pre.add(Conv2D(16, kernel_size=(3, 3), padding='valid', input_shape=input_shape))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(Conv2D(32, kernel_size=(3, 3), padding='valid'))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch_pre.add(Dropout(0.2))
+
+model_batch_pre.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(Conv2D(64, kernel_size=(3, 3), padding='valid'))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch_pre.add(Dropout(0.5))
+
+model_batch_pre.add(Flatten())
+model_batch_pre.add(Dense(units=128))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(Dense(units=50))
+model_batch_pre.add(BatchNormalization())
+model_batch_pre.add(Activation('relu'))
+model_batch_pre.add(Dense(units=25))
+model_batch_pre.add(Activation('softmax'))
+\end{lstlisting}
+
+La arquitectura del \textit{Modelo Post} viene definida por el siguiente código:
+
+\begin{lstlisting}
+# Definicion del nuevo modelo
+model_batch_post = Sequential()
+model_batch_post.add(Conv2D(16, kernel_size=(3, 3), padding='valid',
+							input_shape=input_shape))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(Conv2D(32, kernel_size=(3, 3),
+							padding='valid'))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch_post.add(Dropout(0.2))
+
+model_batch_post.add(Conv2D(64, kernel_size=(3, 3),
+							padding='valid'))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(Conv2D(64, kernel_size=(3, 3),
+							padding='valid'))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(MaxPooling2D(pool_size=(2, 2)))
+model_batch_post.add(Dropout(0.5))
+
+model_batch_post.add(Flatten())
+model_batch_post.add(Dense(units=128))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(Dense(units=50))
+model_batch_post.add(Activation('relu'))
+model_batch_post.add(BatchNormalization())
+model_batch_post.add(Dense(units=25))
+model_batch_post.add(Activation('softmax'))
+\end{lstlisting}
+
+Ahora nos resta entrenar nuestros modelos. Ya que comprobamos en la sección anterior que combinar
+Dropout con aumento de datos nos ofrecía unos resultados muy buenos con una regularización moderada,
+vamos a utilizar el mismo generador (recordemos que además de eso normaliza la entrada) para entrenar
+los modelos. Volveremos a utilizar 50 épocas, ya que en el caso anterior nos permitieron conseguir
+unos resultados muy buenos, ya que el modelo era capaz de aprender más.
+
+A continuación podemos ver las gráficas obtenidas para cada modelo:
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/batch-pre-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:batch-pre-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/batch-pre-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:batch-pre-acc}
+  \end{subfigure}
+  \caption{Historia del \textit{Modelo Pre}.}
+  \label{fig:history-batch-pre}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/batch-post-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:batch-post-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/batch-post-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:batch-post-acc}
+  \end{subfigure}
+  \caption{Historia del \textit{Modelo Post}.}
+  \label{fig:history-batch-post}
+\end{figure}
+
+Observando las gráficas, podemos ver claramente que los resultados que han obtenido ambos
+modelos en el conjunto de validación son muy buenos, ya que son casi idénticos a los obtenidos
+en el conjunto de entrenamiento. Podemos ver que en ambos casos existe muy poca discrepancia,
+ya que, a medida que los resultados mejoran en el conjunto de entrenamiento, sucede lo mismo
+en el conjunto de validación. Sin embargo, es importante destacar que en las últimas épocas
+del \textit{Modelo Post} los resultados de validación empiezan a separarse un poco de los
+obtenidos en entrenamiento. En cambio, esto no sucede en el \textit{Modelo Pre}, ya que los
+resultados en validación se ajustan más a los obtenidos en entrenamiento.
+
+En general, los resultados obtenidos por estos modelos son los mejores que se han obtenido
+hasta ahora. En ambos casos los valores de la función de pérdida se sitúan por debajo de 1.5,
+y la precisión ronda aproximadamente 0.6.
+
+Elegir el mejor modelo entre los dos puede ser difícil ya que ambos ofrecen unos excelentes
+resultados. No obstante, vamos a quedarnos con el \textbf{\textit{Modelo Pre}}, ya que los resultados
+parecen ser un poco más consistentes que los obtenidos en el \textit{Modelo Post}. Además de eso,
+creemos que tiene más sentido realizar la normalización antes de la función de activación RELU.
+
+Por ejemplo, si todos los valores de salida de una capa fuesen negativos y éstos tuviesen que pasar
+por una función de activación como por ejemplo RELU, todos ellos serían puestos a 0, ya que en esta
+función lo que se hace normalmente es conservar los valores positivos y poner los negativos a 0.
+De esta forma, todas las conexiones estarían desactivadas, y no se podría hacer nada más. Al normalizar
+antes, los valores pasarán a tener media $\mu = 0$ y desviación típica $\sigma = 1$, de tal forma
+que habrán valores que permanezcan activos después de la función de activación, ya que tendremos
+valores positivos.
+
+
 \subsection{Ajuste del modelo final}
 
+Habiendo escogido el \textit{Modelo Pre} como mejor modelo, ya solo nos queda ver de qué es capaz
+con el conjunto de test. También, si nos fijamos en los resultados que se pueden ver en
+\ref{fig:history-batch-pre}, podemos ver que todavía hay cierto margen de mejora. Por tanto,
+vamos a realizar el ajuste final del modelo en un número superior de épocas. Vamos a fijar
+este valor a 60, ya que creemos que es un número lo suficientemente grande como para permitir
+sacarle todo el potencial a nuestro modelo.
+
+Antes de entrenar de nuevo el modelo, vamos a hacer una serie de cosas. Lo primero, vamos
+a crear un generador de datos para el conjunto de test. Este generador solo tiene que hacer
+la normalización, ya que en el conjunto de test \textbf{nunca} debemos hacer aumento de datos.
+Por tanto, declaramos nuestro generador de la siguiente forma:
+
+\begin{lstlisting}
+# Crear generador de test
+datagen_test = ImageDataGenerator(
+    featurewise_center=True,
+    featurewise_std_normalization=True
+)
+\end{lstlisting}
+
+Habiendo declarado el generador, hace falta entrenarlo. Para ello, tenemos que utilizar los
+datos del conjunto de entrenamiento, ya que la normalización a los datos de test debe hacerse
+en función de los datos con los que se ha entrenado, porque los datos de test son desconocidos
+para nuestro modelo. El entrenamiento del generador se lleva a cabo de la siguiente manera:
+
+\begin{lstlisting}
+# Entrenar generador
+datagen_test.fit(x_train)
+\end{lstlisting}
+
+Y, finalemnte, antes de proceder con el ajuste final, vamos a ver cómo queda la arquitectura del
+modelo final:
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.4]{img/final-model.png}
+  \caption{Arquitectura del modelo final.}
+  \label{fig:final-model}
+\end{figure}
+
+Como se puede ver, es una red con bastantes parámetros para la profundiad que tiene. Aunque en
+un principio se ven muchas capas, solo unas pocas de ellas son las que realmente hacen operaciones
+sobre imágenes (solo hay 4). El resto añaden regularización al modelo o son las capas densas.
+
+Una vez visto esto, vamos a proceder al entrenamiento final. Para hacerlo, utilizamos el generador
+de \textit{flip} que habíamos definido anteriormente:
+
+\begin{lstlisting}
+# Entrenar modelo utilizando aumento de datos
+history = model_batch_pre.fit_generator(
+    train_iter_flip,
+    steps_per_epoch=len(x_train)*0.9/batch_size,
+    epochs=epochs,
+    validation_data=validation_iter_flip,
+    validation_steps=len(x_train)*0.1/batch_size
+)
+\end{lstlisting}
+
+De nuevo, podemos ver la historia de este modelo, la cuál viene dada por las siguientes gráficas:
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/final-loss.png}
+    \subcaption{Evolución de la función de pérdida.}
+    \label{fig:final-loss}
+  \end{subfigure}%
+  ~ \quad
+  \begin{subfigure}{.5\textwidth}
+    \includegraphics[scale=0.4]{img/final-acc.png}
+    \subcaption{Evolución de la \textit{accuracy}.}
+    \label{fig:final-acc}
+  \end{subfigure}
+  \caption{Historia del \textit{Modelo Pre}.}
+  \label{fig:history-final}
+\end{figure}
+
+Podemos ver como el ajuste es muy bueno, ya que los valores obtenidos en el conjunto de validación
+son casi idénticos a los obtenidos en el conjunto de entrenamiento. No hay mucha diferencia notable
+entre los resultados obtenidos en ambos conjuntos. Además, el valor de la función de pérdida obtenido es el más
+bajo hasta el momento, acercándose a 1 en las últimas épocas, y la precisión está por encima de 0.6.
+Aparte, vemos claramente que el modelo no padece ni de \textit{underfit} ni de \textit{overfit}, ya que
+ha sido regularizado previamente.
+
+A la vista de los resultados obtenidos, podemos decir que el modelo tiene una muy buena capacidad
+de generalización, y que muy posiblemente los resultados obtenidos en el conjunto de test sean
+muy próximos a los obtenidos en el conjunto de validación.
+
+Para predecir las etiquetas, podemos utilizar el método $predict\_generator()$ de la clase
+$ImageDataGenerator$. La llamada al método sería la siguiente:
+
+\begin{lstlisting}
+# Predecir los datos
+prediction = model_batch_pre.predict_generator(
+    datagen_test.flow(x_test, batch_size=1, shuffle=False),
+    steps=len(x_test),
+    verbose=1
+)
+\end{lstlisting}
+
+Este método recibe un iterador del generador, al cuál se le pasa el conjunto de datos $x\_test$, un 
+tamaño de \textit{batch} (en este caso es 1, ya que los elementos se van a predecir de uno en uno) y
+el parámetro $shuffle$ a \textbf{False}, de forma que no se barajen los datos y salgan en el mismo orden
+(esto es importante para luego poder comparar con las etiquetas reales, ya que sino se desordenarían
+los datos de salida y no habría forma de comparar las etiquetas predichas a las reales). Adicionalmente,
+se dice que se den tantos pasos como elementos en el conjunto de test haya, y con $verbose = 1$ se solicita
+que se muestre el progreso.
+
+Una vez hemos predicho las etiquetas, podemos calcular la precisión de nuestro modelo comparando los valores
+predichos con los reales. Para ello, nos podemos servir de la función que se nos ha proporcionado. Por tanto,
+se resumiría en hacer la siguiente llamada:
+
+\begin{lstlisting}
+# Obtener accuracy de test
+accuracy = calcularAccuracy(y_test, prediction)
+\end{lstlisting}
+
+En este caso se ha obtenido una \textit{accuracy} de 0.664, un valor bastante elevado teniendo en cuenta
+de que partíamos de aproximadamente 0.4. Por tanto, ha habido una mejora de aproximadmente el 60\% en
+la precisión. Esto nos indica que todas las mejoras que hemos hecho han tenido su efecto, y que por tanto,
+hemos tomado la decisión correcta al incorporarlas al modelo.
+
 \section{\textsc{Transferencia de modelos y ajuste fino con ResNet50 para la base de datos Caltech-UCSD}}
+
+\subsection{ResNet50 como extractor de características}
+
+\subsection{Ajuste fino de ResNet50}
 
 \newpage
 
