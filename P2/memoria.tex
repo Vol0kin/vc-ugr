@@ -1369,6 +1369,28 @@ hemos tomado la decisión correcta al incorporarlas al modelo.
 
 \subsection{ResNet50 como extractor de características}
 
+Podemos utilizar la red ResNet50 como extractor de características aprovechando que ya ha sido
+entrenada y, con las características que se obtengan, entrenar un modelo simple de clasificación.
+
+Podemos declarar el modelo ResNet50 preentrenado que utilizaremos para extraer las características
+de las imágenes de la siguiente manera:
+
+\begin{lstlisting}
+# Definir el modelo ResNet50 (preentrenado en ImageNet y sin la ultima capa).
+resnet50 = ResNet50(include_top=False, weights='imagenet',
+					pooling='avg')
+\end{lstlisting}
+
+De esta forma, al poner el parámetro $include\_top$ a \textbf{False} se le quita al modelo
+que proporciona Keras la última capa, la cuál es una capa totalmente conectada que no nos
+interesa tener, ya que utilizaremos nuestro propio clasificador. El parámetro $weights = imagenet$
+indica que queremos cargar la red ya preentrenada en el conjunto de datos ImageNet.
+El último parámetro, $pooling = avg$ indica que se va a coger la salida del último bloque
+convolucional y se le va a aplicar una media global. Es decir, se va a calcular
+la media de cada imagen, y eso será un elemento del vector de salida. Dicho vector
+tendrá un tamaño de 2048 posiciones, y será el vector de características que sirva de
+entrada a nuestro clasificador.
+
 \subsection{Ajuste fino de ResNet50}
 
 \newpage
