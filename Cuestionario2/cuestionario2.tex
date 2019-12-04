@@ -126,25 +126,26 @@ uno de ellos.}
 
 \answer
 
-El primer proceso fundamental es la \textbf{extracción de características}
-mediante el cuál se puede extraer información relevante sobre la imagen
+El primer proceso fundamental es la \textbf{extracción de características}.
+Mediante este proceso se puede extraer información relevante sobre la imagen
 de entrada. En este proceso intervienen toda una serie de capas,
 como las capas convolucionales, las cuáles realizan transformaciones sobre
 la imagen de entrada; las capas de activación, las cuáles
 introducen alguna función no lineal sobre las salidas de las
-capas convoluciones, como por ejemplo una función \texttt{ReLU}; y las
+capas convoluciones, como por ejemplo la función \texttt{ReLU}; y las
 capas de \textit{pooling}, las cuáles realizan una reducción o aumento
 del tamaño de la imagen. También se pueden utilizar otras capas en este
 proceso las cuáles sirven para regularizar el modelo, como por ejemplo las capas
-de \texttt{Dropout} o de \texttt{Batch Normalization}.
+de \texttt{Dropout} o de \texttt{Batch Normalization}. De esta forma, se puede
+llegar a evitar el sobreajuste que se pueda producir en el modelo.
 
 El segundo proceso funtamental es la \textbf{predicción}, la cuál utiliza
-la información extraída en el proceso anterior para realizar algún tipo
+la información extraída en el proceso anterior para proporcionar algún tipo
 de información de salida. Por ejemplo, se puede predecir a qué clase pertenece una
 imagen dada. En esta parte se utilizan normalmente capas totalmente
-conectadas con una función de activación determinada. En el ejemplo de clasificación
-anterior se utilizaría la función \texttt{softmax}, la cuál da un vector de probabilidades
-para cada una de las clases.
+conectadas con una función de activación determinada en la última capa. En el
+ejemplo de clasificación anterior se utilizaría la función \texttt{softmax},
+la cuál da un vector de probabilidades para cada una de las clases.
 
 \nonumsection{Ejercicio 6}
 
