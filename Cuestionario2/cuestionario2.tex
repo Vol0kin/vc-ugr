@@ -89,6 +89,32 @@ segmentación de imágenes; d) segmentación de instancias.}
 
 \answer
 
+La clasificación de imágenes consiste en asignar una clase a una imagen
+de entrada. La detección de objetos permite determinar qué objetos hay
+en una imagen y localizándolos dentre de ésta, de forma que se muestra una
+\textit{bounding box} a su alrededory se identifica
+de qué clase son los objetos detectados. La segmentación de imágenes consiste
+en clasificar cada píxel de una imagen, asignándole una u otra clase. La
+segmentación de instancias permite distinguir entre las distintas instancias
+de los objetos encontrados dentro de la imagen, de forma que, a pesar de que
+puedan pertenecer a la misma clase, sean tratados como entidades diferentes de
+una misma clase.
+
+Como se puede ver, cada problema tiene sus peculiaridades, ya que en cada
+uno se persigue resolver cosas diferentea. Sin embargo, existen ciertas
+similitudes entre ellos. Por ejemplo, tanto en la clasificación de imágenes como
+en la detección de objetos se predice una clase (en el primer caso, es el
+problema principal, mientras que en el segundo se predice de qué tipo
+es el objeto detectado dentro de los tipos conocidos). La segmentación
+de imágenes parece una mezcla de la detección de objetos y clasificación,
+ya que se trata de una clasificación de más bajo nivel (píxel a píxel), y en
+dicho proceso se detectan objetos de distintas clases. La segmentación
+de instancias es un paso más allá de la detección de objetos, ya que permite
+detectar objetos dentro de la imagen al mismo nivel que la segmentación de imágenes
+(a nivel de píxel) y permite distinguir entre las distintas instancias de
+los objetos de una misma clase. Por tanto, es una sofisticación de la
+detección de objetos.
+
 \nonumsection{Ejercicio 2}
 
 \question{¿Cuál es la técnica de búsqueda estándar para la detección de
@@ -96,6 +122,48 @@ objetos en una imagen? Identifique pros y contras de la misma e
 indique posibles soluciones para estos últimos.}
 
 \answer
+
+La técnica estándar para detectar objetos en imágenes es la \textbf{\textit{sliding window}}
+o \textbf{ventana deslizante}. Esta técnica consiste en pasar un rectángulo
+de dimensiones fijas por la imagen obteniendo una ventana. Dicha ventana es
+pasada luego a un clasificador, el cuál predice si está o no el objeto a detectar
+dentro de esa ventana. Ese clasificador debe haber sido entrenado previamente
+para detectar objetos de la clase a buscar.
+
+La principal ventaja es que una técnica que descompone un problema
+relativamente complejo, que es la detección de objetos dentro de imágenes,
+en un problema más simple de clasificación (decir si está o no el objeto).
+Además es una técnica conceptualmente sencilla, con lo cuál es relativamente
+fácil de implementar. Sin embargo, como toda técnica, tiene sus desventajas:
+
+\begin{itemize}
+  \item \textbf{Coste computacional alto.} Esta técnica es costosa, ya que
+  se deben clasificar muchas ventanas de una imagen, y además, los desplazamientos
+  de la ventana por la imagen no pueden ser pequeños, ya que si lo fuesen, la técnica
+  sería totalmente inviable, porque se tardaría demasiado tiempo en procesar la imagen
+  completa.
+  \item \textbf{Detectar objetos de diferentes tamaños.} Este es uno de los
+  problemas más básicos. Si el tamaño de la ventana es demasiado pequeño, a
+  lo mejor se pierden algunos de los objetos de la imagen, ya que son demasiado
+  grandes como para ser detectados. Para ello, se puede o bien pasar
+  ventanas de distinto tamaño por la imagen, o bien se puede construir un
+  espacio de escalas de la imagen, utilizando por ejemplo la pirámide Gaussiana,
+  y pasar la misma ventana por todas las imágenes de la escala.
+  \item \textbf{Objetos con distintos ratios de aspecto.} Este problema se da cuando
+  un objeto aparece con distintas proporciones, no adaptándose por tanto
+  a la forma de la ventana que se está pasando. Para ello, se pueden pasar
+  ventanas con distintos ratios de aspecto. Esto hace que el coste computacional
+  sea mayor, ya que, para cada imagen de la escala se deben pasar $v$ ventanas.
+  \item \textbf{Múltiples respuestas de un objeto.} Un mismo objeto puede ser
+  detectado por varias ventanas, con lo cuál ofrece más de una respuesta. Como
+  solo nos interesa una, podemos realizar la \textbf{supresión de no máximos},
+  quedándonos con solo una de las ventanas.
+  \item \textbf{Solapamiento de objetos.} Puede suceder que dos o más objetos
+  estén solapados, es decir, que alguno o algunos de ellos sea parcialmente
+  visible. La única solución es que el clasificador sea lo bastante robusto
+  y haya sido entrenado con ejemplos así, de forma que también pueda detectar
+  objetos de este tipo.  
+\end{itemize}
 
 \nonumsection{Ejercicio 3}
 
@@ -197,6 +265,8 @@ que parecen y en que son distintas.}
 
 \answer
 
+
+
 \nonumsection{Ejercicio 9}
 
 \question{¿Cómo evoluciona el campo receptivo de las neuronas de una CNN
@@ -204,9 +274,28 @@ con la profundidad de la capas? ¿Se solapan los campos receptivos de
 las distintas neuronas de una misma profundidad? ¿Es este hecho algo
 positivo o negativo de cara a un mejor funcionamiento?}
 
-
-
 \answer
+
+El campo receptivo va aumentando a medida que aumenta la profundidad de la
+CNN. Esto se debe a que, a medida que va aumentando la profunidad de la red,
+se van utilizando regiones cada vez mayores de la imagen de entrada de la red.
+Por ejemplo, en la primera capa se extraen características de más bajo nivel. En
+el siguiente nivel se utilizan las características extraídas anteriormente,
+combinándolas entre ellas para obtener características de más alto nivel, y así
+sucesivamente. Como se van combinando características, se combina información extraída
+de distintas partes de la imagen, con lo cuál, a más profundidad, mayor región
+de la imagen es utilizada.
+
+Los campos receptivos de las distintas neuronas de una misma profundidad
+se solapan cuando se utiliza un \texttt{stride} menor al tamaño del
+\textit{kernel} utilizado. Si se utiliza un \texttt{stride} mayor, no
+se producirá ningún solapamiento. Que se solapen los campos receptivos es algo
+bueno, ya que al aparecer la información extraída de una región varias veces,
+se puede combinar con información muy distinta, de forma que se pueden llegar a
+obtener mejores características en general que si no se solapasen, ya que dicha
+información aparecería solo una vez, y puede que la forma de combinarla no fuese
+la mejor. Además, este solapamiento imita al funcionamiento de los nervios ópticos,
+ya que se sabe que también se produce solapamiento de las conexiones nerviosas.
 
 \nonumsection{Ejercicio 10}
 
@@ -253,80 +342,31 @@ juegan cada una de las tres convoluciones.}
 
 \answer
 
-Esta transformación tiene sentido ya que las convoluciones $1 \times 1$ sirven
-para aumentar/reducir la profundidad sin modificar las otras dimensiones del tensor,
-mientras que la convolución $3 \times 3$ del segundo modelo va a hacer exactamente
-lo mismo que la del modelo original: extraer característsticas y reducir la anchura y
-la altura del tensor a la mitad, ya que en ambos casos se utiliza un \texttt{stride = 2}.
-Por tanto, lo único nuevo que se introduce en la segunda transformación es la
-reducción y el aumento de la profundidad del tensor, conservando convolución central
-(la $3 \times 3$). Este segundo enfoque, aunque en un principio parezca que no,
-tiene una serie de beneficios.
-
-Por una parte, se consigue un \textbf{aumento de velocidad} ya que el número de operaciones
-a realizar es menor. Para ello, siguiendo la línea de lo dicho anteriormente,
-la primera convolución $1 \times 1$ reduciría la profundidad del tensor, compactándolo.
-La segunda convolución, una $3 \times 3$ con \texttt{stride = 2} se aplicía sobre el
-resultado anterior, reduciendo por tanto la anchura y la altura del tensor a la mitad,
-pero conservando la profundiad, y extrayendo características en el proceso. Finalmente,
-la tercera convolución $1 \times 1$ aumentaría la profundidad del tensor a 256, el tamaño
-de salida. De esta forma, tendríamos una arquitectura que consiste
-en reducir la dimensionalidad, extraer características y aumentar la dimensionalidad.
-
-Para verlo más claro, vamos a ver las operaciones que se realizan en cada caso
-de forma gráfica. Vamos a suponer que en el segundo caso, al reducir la dimensionalidad
-con la primera convolución $1 \times 1$ se pasa a 64 canales, ya que no se especifica
-nada sobre el número de canales de salida en el enunciado.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[scale=0.35]{img/cnn1.png}
-  \caption{Transformación utilizando una convolución $3 \times 3$ con \texttt{stride = 2}.}
-  \label{fig:cnn1}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[scale=0.3]{img/cnn2.png}
-  \caption{Transformación utilizando tres convoluciones.}
-  \label{fig:cnn2}
-\end{figure}
-
-Se puede ver que al final el tensor de salida es el mismo, solo que en un
-caso se realizan más tranformaciones. Sin embargo, si nos
-paramos a analizar el número de operaciones para cada caso, se obtienen
-los siguientes resultados:
+Antes de nada, vamos a ver qué es lo que haría cada una de las operaciones en el
+segundo caso:
 
 \begin{itemize}
-  \item Para el caso en el que solo se hace una convolución, se hacen
-  $128 \times 256 \times 3 \times 3$ operaciones, lo que son unas
-  \texttt{295K} operaciones en total aproximadamente.
-  \item Para el caso en el que se hacen 3 convoluciones, tenemos que
-  en la primera convolución se hacen $128 \times 64 \times 1 \times 1$ operaciones,
-  en la segunda $64 \times 64 \times 3 \times 3$ y en la tercera se hacen
-  $64 \times 256 \times 1 \time 1$. Este número de operaciones on
-  \texttt{8K}, \texttt{36K} y \texttt{16K} operaciones en cada caso,
-  lo cuál son en total aproximadamente unas \texttt{60K} operaciones.
+  \item La primera convolución $1 \times 1$ reduciría la profundidad del tensor,
+  de forma que se reduciría la dimensionalidad.
+  \item La convolución $3 \times 3$  sería igual que la del caso base: tendría
+  \texttt{stride = 2} y se encargaría de extraer las características del tensor,
+  reduciendo en el proceso su anchura y altura, pero conservando la profundidad
+  anterior.
+  \item La segunda convolución $1 \times 1$ aumentaría la profundidad del tensor de
+  nuevo, haciendo que tenga tamaño 256.
 \end{itemize}
 
+Esta transformación aproxima a la primera la siguiente forma. En la primera
+convolución se reduce la dimensionalidad, y por tanto, se selecciona un conjunto
+de las características de alguna manera. Si la red ha sido bien entrenada, se
+debería tener aproximadamente la misma información en ambos casos antes de realizar
+la convolución $3 \times 3$, solo que en el segundo se usarían menos dimensiones.
+Adicionalmente, la convolución $1 \times 1$ debería ser capaz de representar
+la misma información que la que se ha obtenido como resultado de la operación
+anterior, solo que utiliando una mayor profundidad. Por tanto, las piezas
+clave para que el resultado final sea aproximadamente el mismo es la capacidad
+que tengan las convoluciones $1 \times 1$ en resumir y en ampliar las características.
 
-Por tanto, vemos que en el segundo caso se hacen menos operaciones, y por
-consiguiente, será una arquitectura más rápida que la del primer caso.
-
-Por otra, se consigue un \textbf{aumento de la no linealidad}. Esto se debe
-a que entre cada capa de convolución se puede insertar una función de activación,
-la cuál introduce no linealidad. Este aumento es beneficioso, ya que
-se puede conseguir una mejor aproximación a la función real que se quiere aprender,
-la cuál es muy difícil que sea lineal (una función lineal es demasiado simple
-como para aprender algo así con una red convolucional, para eso podríamos
-resolver el problema con un clasificador lineal). En el segundo caso, podemos
-introducir hasta tres capas de activación (las cuáles introducen la no linealidad),
-mientras que en la primera solo tenemos una activación al final del proceso,
-con lo cuál se consigue una aproximación ``peor'' (que no tiene por qué ser mala)
-de la función real. Sin embargo, es esta no linealidad la que hace que los
-resultados no sean exactamente los mismos en los dos casos, si no que sean aproximados.
-
- 
 \nonumsection{Ejercicio 15}
 
 \question{Identifique una propiedad técnica de los modelos CNN que permite
