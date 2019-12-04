@@ -10,9 +10,10 @@
 \usepackage{enumitem}						% Permitir enumerate con distintos simbolos
 \usepackage[T1]{fontenc}					% Usar textsc en sections
 \usepackage{amsmath}						% Símbolos matemáticos
+\usepackage{natbib}
 
 % Comando para poner el nombre de la asignatura
-\newcommand{\asignatura}{Asignatura}
+\newcommand{\asignatura}{Visión por Computador}
 \newcommand{\autor}{Vladislav Nikolov Vasilev}
 \newcommand{\titulo}{Trabajo 2}
 \newcommand{\subtitulo}{Cuestiones de teoría}
@@ -125,6 +126,26 @@ uno de ellos.}
 
 \answer
 
+El primer proceso fundamental es la \textbf{extracción de características}
+mediante el cuál se puede extraer información relevante sobre la imagen
+de entrada. En este proceso intervienen toda una serie de capas,
+como las capas convolucionales, las cuáles realizan transformaciones sobre
+la imagen de entrada; las capas de activación, las cuáles
+introducen alguna función no lineal sobre las salidas de las
+capas convoluciones, como por ejemplo una función \texttt{ReLU}; y las
+capas de \textit{pooling}, las cuáles realizan una reducción o aumento
+del tamaño de la imagen. También se pueden utilizar otras capas en este
+proceso las cuáles sirven para regularizar el modelo, como por ejemplo las capas
+de \texttt{Dropout} o de \texttt{Batch Normalization}.
+
+El segundo proceso funtamental es la \textbf{predicción}, la cuál utiliza
+la información extraída en el proceso anterior para realizar algún tipo
+de información de salida. Por ejemplo, se puede predecir a qué clase pertenece una
+imagen dada. En esta parte se utilizan normalmente capas totalmente
+conectadas con una función de activación determinada. En el ejemplo de clasificación
+anterior se utilizaría la función \texttt{softmax}, la cuál da un vector de probabilidades
+para cada una de las clases.
+
 \nonumsection{Ejercicio 6}
 
 \question{Se ha visto que el aumento de la profundidad de una CNN es un
@@ -133,6 +154,28 @@ problemas complejos, sin embargo este enfoque añade nuevos problemas.
 Identifique cuales son y qué soluciones conoce para superarlos.}
 
 \answer
+
+Al aumentar la profundidad de la red, se pueden extraer mejores características
+de la imagen, y por ende, se pueden aprender funciones más complejas. Sin
+embargo, existe un problema con este enfoque, y es que llega un punto en el
+que la función que se aprende se empieza a pegar demasiado a los datos
+de entrenamiento, y por tanto se produce sobreajuste. Para evitarlo, se pueden
+introducir capas de regularización, como por ejemplo \texttt{Batch Normalization},
+\texttt{Dropout} o haciendo un \textit{early-stopping}, de forma que
+se pare de entrenar antes de que se produzca sobreajuste.
+
+Otro problema que nos encontramos al aumentar la profundidad es que llega un
+punto en el que el error propagado por el algoritmo de \texttt{Back Propagation}
+es 0, con lo cuál no llega nada a las primeras capas y no se produce un ajuste
+de los pesos en función del gradiente. Este problema tiene distintas soluciones,
+como por ejemplo modificar la red de forma
+la arquitectura no sea secuencial, haciendo que una capa no esté conectada
+solamente con la siguiente, si no con otras, como por ejemplo se hace
+en la red residual \texttt{ResNet} \cite{DBLP:journals/corr/HeZRS15};
+o también introduciendo más de un clasificador en la red, como por ejemplo
+en \texttt{GoogLeNet} \cite{DBLP:journals/corr/SzegedyLJSRAEVR14},
+de forma que el gradiente no pierda su intensidad.
+
 
 \nonumsection{Ejercicio 7}
 
@@ -159,6 +202,8 @@ que parecen y en que son distintas.}
 con la profundidad de la capas? ¿Se solapan los campos receptivos de
 las distintas neuronas de una misma profundidad? ¿Es este hecho algo
 positivo o negativo de cara a un mejor funcionamiento?}
+
+
 
 \answer
 
@@ -207,6 +252,80 @@ juegan cada una de las tres convoluciones.}
 
 \answer
 
+Esta transformación tiene sentido ya que las convoluciones $1 \times 1$ sirven
+para aumentar/reducir la profundidad sin modificar las otras dimensiones del tensor,
+mientras que la convolución $3 \times 3$ del segundo modelo va a hacer exactamente
+lo mismo que la del modelo original: extraer característsticas y reducir la anchura y
+la altura del tensor a la mitad, ya que en ambos casos se utiliza un \texttt{stride = 2}.
+Por tanto, lo único nuevo que se introduce en la segunda transformación es la
+reducción y el aumento de la profundidad del tensor, conservando convolución central
+(la $3 \times 3$). Este segundo enfoque, aunque en un principio parezca que no,
+tiene una serie de beneficios.
+
+Por una parte, se consigue un \textbf{aumento de velocidad} ya que el número de operaciones
+a realizar es menor. Para ello, siguiendo la línea de lo dicho anteriormente,
+la primera convolución $1 \times 1$ reduciría la profundidad del tensor, compactándolo.
+La segunda convolución, una $3 \times 3$ con \texttt{stride = 2} se aplicía sobre el
+resultado anterior, reduciendo por tanto la anchura y la altura del tensor a la mitad,
+pero conservando la profundiad, y extrayendo características en el proceso. Finalmente,
+la tercera convolución $1 \times 1$ aumentaría la profundidad del tensor a 256, el tamaño
+de salida. De esta forma, tendríamos una arquitectura que consiste
+en reducir la dimensionalidad, extraer características y aumentar la dimensionalidad.
+
+Para verlo más claro, vamos a ver las operaciones que se realizan en cada caso
+de forma gráfica. Vamos a suponer que en el segundo caso, al reducir la dimensionalidad
+con la primera convolución $1 \times 1$ se pasa a 64 canales, ya que no se especifica
+nada sobre el número de canales de salida en el enunciado.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.35]{img/cnn1.png}
+  \caption{Transformación utilizando una convolución $3 \times 3$ con \texttt{stride = 2}.}
+  \label{fig:cnn1}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[scale=0.3]{img/cnn2.png}
+  \caption{Transformación utilizando tres convoluciones.}
+  \label{fig:cnn2}
+\end{figure}
+
+Se puede ver que al final el tensor de salida es el mismo, solo que en un
+caso se realizan más tranformaciones. Sin embargo, si nos
+paramos a analizar el número de operaciones para cada caso, se obtienen
+los siguientes resultados:
+
+\begin{itemize}
+  \item Para el caso en el que solo se hace una convolución, se hacen
+  $128 \times 256 \times 3 \times 3$ operaciones, lo que son unas
+  \texttt{295K} operaciones en total aproximadamente.
+  \item Para el caso en el que se hacen 3 convoluciones, tenemos que
+  en la primera convolución se hacen $128 \times 64 \times 1 \times 1$ operaciones,
+  en la segunda $64 \times 64 \times 3 \times 3$ y en la tercera se hacen
+  $64 \times 256 \times 1 \time 1$. Este número de operaciones on
+  \texttt{8K}, \texttt{36K} y \texttt{16K} operaciones en cada caso,
+  lo cuál son en total aproximadamente unas \texttt{60K} operaciones.
+\end{itemize}
+
+
+Por tanto, vemos que en el segundo caso se hacen menos operaciones, y por
+consiguiente, será una arquitectura más rápida que la del primer caso.
+
+Por otra, se consigue un \textbf{aumento de la no linealidad}. Esto se debe
+a que entre cada capa de convolución se puede insertar una función de activación,
+la cuál introduce no linealidad. Este aumento es beneficioso, ya que
+se puede conseguir una mejor aproximación a la función real que se quiere aprender,
+la cuál es muy difícil que sea lineal (una función lineal es demasiado simple
+como para aprender algo así con una red convolucional, para eso podríamos
+resolver el problema con un clasificador lineal). En el segundo caso, podemos
+introducir hasta tres capas de activación (las cuáles introducen la no linealidad),
+mientras que en la primera solo tenemos una activación al final del proceso,
+con lo cuál se consigue una aproximación ``peor'' (que no tiene por qué ser mala)
+de la función real. Sin embargo, es esta no linealidad la que hace que los
+resultados no sean exactamente los mismos en los dos casos, si no que sean aproximados.
+
+ 
 \nonumsection{Ejercicio 15}
 
 \question{Identifique una propiedad técnica de los modelos CNN que permite
@@ -218,13 +337,8 @@ sería posible. Explique bien su argumento.}
 
 \newpage
 
-\begin{thebibliography}{5}
-
-\bibitem{nombre-referencia}
-Texto referencia
-\\\url{https://url.referencia.com}
-
-\end{thebibliography}
+\bibliographystyle{plain}
+\bibliography{mybib}
 
 \end{document}
 
