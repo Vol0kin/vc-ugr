@@ -537,9 +537,11 @@ convolución se reduce la dimensionalidad, y por tanto, se selecciona un conjunt
 de las características de alguna manera. Si la red ha sido bien entrenada, se
 debería tener aproximadamente la misma información en ambas transformaciones antes de realizar
 la convolución $3 \times 3$, solo que en la segunda se usarían menos dimensiones.
-Adicionalmente, la segunda convolución $1 \times 1$ debería ser capaz de representar
-la misma información que la que se ha obtenido como resultado de la operación
-anterior, solo que utiliando una mayor profundidad. Por tanto, las piezas
+Adicionalmente, la segunda convolución $1 \times 1$ debería ser capaz de transformar
+de alguna forma el resultado anterior obtenido de forma
+que al aumentar el número de dimensiones el tensor tenga aproximadamente la misma
+información que la que tenía con menos profundidad, y que esta sea aproximadamente la misma
+que en el modelo original. Por tanto, las piezas
 clave para que el resultado final sea aproximadamente el mismo es la capacidad
 que tengan las convoluciones $1 \times 1$ en resumir y en ampliar las características
 respectivamente.
