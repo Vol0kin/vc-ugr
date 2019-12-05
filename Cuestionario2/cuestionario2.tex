@@ -358,7 +358,7 @@ de la imagen es utilizada.
 
 Los campos receptivos de las distintas neuronas de una misma profundidad
 se solapan cuando se utiliza un \texttt{stride} menor al tamaño del
-\textit{kernel} utilizado. Si se utiliza un \texttt{stride} mayor, no
+\textit{kernel} utilizado. Si se utiliza un \texttt{stride} mayor o igual, no
 se producirá ningún solapamiento. Que se solapen los campos receptivos es algo
 bueno, ya que al aparecer la información extraída de una región varias veces,
 se puede combinar con información muy distinta, de forma que se pueden llegar a
@@ -374,6 +374,31 @@ optmización de una CNN?}
 
 \answer
 
+Dentro de una CNN se realizan muchas operaciones: convoluciones, activaciones
+no lineales, \textit{pooling}, etc. Sin embargo, la operación que se
+podría considerar como central es la \textbf{activación}. Esta operación es muy importante,
+ya que introduce no linealidad dentro de la red. La no linealidad
+permite aumentar la complejidad del modelo, de forma que no se aprendan
+simples funciones lineales, las cuáles difícilmente son capaces
+de explicar la complejidad de las imágenes. Las convoluciones y
+el \textit{pooling} son simples funciones lineales: en el primer caso
+se realizan multiplicaciones de matrices, y en el segundo, operaciones
+lineales con las matrices para aumentar o disminuir las dimensiones
+de la imagen. Si solo se utilizasen estas operaciones, bien se podría
+montar un clasificador o un modelo lineal mucho más simple que una CNN
+para intentar resolver los problems que hacen estas.
+
+Al introducir capas de activación que utilizan funciones no lineales como
+por ejemplo \texttt{ReLU} conseguimos que lo que calcule la red
+no sea una simple combinación lineal de la información, sino que hacemos
+también que solo estén presentes las conexiones más relevantes, descartando
+aquellas que se considere que aportan poca o nula información. De esta forma,
+si se quiere mejorar la red, estas conexiones deben mejorar, con lo cuál, estamos
+forzando a que si quieren participar en el proceso, deben ser capaces de aprender
+y de mejorar los resultados obtenidos. Hacer todo esto solo con funciones lineales
+es muy difícil, y por tanto, las funciones no lineales son las que realmente
+introducen el aprendizaje dentro de la red.
+
 \nonumsection{Ejercicio 11}
 
 \question{Compare los modelos de detección de objetos basados en
@@ -383,6 +408,34 @@ CNN. Indique cómo.}
 
 \answer
 
+El modelo clásico consiste en pasar una ventana deslizante por la imagen
+y extraer características de la ventana mediante HOG. Después, esa
+información extraída se le pasa a un clasificador ya entrenado, el cuál
+dice si está o no el objeto buscado dentro de esa región. Finalmente,
+si se detecta un objeto, se marca.
+
+Los modelos basados en CNN siguen un enfoque diferente. El enfoque
+general que hacen algunas de ellas como por ejemplo \texttt{R-CNN},
+\texttt{Fast R-CNN} y \texttt{Faster R-CNN} es combinar el uso de propuestas
+de regiones extraídas por otras redes o algoritmos como por ejemplo
+\textit{selective search} con extracción de características, las cuáles
+son extraídas por la red sin intervención. Otros enfoque más sofisticados como
+\texttt{YOLO} predicen para cada región un conjunto de \textit{bounding boxes}.
+
+La mejora más importante de los modelos basados en CNN
+es que se consigue ajustar un mejor \textit{bounding box}.
+Los algoritmos clásicos simplemente detectaban si había o no objeto en la
+ventana y marcaban la región en caso de haberlo. Sin embargo, los enfoques
+más modernos permiten ajustar el \textit{bounding box}, aplicándole un desplazamiento
+para corregir el error que puede existir al no estar del todo bien
+cuadrado al objeto detectado.
+Otra mejora es que las características son extraídas por la propia red,
+con lo cuál se puede obtener mejor información para posteriormente
+decidir si hay o no objeto que utilizando solo los gradientes, los cuáles,
+a pesar de ofrecer buena información, presentan una serie de problemas como
+por ejemplo la sensibiliidad a rotaciones y otro tipo de trasnformaciones.
+
+
 \nonumsection{Ejercicio 12}
 
 \question{Es posible construir arquitecturas CNN que sean independientes
@@ -390,6 +443,32 @@ de las dimensiones de la imagen de entrada. En caso afirmativo diga
 cómo hacerlo y cómo interpretar la salida.}
 
 \answer
+
+En un principio, no es nada trivial construir arquitecturas que permitan como
+entrada imágenes de cualquier tamaño. Esto se debe a que muchas veces dichas
+arquitecturas se construyen para conjuntos de datos que tienen imágenes de tamaño
+específico. Esto se debe sobre todo a la parte que conecta las capas convolucionales
+con la capa totalmente conectada, ya que debe tener una estructura fija, y esta estructura
+depende de las dimensiones de las imágenes. Por tanto, si llegan imágenes
+de distintas dimensiones, se van a producir errores. Para evitar situaciones
+como éstas, se puede preprocesar la imagen antes de pasarla a la red, de forma
+que tenga las dimensiones correctas o las dimensiones con las que la
+red haya sido entrenada.
+
+No obstante, recientemente han aparecido una serie de arquitecturas que pueden
+recibir como entrada imágenes de cualquier tamaño. Estas son las \textit{Fully
+Convolutional Networks} \cite{fcn} o redes totalmente convolucionales, donde se
+sustituyen todas las capas totalmente conectadas por capas convolucionales que
+ofrecen resultados de dimensiones fijas. Además,
+en las partes finales se incluyen operaciones convolucionales que realizan un
+\textit{upsampling} de la imagen, permitiendo de esta forma que la salida tenga las mismas
+dimensiones que la entrada. De esta forma, da igual qué dimensiones tenga la imagen
+de entrada, ya que siempre se va a producir una salida de igual tamaño.
+Además, al no incluir capas totalmente conectadas, se evitan los problemas
+de que las dimensiones puedan no ser las adecuadas, ya que las operaciones
+que se hacen son proporcionales al tamaño de la imagen y ofrecen resultados
+fijos. Al ofrecer salidas del mismo tamaño que la entrada, estas redes
+normalmente se utilizan en problemas de segmentación de imágenes.
 
 \nonumsection{Ejercicio 13}
 
@@ -429,13 +508,14 @@ segundo caso:
 Esta transformación aproxima a la primera la siguiente forma. En la primera
 convolución se reduce la dimensionalidad, y por tanto, se selecciona un conjunto
 de las características de alguna manera. Si la red ha sido bien entrenada, se
-debería tener aproximadamente la misma información en ambos casos antes de realizar
-la convolución $3 \times 3$, solo que en el segundo se usarían menos dimensiones.
-Adicionalmente, la convolución $1 \times 1$ debería ser capaz de representar
+debería tener aproximadamente la misma información en ambas transformaciones antes de realizar
+la convolución $3 \times 3$, solo que en la segunda se usarían menos dimensiones.
+Adicionalmente, la segunda convolución $1 \times 1$ debería ser capaz de representar
 la misma información que la que se ha obtenido como resultado de la operación
 anterior, solo que utiliando una mayor profundidad. Por tanto, las piezas
 clave para que el resultado final sea aproximadamente el mismo es la capacidad
-que tengan las convoluciones $1 \times 1$ en resumir y en ampliar las características.
+que tengan las convoluciones $1 \times 1$ en resumir y en ampliar las características
+respectivamente.
 
 \nonumsection{Ejercicio 15}
 
