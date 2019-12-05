@@ -136,7 +136,7 @@ en un problema más simple de clasificación (decir si está o no el objeto).
 Además es una técnica conceptualmente sencilla, con lo cuál es relativamente
 fácil de implementar. Sin embargo, como toda técnica, tiene sus desventajas:
 
-\begin{itemize}
+\begin{itemize}[label=\textbullet]
   \item \textbf{Coste computacional alto.} Esta técnica es costosa, ya que
   se deben clasificar muchas ventanas de una imagen, y además, los desplazamientos
   de la ventana por la imagen no pueden ser pequeños, ya que si lo fuesen, la técnica
@@ -184,6 +184,30 @@ parecen y en que son distintos estos descriptores. Explique para que
 es útil cada uno de ellos.}
 
 \answer
+
+Ambos descriptores utilizan el cálculo del gradiente para extraer
+información de la imagen. Además, ambos tienen mecanismos para ser
+invariantes a los cambios de iluminación. No obstante, existen una
+serie de diferencias entre ambos.
+
+Los descriptores que extrae SIFT son invariantes a otros factores,
+como por ejemplo la escala y la rotación, cosa
+que no pasa con los obtenidos por HOG, ya que estos son sensibles a las
+rotaciones (si se rota la imagen, los descriptores son diferentes). Otra
+diferencia es el uso: SIFT se suele utilizar para la extracción de
+regiones relevantes de una imagen, mientras que HOG se suele
+utilizar para la detección de objetos en imágenes, utilizando junto con él
+un clasificador.
+
+La utilidad de SIFT viene de que, como su nombre indica,
+extrae características que son invariantes a una serie de factores, lo cuál
+lo hace ideal para la detección de regiones relevantes en imágenes, las
+cuáles tienen una serie de usos, como por ejemplo clasificación de imágenes.
+Por otro lado, la información que extrae HOG puede ser fácilmente utilizada
+para entrenar un clasificador, y se puede combinar junto con la ventana deslizante
+para recorrer una imagen, obtener los descriptores de la ventana y ver si
+el clasificador detecta o no un objeto en la región donde se sitúa la ventana.
+
 
 \nonumsection{Ejercicio 5}
 
@@ -254,6 +278,35 @@ como son.}
 
 \answer
 
+En la actualidad, existen ciertas alternativas a la hora de crear la arquitectura
+de una CNN que tienen como objetivo conseguir mejores resultados sin aumentar
+necesariamente la profundidad de la red.
+
+\begin{itemize}[label=\textbullet]
+  \item \textbf{Redes densas.} \cite{DBLP:journals/corr/HuangLW16a}
+  En estas redes se introduce como mejora
+  que cada capa está conectada con todas las siguientes, de
+  forma que esto permite solucionar en parte el problema de que se pierda
+  el gradiente debido a la profundidad. Además de eso, al estar conectadas
+  las capas de esta forma, se reutilizan las características, de forma que
+  el número de parámetros de la red disminuye y es mucho más fácil de entrenar.
+  \item \textbf{Skip connections.} Con esta mejora, se hace que la salida
+  de una capa no solo pase a la siguiente, si no a alguna capa situada
+  más adelante. No es una versión tan particular como el caso anterior,
+  ya que aquí la salida de una capa no está conectada con todas las
+  capas siguientes. Esta mejora también ayuda a propagar mejor el gradiente.
+  Se utiliza por ejemplo en las \texttt{ResNets}.
+  \item \textbf{Aumentar la cardinalidad.} \cite{DBLP:journals/corr/XieGDTH16}
+  La cardinalidad se refiere al número de conjuntos de transformaciones que
+  realiza un módulo. De esta forma, al aumentar la cardinalidad, el conjunto de
+  operaciones se hace mayor, y por tanto la entrada de una capa no es el resultado
+  de solo una convolución con alguna activación y algún \textit{pooling}, si no que
+  es un ensamblado de la salida que produce cada una de las transformaciones del
+  conjunto. Con esto se pueden conseguir extraer características más complejas,
+  y en general, mejorar la \textit{accuracy} de la red.
+\end{itemize}
+
+
 \nonumsection{Ejercicio 8}
 
 \question{Considere una aproximación clásica al reconocimiento de escenas
@@ -265,6 +318,23 @@ que parecen y en que son distintas.}
 
 \answer
 
+En ambos enfoques es necesario extraer primero las características de
+la imagen mediante algún tipo de técnica para poder clasificarla luego
+utilizando un clasificador. La similitud acaba aquí, ya que
+la forma de hacerlo en cada caso es diferente:
+
+\begin{itemize}[label=\textbullet]
+  \item En el caso clásico, la extracción de características y la
+  clasificación se hacen de forma separada. Es decir, primero el ingeniero
+  debe determinar cuál es la mejor forma de extraer características de las
+  imágenes para el problema que tiene y, una vez las ha extraído, debe
+  entrenar un clasificador.
+  \item En las CNN, todo el proceso es \textit{end-to-end}. La extracción
+  de características la realiza la propia red sin ninguna intervención humana,
+  además de que se encarga ésta de realizar la clasificación según las características
+  extraídas. Al entrenar la red, se entrena tanto la parte de extarcción
+  de características como el clasificador que tiene.
+\end{itemize}
 
 
 \nonumsection{Ejercicio 9}
@@ -345,7 +415,7 @@ juegan cada una de las tres convoluciones.}
 Antes de nada, vamos a ver qué es lo que haría cada una de las operaciones en el
 segundo caso:
 
-\begin{itemize}
+\begin{itemize}[label=\textbullet]
   \item La primera convolución $1 \times 1$ reduciría la profundidad del tensor,
   de forma que se reduciría la dimensionalidad.
   \item La convolución $3 \times 3$  sería igual que la del caso base: tendría
