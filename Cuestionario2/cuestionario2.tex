@@ -2,6 +2,7 @@
 \usepackage[spanish,es-nodecimaldot]{babel}	% Utilizar español
 \usepackage[utf8]{inputenc}					% Caracteres UTF-8
 \usepackage{graphicx}						% Imagenes
+\PassOptionsToPackage{hyphens}{url}
 \usepackage[hidelinks]{hyperref}			% Poner enlaces sin marcarlos en rojo
 \usepackage{fancyhdr}						% Modificar encabezados y pies de pagina
 \usepackage{float}							% Insertar figuras
@@ -175,6 +176,17 @@ identifique cuales son los elementos comunes y en que se diferencian
 los distintos.}
 
 \answer
+
+La principal similitud entre ambas técnicas es el uso del gradiente
+para extraer información sobre los bordes. En ambas técnicas
+se puede consultar información sobre la magnitud y la dirección
+de los gradientes.
+
+Sin embargo, Canny hace más cosas a parte de eso,
+ya que tiene una serie de pasos extra que le permiten obtener los
+mejores píxels que componen los bordes (supresión de no máximos, doble umbralización
+e histéresis). Por tanto, Canny permitiría obtener mejores resultados que la
+otra técnica, la cuál ofrece un enfoque más simple al problema.
 
 \nonumsection{Ejercicio 4}
 
@@ -480,6 +492,21 @@ que fue entrenada.}
 
 \answer
 
+Con la arquitectura que tenemos podemos montar una red que actúe como una \texttt{R-CNN}.
+Por una perte, tendríamos un algoritmo como por ejemplo la \textit{selective search}
+que se encargue de generar propuestas de regiones. Estas regiones luego pueden ser
+transformadas para que tengan las dimensiones de entrada. Para ello, podemos hacer
+alguna transformación como por ejemplo \texttt{RoI pooling}, adaptando las
+imágenes de salida para que tengan dimensiones $128 \times 128$. Después, simplemente
+tendríamos que pasar cada región transformada por \texttt{LeNet-5}. Como la red
+tiene capas totalmente conectadas al final, podemos utilizarla como clasificador
+para determinar qué objeto es. Aparte de esto, posiblemente sea necesario hacer
+alguna otra modificación a la arquitectura de la red, ya que también se tiene que
+hacer una regresión de la \textit{bounding box} con tal de corregirla. Por tanto, se
+podría modificar la salida de la red para que se haga una regresión y una clasificación,
+así que posiblemente habría que reentrenar ligeramente la red para la parte de la regresión.
+
+
 \nonumsection{Ejercicio 14}
 
 \question{Argumente por qué la transformación de un tensor de dimensiones
@@ -526,9 +553,24 @@ sería posible. Explique bien su argumento.}
 
 \answer
 
+La propiedad más importante de las CNN es que \textbf{la información se extrae de forma
+jerárquica}, tal y como sucede en nuestro cerebro. En el caso de la CNN se
+comienzan a extraer características muy simples. Estas características son
+pasadas a la siguiente capa, y esta capa realiza alguna combinación de estas características
+y lo propaga hacia el o los siguientes niveles, y así sucesivamente. Algo muy parecido
+sucede en nuestro cerebro, ya que se comienza detectando información muy simple, como por ejemplo
+la de los contornos, y se va pasando esa información al resto de partes
+que forman el córtex visual, las cuáles se encargan por ejemplo de extraer
+información sobre formas, colores, frecuencias, movimiento, etc. Obviamente,
+la forma en la que funciona nuestro cerebro es compleja y aún no está
+del todo claro como hace algunas cosas, pero sabemos que, al menos en el
+primer nivel, las CNN extraen una información muy parecida a la
+que hace nuestro sistema visual.
+
 \newpage
 
 \bibliographystyle{plain}
+\nocite{*}
 \bibliography{mybib}
 
 \end{document}
