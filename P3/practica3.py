@@ -323,7 +323,7 @@ def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_oc
     return keypoints
 
 
-def draw_keypoints(img, keypoints):
+def draw_all_keypoints(img, keypoints):
     keypoints_list = [k for sublist in keypoints for k in sublist]
 
     vis = transform_img_uint8(img)
@@ -340,6 +340,21 @@ def draw_keypoints(img, keypoints):
     plt.show()
 
 
+def draw_keypoints_octave(img, keypoint_list):
+    vis = transform_img_uint8(img)
+    vis = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+
+    for keypoints in keypoint_list:
+        out = np.empty_like(vis)
+
+        out = cv2.drawKeypoints(vis, keypoints, out, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+        # Visualizar la imagen
+        plt.imshow(out)
+        plt.axis('off')
+        plt.show()
+    
+
 
 ###############################################################################
 ###############################################################################
@@ -351,6 +366,8 @@ yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
 
 
 pi = harris_corner_detection(yosemite, block_size=5, window_size=3, ksize=3, ksize_der=3, n_octaves=5)
-draw_keypoints(yosemite_color, pi)
+draw_all_keypoints(yosemite_color, pi)
+print(pi[0][0].pt)
+#draw_keypoints_octave(yosemite_color, pi)
 
 #visualize_image(pi)
