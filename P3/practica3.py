@@ -79,6 +79,72 @@ def transform_img_uint8(img):
     return trans_uint8
 
 
+def apply_kernel(img, kx, ky):
+    """
+    Funcion que aplica un kernel separable sobre una imagen, realizando una
+    convolucion
+
+    Args:
+        img: Imagen sobre la que aplicar el filtro
+        kx: Kernel en el eje X
+        ky: Kernel en el eje Y
+    Return:
+        Devuelve una imagen filtrada
+    """
+    # Hacer el flip a los kernels para aplicarlos como una convolucion
+    kx_flip = np.flip(kx)
+    ky_flip = np.flip(ky)
+
+    # Realizar la convolucion
+    conv_x = cv2.filter2D(img, -1, kx_flip.T)
+    conv = cv2.filter2D(conv_x, -1, ky_flip)
+
+    return conv
+
+
+def gaussian_kernel(img, ksize, sigma):
+    """
+    Funcion que aplica un kernel Gaussiano sobre una imagen.
+
+    Args:
+        img: Imagen sobre la que aplicar el kernel
+        ksize: Tamaño del kernel
+        sigma: Valor de sigma
+    Return:
+        Devuelve una imagen sobre la que se ha aplicado un kernel Gaussiano
+    """
+    # Obtener un kernel para cada eje
+    kernel_x = cv2.getGaussianKernel(ksize, sigma)
+    kernel_y = cv2.getGaussianKernel(ksize, sigma)
+
+    # Aplicar kernel Gaussiano
+    gauss = apply_kernel(img, kernel_x, kernel_y)
+
+    return gauss
+
+
+def derivative_kernel(img, ksize, dx, dy):
+    """
+    Funcion que aplica un kernel de derivadas a una imagen.
+
+    Args:
+        img: Imagen sobre la que aplicar el kernel.
+        ksize: Tamaño del kernel
+        dx: Numero de derivadas que aplicar sobre el eje X.
+        dy: Numero de derivadas que aplicar sobre el eje Y.
+    Return:
+        Devuelve una imagen sobre la que se ha aplicado el filtro de derivadas.
+    """
+    # Obtener los kernels que aplicar a cada eje (es descomponible porque es
+    # el kernel de Sobel)
+    kx, ky = cv2.getDerivKernels(dx, dy, ksize, normalize=True)
+
+    # Aplicar los kernels sobre la imagen
+    der = apply_kernel(img, kx, ky)
+
+    return der
+
+
 def visualize_image(img, title=None):
     """
     Funcion que visualiza una imagen por pantalla.
@@ -135,58 +201,156 @@ def non_max_supression(img, block_size):
 
     return supressed_img
 
+
 ###############################################################################
 #                   Apartado 1: Deteccion de puntos de Harris                 #
 ###############################################################################
 
-def compute_points_of_interest(img, block_size, k_size):
+def compute_gaussian_pyramid(img, ksize, n_octaves):
+
+    # Crear lista que contendra la piramide Gaussiana
+    gauss_pyr = [img]
+
+    # Obtener piramide
+    for i in range(1, n_octaves):
+        gauss_pyr.append(cv2.pyrDown(gauss_pyr[i-1]))
+    
+    return gauss_pyr
+    
+
+def compute_derivative_pyramids(img, ksize_der, n_octaves, sigma=4.5):
+    smooth = gaussian_kernel(img, int(3*sigma) * 2 + 1, sigma)
+
+    dx = derivative_kernel(smooth, ksize_der, 1, 0)
+    dy = derivative_kernel(smooth, ksize_der, 0, 1)
+
+    dx_pyr = [dx]
+    dy_pyr = [dy]
+
+    for i in range(1, n_octaves):
+        dx_pyr.append(cv2.pyrDown(dx_pyr[i-1]))
+        dy_pyr.append(cv2.pyrDown(dy_pyr[i-1]))
+    
+    return dx_pyr, dy_pyr
+
+
+def compute_points_of_interest(img, block_size, ksize):
 
     # Obtener valores singulares y vectores asociados
-    sv_vectors = cv2.cornerEigenValsAndVecs(img, block_size, k_size)
-
-    print(sv_vectors)
+    sv_vectors = cv2.cornerEigenValsAndVecs(img, block_size, ksize)
 
     # Quedarse solo con los valores singulares
     # Los valores singulares son los dos primeros valores de la matriz
     sv = sv_vectors[:, :, :2]
 
-    print(sv)
-
     # Calcular valor de cada píxel como \frac{lamb1 * lamb2}{lamb1 + lamb2}
-    points_interest = np.prod(sv, axis=2) / np.sum(sv, axis=2)
+    prod_vals = np.prod(sv, axis=2)
+    sum_vals = np.sum(sv, axis=2)
+    points_interest = np.divide(prod_vals, sum_vals, out=np.zeros_like(img), where=sum_vals!=0.0)
 
     return points_interest
 
 
-def threshold_points_of_interest(points, threshold=0.7):
+def threshold_points_of_interest(points, threshold):
     points[points < threshold] = 0.0
 
 
-def harris_corner_detection(img, block_size, k_size, num_octaves):
+def compute_orientation(dx_grad, dy_grad):
+    # Obtener vectores u y sus normas
+    u = np.concatenate([dx_grad.reshape(-1,1), dy_grad.reshape(-1,1)], axis=1)
+    u_norm = np.linalg.norm(u, axis=1)
 
-    points_interest = compute_points_of_interest(img, block_size, k_size)
+    # Calcular vectores [cos \theta, sen \theta]
+    vec_cos_sen = u / u_norm.reshape(-1, 1)
+    cos_vals = vec_cos_sen[:, 0]
+    sen_vals = vec_cos_sen[:, 1]
 
-    # Aplicar umbralizacion
-    threshold_points_of_interest(points_interest)
+    # Calcular calcular sen/cos (arreglando posibles errores como 0/0 y x/0)
+    # Se arreglan los errores poniendolos a 0.0
+    orientations = np.divide(sen_vals, cos_vals, out=np.zeros_like(sen_vals), where=cos_vals!=0.0)
 
-    # Aplicar supresion de no maximos
-    points_interest = non_max_supression(points_interest, block_size)
+    # Obtener \theta usando arcotangente
+    orientations_rad = np.arctan(orientations)
 
-    # Obtener indices
-    points_idx = np.where(points_interest > 0.0)
+    # Obtener angulos y arreglarlos (sumar 180º en caso de que cos < 0
+    # y pasarlos al rango [0, 360], eliminando negativos)
+    orientations_degrees = np.degrees(orientations_rad)
+    orientations_degrees[vec_cos_sen[:, 0] < 0.0] += 180.0
+    orientations_degrees[orientations_degrees < 0.0] += 360.0
+    
+    return orientations_degrees
 
-    for y, x in zip(*points_idx):
-        scale = block_size
 
-    return points_interest
+def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_octaves):
+
+    # Obtener piramide gaussiana de la imagen
+    img_pyr = compute_gaussian_pyramid(img, ksize, n_octaves)
+
+    # Obtener piramides de las derivadas
+    dx_pyr, dy_pyr = compute_derivative_pyramids(img, ksize_der, n_octaves)
+
+    keypoints = []
+
+    for i in range(n_octaves):
+        # Obtener puntos de interes de la escala
+        points_interest = compute_points_of_interest(img_pyr[i], block_size, ksize)
+
+        # Aplicar umbralizacion
+        threshold_points_of_interest(points_interest, 10.0)
+
+        # Aplicar supresion de no maximos
+        points_interest = non_max_supression(points_interest, window_size)
+
+        # Obtener valores mayores que 0.0 (aquellos que no han sido eliminados)
+        points_idx = np.where(points_interest > 0.0)
+
+        # Calcular escala del KeyPoint
+        # Hace falta incrementar el valor de i en 1 porque se empieza en 0
+        scale = (i+1) * block_size
+
+        dx_grad = dx_pyr[i][points_idx]
+        dy_grad = dy_pyr[i][points_idx]
+
+        orientations = compute_orientation(dx_grad, dy_grad)
+
+        scale_keypoints = []
+
+        for y, x, o in zip(*points_idx, orientations):
+            scale_keypoints.append(cv2.KeyPoint(x*2**i, y*2**i, scale, o))
+        
+        keypoints.append(scale_keypoints)
+
+    return keypoints
+
+
+def draw_keypoints(img, keypoints):
+    keypoints_list = [k for sublist in keypoints for k in sublist]
+
+    vis = transform_img_uint8(img)
+    vis = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+
+    out = np.empty_like(vis)
+
+    out = cv2.drawKeypoints(vis, keypoints_list, out, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+    # Visualizar la imagen
+    plt.imshow(out)
+    plt.axis('off')
+
+    plt.show()
+
+
 
 ###############################################################################
 ###############################################################################
 
 # Cargar imagen de Yosemite
 yosemite = read_image('imagenes/Yosemite1.jpg', 0)
-print(yosemite.shape)
+yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
 
-pi = harris_corner_detection(yosemite, 5, 3, 1)
 
-visualize_image(pi)
+
+pi = harris_corner_detection(yosemite, block_size=5, window_size=3, ksize=3, ksize_der=3, n_octaves=5)
+draw_keypoints(yosemite_color, pi)
+
+#visualize_image(pi)
