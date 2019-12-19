@@ -447,11 +447,95 @@ def compare_keypoints_orig_corrected(img, keypoints, corrected):
         region = cv2.circle(region, (5,5), 2, (0,255,0))
         region = cv2.circle(region, (corr_center_x, corr_center_y), 2, (255, 0, 0))
 
+        # Hacer un resize de la region
+        region = cv2.resize(region, None, fx=5, fy=5)
+
         # Mostrar imagen
         plt.imshow(region)
         plt.axis('off')
         plt.show()
 
+
+###############################################################################
+#                       Apartado 2: Descriptor AKAZE                          #
+###############################################################################
+
+def compute_akaze_keypoints_descriptors(img, threshold=0.1):
+    # Crear objeto AKAZE para extraer las caracteristicas
+    akaze = cv2.AKAZE_create(threshold=threshold)
+
+    # Extraer keypoints y descriptores
+    keypoints, descriptors = akaze.detectAndCompute(img, None)
+
+    return keypoints, descriptors
+
+
+def compute_akaze_descriptors(img1, img2):
+
+    # Calcular keypoints y descriptores de las dos imagenes
+    kp_img1, desc_img1 = compute_akaze_keypoints_descriptors(img1)
+    kp_img1, desc_img2 = compute_akaze_keypoints_descriptors(img2)
+
+    return kp_img1, desc_img1, kp_img2, desc_img2
+
+
+def brute_force_crosscheck_matcher(desc1, desc2):
+
+    # Crear matcher (va a utilizar el método Brute Force + Cross Check)
+    bf = cv2.BFMatcher_create(crossCheck=True)
+
+    # Obtener los matches
+    matches = bf.match(desc1, desc2)
+
+    return matches
+
+
+def nn2_matcher(desc1, desc2):
+
+    # Crear matcher
+    knn = cv2.BFMatcher_create()
+
+    # Obtener matches
+    matches = knn.knnMatch(desc1, desc2, k=2)
+
+    return matches
+
+
+def lowe_average_2nn_matcher(desc1, desc2):
+
+    # Obtener matches
+    matches = nn2_matcher(desc1, desc2)
+
+    # Quedarse el mejor match según el criterio de Lowe
+    # El mejor match es m1 sii m1 < 0.8 * m2
+    lowe_matches = [m1 for m1, m2 in matches if m1.distance < 0.8* m2.distance]
+
+    return lowe_matches
+
+
+def draw_matches(img1, img2, keypoints1, keypoints2, matches):
+    # Transformar imagen a uint8 y RGB
+    vis1 = transform_img_uint8(img1)
+    vis1 = cv2.cvtColor(vis1, cv2.COLOR_BGR2RGB)
+
+    vis2 = transform_img_uint8(img2)
+    vis2 = cv2.cvtColor(vis2, cv2.COLOR_BGR2RGB)
+
+    rand_matches = np.random.choice(matches, 100, replace=False)
+
+    out_img = np.concatenate([vis1, vis2], axis=1)
+
+    out_img = cv2.drawMatches(vis1, keypoints1, vis2, keypoints2, rand_matches, out_img, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+
+    # Mostrar imagen
+    plt.imshow(out_img)
+    plt.axis('off')
+    plt.show()
+
+
+###############################################################################
+#                      Apartado 3: Mosaicos para 2 imagenes                   #
+###############################################################################
 
 ###############################################################################
 ###############################################################################
@@ -474,4 +558,21 @@ keypoints_list, corrected_keypoints = harris_corner_detection(
 #draw_all_keypoints(yosemite_color, keypoints_list)
 #draw_keypoints_octave(yosemite_color, keypoints_list)
 
-compare_keypoints_orig_corrected(yosemite, keypoints_list, corrected_keypoints)
+#compare_keypoints_orig_corrected(yosemite_color, keypoints_list, corrected_keypoints)
+
+# Apartado 2
+board1 = read_image('imagenes/Yosemite1.jpg', 0)
+board2 = read_image('imagenes/Yosemite2.jpg', 0)
+
+# Extraer descriptores
+kp_board1, desc_board1 = compute_akaze_keypoints_descriptors(board1)
+kp_board2, desc_board2 = compute_akaze_keypoints_descriptors(board2)
+
+matches_bf_xcheck = brute_force_crosscheck_matcher(desc_board1, desc_board2)
+matches_lowe = lowe_average_2nn_matcher(desc_board1, desc_board2)
+
+draw_matches(board1, board2, kp_board1, kp_board2, matches_bf_xcheck)
+draw_matches(board1, board2, kp_board1, kp_board2, matches_lowe)
+
+# Apartado 3
+
