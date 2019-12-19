@@ -219,14 +219,19 @@ def compute_gaussian_pyramid(img, ksize, n_octaves):
     
 
 def compute_derivative_pyramids(img, ksize_der, n_octaves, sigma=4.5):
+
+    # Aplicar alisamiento Gaussiano
     smooth = gaussian_kernel(img, int(3*sigma) * 2 + 1, sigma)
 
+    # Calcular derivadas
     dx = derivative_kernel(smooth, ksize_der, 1, 0)
     dy = derivative_kernel(smooth, ksize_der, 0, 1)
 
+    # Añadir derivadas a las correspondiendtes listas
     dx_pyr = [dx]
     dy_pyr = [dy]
 
+    # Crear piramide
     for i in range(1, n_octaves):
         dx_pyr.append(cv2.pyrDown(dx_pyr[i-1]))
         dy_pyr.append(cv2.pyrDown(dy_pyr[i-1]))
@@ -267,9 +272,13 @@ def compute_orientation(dx_grad, dy_grad):
 
     # Calcular calcular sen/cos (arreglando posibles errores como 0/0 y x/0)
     # Se arreglan los errores poniendolos a 0.0
-    orientations = np.divide(sen_vals, cos_vals, out=np.zeros_like(sen_vals), where=cos_vals!=0.0)
+    orientations = np.divide(sen_vals,
+        cos_vals,
+        out=np.zeros_like(sen_vals),
+        where=cos_vals!=0.0
+    )
 
-    # Obtener \theta usando arcotangente
+    # Obtener \theta usando arcotangente (resultado en radianoes)
     orientations_rad = np.arctan(orientations)
 
     # Obtener angulos y arreglarlos (sumar 180º en caso de que cos < 0
@@ -289,7 +298,9 @@ def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_oc
     # Obtener piramides de las derivadas
     dx_pyr, dy_pyr = compute_derivative_pyramids(img, ksize_der, n_octaves)
 
+    # Lista de keypoints y keypoints corregidos
     keypoints = []
+    corrected_keypoints = []
 
     for i in range(n_octaves):
         # Obtener puntos de interes de la escala
@@ -308,52 +319,138 @@ def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_oc
         # Hace falta incrementar el valor de i en 1 porque se empieza en 0
         scale = (i+1) * block_size
 
+        # Obtener las derivadas correspondientes a los puntos no eliminados
         dx_grad = dx_pyr[i][points_idx]
         dy_grad = dy_pyr[i][points_idx]
 
+        # Calcular orientaciones de los puntos no eliminados
         orientations = compute_orientation(dx_grad, dy_grad)
 
-        scale_keypoints = []
+        # Lista que contendra los keypoints de la octava
+        octave_keypoints = []
 
-        for y, x, o in zip(*points_idx, orientations):
-            scale_keypoints.append(cv2.KeyPoint(x*2**i, y*2**i, scale, o))
+        # Unir las coordenadas de forma que sean n vectores [x,y] formando una  
+        # matriz
+        points_x = points_idx[0].reshape(-1,1)
+        points_y = points_idx[1].reshape(-1,1)
+        points = np.concatenate([points_x, points_y], axis=1)
+
+        # Establecer criterio de parada
+        # Se parará o bien a las 15 iteraciones o cuando epsilon sea menor a 0.01
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 15, 0.01)
+
+        # Corregir keypoints
+        points = cv2.cornerSubPix(img_pyr[i],
+            points.astype(np.float32),
+            (3,3),
+            (-1,-1),
+            criteria
+        )
+
+        # REdondear, cambiar x por y y viceversa (opencv carga las imagenes
+        # invirtiendo los ejes) y transformar coordenada a la de la iamgen original
+        points = np.round(points)
+        points = np.flip(points, axis=1)
+        points *= 2**i
+
+        # Guardar keypoints corregidos
+        corrected_keypoints.append(points)
         
-        keypoints.append(scale_keypoints)
+        # Añadir keypoints
+        for y, x, o in zip(*points_idx, orientations):
+            octave_keypoints.append(cv2.KeyPoint(x*2**i, y*2**i, scale, o))
+        
+        # Guardar keypoints
+        keypoints.append(octave_keypoints)
 
-    return keypoints
+    return keypoints, corrected_keypoints
 
 
-def draw_all_keypoints(img, keypoints):
-    keypoints_list = [k for sublist in keypoints for k in sublist]
+def draw_all_keypoints(img, keypoint_list):
+    keypoints= [k for keypoints_octave in keypoint_list for k in keypoints_octave]
 
+    # Transformar imagen a uint8 y RGB
     vis = transform_img_uint8(img)
     vis = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
 
+    # Crear imagen de salida vacía del mismo tamaño que la original
     out = np.empty_like(vis)
 
-    out = cv2.drawKeypoints(vis, keypoints_list, out, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    # Dibujar keypoints
+    out = cv2.drawKeypoints(vis,
+        keypoints,
+        out,
+        flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+    )
 
     # Visualizar la imagen
     plt.imshow(out)
     plt.axis('off')
-
     plt.show()
 
 
 def draw_keypoints_octave(img, keypoint_list):
+
+    # Transformar imagen a uint8 y RGB
     vis = transform_img_uint8(img)
     vis = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
 
     for keypoints in keypoint_list:
+        # Crear imagen de salida vacía del mismo tamaño que la original
         out = np.empty_like(vis)
 
-        out = cv2.drawKeypoints(vis, keypoints, out, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        # Dibujar keypoints de la octava
+        out = cv2.drawKeypoints(vis,
+            keypoints,
+            out,
+            flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+        )
 
         # Visualizar la imagen
         plt.imshow(out)
         plt.axis('off')
         plt.show()
     
+
+def compare_keypoints_orig_corrected(img, keypoints, corrected):
+    # Transformar datos de entrada a matrices de numpy
+    keypoints_coord = np.array([list(k.pt) for keys in keypoints for k in keys])
+    corrected_coord = np.array([c for correct_octave in corrected for c in correct_octave])
+
+    # Encontrar los índices de los keypoints que difieren
+    same_x = keypoints_coord[:, 0] == corrected_coord[:, 0]
+    same_y = keypoints_coord[:, 1] == corrected_coord[:, 1]
+    same_values = same_x * same_y
+    idx_different_vals = np.where(same_values == False)
+
+    # Escoger keypoints que mostrar (escoger sin repetición)
+    random_keypoints = np.random.choice(idx_different_vals[0], 3, replace=False)
+
+    # Normalizar imagen y pasarla a RGB
+    vis = transform_img_uint8(img)
+    vis = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+    
+
+    for idx in random_keypoints:
+        # Obtener píxeles donde el keypoint original y el corregido no coinciden
+        x_kp, y_kp  = keypoints_coord[idx].astype(np.int)
+        x_c_kp, y_c_kp = corrected_coord[idx].astype(np.int)
+
+        # Obtener centro del circulo del keypoint corregido
+        corr_center_x = x_c_kp - x_kp + 5
+        corr_center_y = y_c_kp - y_kp + 5
+
+        # Obtener la region 11 \times 11
+        region = np.copy(vis[x_kp-5:x_kp+6, y_kp-5:y_kp+6])
+
+        # Dibujar círculos alrededor del keypoint y el corregido
+        region = cv2.circle(region, (5,5), 2, (0,255,0))
+        region = cv2.circle(region, (corr_center_x, corr_center_y), 2, (255, 0, 0))
+
+        # Mostrar imagen
+        plt.imshow(region)
+        plt.axis('off')
+        plt.show()
 
 
 ###############################################################################
@@ -364,10 +461,17 @@ yosemite = read_image('imagenes/Yosemite1.jpg', 0)
 yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
 
 
+np.random.seed(1)
+keypoints_list, corrected_keypoints = harris_corner_detection(
+    yosemite,
+    block_size=5,
+    window_size=3,
+    ksize=3,
+    ksize_der=3, 
+    n_octaves=5
+)
 
-pi = harris_corner_detection(yosemite, block_size=5, window_size=3, ksize=3, ksize_der=3, n_octaves=5)
-draw_all_keypoints(yosemite_color, pi)
-print(pi[0][0].pt)
-#draw_keypoints_octave(yosemite_color, pi)
+#draw_all_keypoints(yosemite_color, keypoints_list)
+#draw_keypoints_octave(yosemite_color, keypoints_list)
 
-#visualize_image(pi)
+compare_keypoints_orig_corrected(yosemite, keypoints_list, corrected_keypoints)
