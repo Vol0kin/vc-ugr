@@ -359,7 +359,7 @@ def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_oc
             criteria
         )
 
-        # REdondear, cambiar x por y y viceversa (opencv carga las imagenes
+        # Redondear, cambiar x por y y viceversa (OpenCV carga las imagenes
         # invirtiendo los ejes) y transformar coordenada a la de la iamgen original
         points = np.round(points)
         points = np.flip(points, axis=1)
@@ -601,6 +601,7 @@ def draw_panorama_2_images(img1, img2, canv_width, canv_height):
 ###############################################################################
 
 def compute_coordinates_keypoints_matches(keypoints_list, matches_list, queryIdx=True):
+    print(matches_list[0][0].trainIdx)
     # Obtener coordenadas de los keypoints que participan en los matches
     if queryIdx:
         kp_coords_matches = [[kp[m.queryIdx].pt for m in matches] for matches, kp in zip(matches_list, keypoints_list)]
@@ -616,67 +617,26 @@ def compute_coordinates_keypoints_matches(keypoints_list, matches_list, queryIdx
 
 def draw_panorama_N_images(image_list, canv_width, canv_height):
     # Obtener lista con keypoints y descriptores para las imagenes
-    kp_desc_list = [compute_akaze_keypoints_descriptors(img) for img in image_list]
+    #kp_desc_list = [compute_akaze_keypoints_descriptors(img) for img in image_list]
 
     # Determinar la imagen central
     center_idx = len(image_list) // 2
-
-    # Obtener matches de las parejas de imagenes consecutivas
-    # Se comienza desde el centro y se va hacia la izquierda y hacia
-    # la derecha, y se añade a la correspondiente lista
-    ltr_matches = []
-    rtl_matches = []
-
-    # Guardar tambien los keypoints y las imagenes asciados para agilizar procesos posteriores
-    ltr_kp = []
-    rtl_kp = []
-
-    # Obtener matches desde la imagen central hasta la ultima
-    for i in range(center_idx, len(image_list)-1):
-        ltr_matches.append(lowe_average_2nn_matcher(kp_desc_list[i][1], kp_desc_list[i+1][1]))
-        ltr_kp.append(kp_desc_list[i][0])
-    
-        
-    # Obtener matches desde la imagen central hasta la primera
-    for i in reversed(range(1, center_idx+1)):
-        rtl_matches.append(lowe_average_2nn_matcher(kp_desc_list[i][1], kp_desc_list[i-1][1]))
-        rtl_kp.append(kp_desc_list[i][0])
-    print(len(rtl_kp))
-    print(len(rtl_matches))
-    """
-    kp_match1 = np.array([kp_img1[m.queryIdx].pt for m in matches],
-        dtype=np.float32
-    )
-
-    kp_match2 = np.array([kp_img2[m.trainIdx].pt for m in matches],
-        dtype=np.float32
-    )
-    """
-    
-    kp_match_dst_ltr = compute_coordinates_keypoints_matches(ltr_kp, ltr_matches)
-    kp_match_src_ltr = compute_coordinates_keypoints_matches(ltr_kp, ltr_matches, queryIdx=False)
-
-    kp_match_dst_rtl = compute_coordinates_keypoints_matches(rtl_kp, rtl_matches)
-    kp_match_src_rtl = compute_coordinates_keypoints_matches(rtl_kp, rtl_matches, queryIdx=False)
-
-    homo_ltr = [cv2.findHomography(src, dst, cv2.RANSAC, 5) for src, dst in zip(kp_match_src_ltr, kp_match_dst_ltr)]
-    homo_rtl = [cv2.findHomography(src, dst, cv2.RANSAC, 5) for src, dst in zip(kp_match_src_rtl, kp_match_dst_rtl)]
 
     # Crear canvas en negro donde se pintara el mosaico
     canvas = generate_canvas(canv_width, canv_height)
     canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
     # Crear homografia al canvas
-    homo_canvas = np.array([[1, 0, 500],
-                            [0, 1, 300],
+    homo_canvas = np.array([[1, 0, 1500],
+                            [0, 1, 1000],
                             [0, 0, 1]], 
                             dtype=np.float64
     )
 
-    # Transformar imagen a uint8 y RGB
-    center = transform_img_uint8(image_list[center_idx])
+    # Transformar  central imagen a uint8 y RGB
+    center = transform_img_uint8_RGB(image_list[center_idx])
 
-    # Crear mosaico juntando imagenes
+    # Poner imagen central en el mosaico
     cv2.warpPerspective(center,
         homo_canvas,
         (canv_width, canv_height),
@@ -684,11 +644,97 @@ def draw_panorama_N_images(image_list, canv_width, canv_height):
         borderMode = cv2.BORDER_TRANSPARENT
     )
 
+    homo_product = np.copy(homo_canvas)
+    print(list(range(center_idx, len(image_list)-1)))
+    
+
+    # Componer parte derecha del mosaico
+    
+    for i in range(center_idx, len(image_list)-1):
+        print(i)
+        # Obtener imagenes fuente y destino
+        dst_img = image_list[i]
+        src_img = image_list[i+1]
+ 
+        # Obtener keypoints y descriptores utilizando Lowe
+        kp_dst, desc_dst = compute_akaze_keypoints_descriptors(dst_img)
+        kp_src, desc_src = compute_akaze_keypoints_descriptors(src_img)
+
+        # Obtener matches utilizando Lowe
+        matches = lowe_average_2nn_matcher(desc_dst, desc_src)
+
+        # Obtener coordenadas de los keypoints de los matches
+        kp_match_dst = np.array([kp_dst[m.queryIdx].pt for m in matches],
+            dtype=np.float32
+        )
+        
+        kp_match_src = np.array([kp_src[m.trainIdx].pt for m in matches],
+            dtype=np.float32
+        )
+
+
+        # Obtener homografia usando RANSAC con threshold de 5
+        # Se recomienda que el threshold este en el rango [1,10]
+        homo, _ = cv2.findHomography(kp_match_src, kp_match_dst, cv2.RANSAC, 5)
+        print(homo)
+
+        homo_product = np.dot(homo_product, homo)
+
+        vis = transform_img_uint8_RGB(src_img)
+
+        cv2.warpPerspective(vis,
+            homo_product,
+            (canv_width, canv_height),
+            dst=canvas,
+            borderMode=cv2.BORDER_TRANSPARENT
+        )
+    
+    homo_product = np.copy(homo_canvas)
+    
+    # Componer parte izquierda del mosaico
+    for i in reversed(range(1, center_idx+1)):
+        print(i)
+        # Obtener imagenes fuente y destino
+        dst_img = image_list[i]
+        src_img = image_list[i-1]
+ 
+        # Obtener keypoints y descriptores utilizando Lowe
+        kp_dst, desc_dst = compute_akaze_keypoints_descriptors(dst_img)
+        kp_src, desc_src = compute_akaze_keypoints_descriptors(src_img)
+
+        # Obtener matches utilizando Lowe
+        matches = lowe_average_2nn_matcher(desc_dst, desc_src)
+
+        # Obtener coordenadas de los keypoints de los matches
+        kp_match_dst = np.array([kp_dst[m.queryIdx].pt for m in matches],
+            dtype=np.float32
+        )
+        
+        kp_match_src = np.array([kp_src[m.trainIdx].pt for m in matches],
+            dtype=np.float32
+        )
+
+
+        # Obtener homografia usando RANSAC con threshold de 5
+        # Se recomienda que el threshold este en el rango [1,10]
+        homo, _ = cv2.findHomography(kp_match_src, kp_match_dst, cv2.RANSAC, 5)
+        print(homo)
+
+        homo_product = np.dot(homo_product, homo)
+
+        vis = transform_img_uint8_RGB(src_img)
+
+        cv2.warpPerspective(vis,
+            homo_product,
+            (canv_width, canv_height),
+            dst=canvas,
+            borderMode=cv2.BORDER_TRANSPARENT
+        )
+
+
     # Mostrar canvas
     visualize_image(canvas)
     
-    
-
 
 ###############################################################################
 ###############################################################################
@@ -743,9 +789,8 @@ board2 = read_image('imagenes/yosemite7.jpg', 0)
 
 # Apartado 4
 yosemite_names = ["imagenes/yosemite1.jpg", "imagenes/yosemite2.jpg",
-                  "imagenes/yosemite3.jpg", "imagenes/yosemite4.jpg",
-                  "imagenes/yosemite5.jpg"]
+                  "imagenes/yosemite3.jpg", "imagenes/yosemite4.jpg"]
 
-yosemite_images = [read_image(img, 0) for img in yosemite_names]
+yosemite_images = [read_image(img, 1) for img in yosemite_names]
 
-draw_panorama_N_images(yosemite_images, 1920, 1080)
+draw_panorama_N_images(yosemite_images, 4000, 4000)
