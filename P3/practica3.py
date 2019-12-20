@@ -600,26 +600,93 @@ def draw_panorama_2_images(img1, img2, canv_width, canv_height):
 #                      Apartado 4: Mosaicos para N imagenes                   #
 ###############################################################################
 
+def compute_coordinates_keypoints_matches(keypoints_list, matches_list, queryIdx=True):
+    # Obtener coordenadas de los keypoints que participan en los matches
+    if queryIdx:
+        kp_coords_matches = [[kp[m.queryIdx].pt for m in matches] for matches, kp in zip(matches_list, keypoints_list)]
+    else:
+        kp_coords_matches = [[kp[m.trainIdx].pt for m in matches] for matches, kp in zip(matches_list, keypoints_list)]
+
+
+    # Pasar las coordenadas a matriz
+    kp_coords_matches = [np.array(coords, dtype=np.float32) for coords in kp_coords_matches]
+
+    return kp_coords_matches
+
+
 def draw_panorama_N_images(image_list, canv_width, canv_height):
     # Obtener lista con keypoints y descriptores para las imagenes
     kp_desc_list = [compute_akaze_keypoints_descriptors(img) for img in image_list]
 
     # Determinar la imagen central
-    central_idx = len(image_list) // 2
+    center_idx = len(image_list) // 2
 
-    left_to_right_matches = []
-    right_to_left_matches = []
+    # Obtener matches de las parejas de imagenes consecutivas
+    # Se comienza desde el centro y se va hacia la izquierda y hacia
+    # la derecha, y se añade a la correspondiente lista
+    ltr_matches = []
+    rtl_matches = []
 
-    for i in range(central_idx, len(image_list)-1):
-        left_to_right_matches.append(lowe_average_2nn_matcher(kp_desc_list[i][1], kp_desc_list[i+1][1]))
-    
-    print(len(left_to_right_matches))
-    
-    for i in reversed(range(1, len(image_list))):
-        right_to_left_matches.append(lowe_average_2nn_matcher(kp_desc_list[i][1], kp_desc_list[i-1][1]))
-    
-    print(len(right_to_left_matches))
+    # Guardar tambien los keypoints y las imagenes asciados para agilizar procesos posteriores
+    ltr_kp = []
+    rtl_kp = []
 
+    # Obtener matches desde la imagen central hasta la ultima
+    for i in range(center_idx, len(image_list)-1):
+        ltr_matches.append(lowe_average_2nn_matcher(kp_desc_list[i][1], kp_desc_list[i+1][1]))
+        ltr_kp.append(kp_desc_list[i][0])
+    
+        
+    # Obtener matches desde la imagen central hasta la primera
+    for i in reversed(range(1, center_idx+1)):
+        rtl_matches.append(lowe_average_2nn_matcher(kp_desc_list[i][1], kp_desc_list[i-1][1]))
+        rtl_kp.append(kp_desc_list[i][0])
+    print(len(rtl_kp))
+    print(len(rtl_matches))
+    """
+    kp_match1 = np.array([kp_img1[m.queryIdx].pt for m in matches],
+        dtype=np.float32
+    )
+
+    kp_match2 = np.array([kp_img2[m.trainIdx].pt for m in matches],
+        dtype=np.float32
+    )
+    """
+    
+    kp_match_dst_ltr = compute_coordinates_keypoints_matches(ltr_kp, ltr_matches)
+    kp_match_src_ltr = compute_coordinates_keypoints_matches(ltr_kp, ltr_matches, queryIdx=False)
+
+    kp_match_dst_rtl = compute_coordinates_keypoints_matches(rtl_kp, rtl_matches)
+    kp_match_src_rtl = compute_coordinates_keypoints_matches(rtl_kp, rtl_matches, queryIdx=False)
+
+    homo_ltr = [cv2.findHomography(src, dst, cv2.RANSAC, 5) for src, dst in zip(kp_match_src_ltr, kp_match_dst_ltr)]
+    homo_rtl = [cv2.findHomography(src, dst, cv2.RANSAC, 5) for src, dst in zip(kp_match_src_rtl, kp_match_dst_rtl)]
+
+    # Crear canvas en negro donde se pintara el mosaico
+    canvas = generate_canvas(canv_width, canv_height)
+    canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+
+    # Crear homografia al canvas
+    homo_canvas = np.array([[1, 0, 500],
+                            [0, 1, 300],
+                            [0, 0, 1]], 
+                            dtype=np.float64
+    )
+
+    # Transformar imagen a uint8 y RGB
+    center = transform_img_uint8(image_list[center_idx])
+
+    # Crear mosaico juntando imagenes
+    cv2.warpPerspective(center,
+        homo_canvas,
+        (canv_width, canv_height),
+        dst=canvas,
+        borderMode = cv2.BORDER_TRANSPARENT
+    )
+
+    # Mostrar canvas
+    visualize_image(canvas)
+    
     
 
 
