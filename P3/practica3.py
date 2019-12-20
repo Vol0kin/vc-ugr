@@ -79,6 +79,24 @@ def transform_img_uint8(img):
     return trans_uint8
 
 
+def transform_img_uint8_RGB(img):
+    """
+    Funcion que transforma una imagen float32 a uint8 y a RGB
+
+    Args:
+        img: Imagen a transformar
+    Return:
+        Devuelve la imagen en el rango [0, 255] y RGB
+    """
+    # Transformar a uint8
+    img_uint8 = transform_img_uint8(img)
+
+    # Pasar a RGB
+    img_uint8_rgb = cv2.cvtColor(img_uint8, cv2.COLOR_BGR2RGB)
+
+    return img_uint8_rgb
+
+
 def apply_kernel(img, kx, ky):
     """
     Funcion que aplica un kernel separable sobre una imagen, realizando una
@@ -153,14 +171,8 @@ def visualize_image(img, title=None):
         img: Imagen a visualizar
         title: Titulo de la imagen (por defecto None)
     """
-    # Pasar la imagen a uint8
-    vis = transform_img_uint8(img)
-
-    # Pasar de una imagen BGR a RGB
-    vis = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
-
     # Visualizar la imagen
-    plt.imshow(vis)
+    plt.imshow(img)
     plt.axis('off')
 
     if title is not None:
@@ -370,8 +382,7 @@ def draw_all_keypoints(img, keypoint_list):
     keypoints= [k for keypoints_octave in keypoint_list for k in keypoints_octave]
 
     # Transformar imagen a uint8 y RGB
-    vis = transform_img_uint8(img)
-    vis = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+    vis = transform_img_uint8_RGB(img)
 
     # Crear imagen de salida vacía del mismo tamaño que la original
     out = np.empty_like(vis)
@@ -384,16 +395,12 @@ def draw_all_keypoints(img, keypoint_list):
     )
 
     # Visualizar la imagen
-    plt.imshow(out)
-    plt.axis('off')
-    plt.show()
-
+    visualize_image(out)
 
 def draw_keypoints_octave(img, keypoint_list):
 
     # Transformar imagen a uint8 y RGB
-    vis = transform_img_uint8(img)
-    vis = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+    vis = transform_img_uint8_RGB(img)
 
     for keypoints in keypoint_list:
         # Crear imagen de salida vacía del mismo tamaño que la original
@@ -407,9 +414,7 @@ def draw_keypoints_octave(img, keypoint_list):
         )
 
         # Visualizar la imagen
-        plt.imshow(out)
-        plt.axis('off')
-        plt.show()
+        visualize_image(out)
     
 
 def compare_keypoints_orig_corrected(img, keypoints, corrected):
@@ -427,9 +432,7 @@ def compare_keypoints_orig_corrected(img, keypoints, corrected):
     random_keypoints = np.random.choice(idx_different_vals[0], 3, replace=False)
 
     # Normalizar imagen y pasarla a RGB
-    vis = transform_img_uint8(img)
-    vis = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
-    
+    vis = transform_img_uint8_RGB(img)    
 
     for idx in random_keypoints:
         # Obtener píxeles donde el keypoint original y el corregido no coinciden
@@ -451,9 +454,7 @@ def compare_keypoints_orig_corrected(img, keypoints, corrected):
         region = cv2.resize(region, None, fx=5, fy=5)
 
         # Mostrar imagen
-        plt.imshow(region)
-        plt.axis('off')
-        plt.show()
+        visualize_image(region)
 
 
 ###############################################################################
@@ -468,15 +469,6 @@ def compute_akaze_keypoints_descriptors(img, threshold=0.1):
     keypoints, descriptors = akaze.detectAndCompute(img, None)
 
     return keypoints, descriptors
-
-
-def compute_akaze_descriptors(img1, img2):
-
-    # Calcular keypoints y descriptores de las dos imagenes
-    kp_img1, desc_img1 = compute_akaze_keypoints_descriptors(img1)
-    kp_img1, desc_img2 = compute_akaze_keypoints_descriptors(img2)
-
-    return kp_img1, desc_img1, kp_img2, desc_img2
 
 
 def brute_force_crosscheck_matcher(desc1, desc2):
@@ -515,27 +507,94 @@ def lowe_average_2nn_matcher(desc1, desc2):
 
 def draw_matches(img1, img2, keypoints1, keypoints2, matches):
     # Transformar imagen a uint8 y RGB
-    vis1 = transform_img_uint8(img1)
-    vis1 = cv2.cvtColor(vis1, cv2.COLOR_BGR2RGB)
-
-    vis2 = transform_img_uint8(img2)
-    vis2 = cv2.cvtColor(vis2, cv2.COLOR_BGR2RGB)
+    vis1 = transform_img_uint8_RGB(img1)
+    vis2 = transform_img_uint8_RGB(img2)
 
     rand_matches = np.random.choice(matches, 100, replace=False)
 
     out_img = np.concatenate([vis1, vis2], axis=1)
 
-    out_img = cv2.drawMatches(vis1, keypoints1, vis2, keypoints2, rand_matches, out_img, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    out_img = cv2.drawMatches(vis1,
+        keypoints1,
+        vis2,
+        keypoints2,
+        rand_matches,
+        out_img,
+        flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS
+    )
 
     # Mostrar imagen
-    plt.imshow(out_img)
-    plt.axis('off')
-    plt.show()
+    visualize_image(out_img)
 
 
 ###############################################################################
 #                      Apartado 3: Mosaicos para 2 imagenes                   #
 ###############################################################################
+
+def generate_canvas(width, height):
+    # Generar matriz de 0's
+    canvas = np.zeros((height, width), dtype=np.uint8)
+
+    return canvas
+
+
+def draw_panorama_2_images(img1, img2, canv_width, canv_height):
+
+    # Obtener keypoints y descriptores utilizando Lowe
+    kp_img1, desc_img1 = compute_akaze_keypoints_descriptors(img1)
+    kp_img2, desc_img2 = compute_akaze_keypoints_descriptors(img2)
+
+    # Obtener matches utilizando Lowe
+    matches = lowe_average_2nn_matcher(desc_img1, desc_img2)
+
+    # Obtener coordenadas de los keypoints de los matches
+    kp_match1 = np.array([kp_img1[m.queryIdx].pt for m in matches],
+        dtype=np.float32
+    )
+
+    kp_match2 = np.array([kp_img2[m.trainIdx].pt for m in matches],
+        dtype=np.float32
+    )
+
+    # Obtener homografia usando RANSAC con threshold de 5
+    # Se recomienda que el threshold este en el rango [1,10]
+    homo, _ = cv2.findHomography(kp_match2, kp_match1, cv2.RANSAC, 5)
+
+
+    # Crear canvas en negro donde se pintara el mosaico
+    canvas = generate_canvas(canv_width, canv_height)
+    canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+
+    # Crear homografia al canvas
+    homo_canvas = np.array([[1, 0, 500],
+                            [0, 1, 300],
+                            [0, 0, 1]], 
+                            dtype=np.float64
+    )
+
+    # Transformar imagen a uint8 y RGB
+    vis1 = transform_img_uint8_RGB(img1)
+    vis2 = transform_img_uint8_RGB(img2)
+
+    # Crear mosaico juntando imagenes
+    cv2.warpPerspective(vis1,
+        homo_canvas,
+        (canv_width, canv_height),
+        dst=canvas,
+        borderMode = cv2.BORDER_TRANSPARENT
+    )
+    
+    # En esta parte se componen las transformaciones
+    cv2.warpPerspective(vis2,
+        np.dot(homo_canvas, homo),
+        (canv_width, canv_height),
+        dst=canvas,
+        borderMode = cv2.BORDER_TRANSPARENT
+    )
+
+    # Mostrar canvas
+    visualize_image(canvas)
+
 
 ###############################################################################
 ###############################################################################
@@ -571,8 +630,15 @@ kp_board2, desc_board2 = compute_akaze_keypoints_descriptors(board2)
 matches_bf_xcheck = brute_force_crosscheck_matcher(desc_board1, desc_board2)
 matches_lowe = lowe_average_2nn_matcher(desc_board1, desc_board2)
 
-draw_matches(board1, board2, kp_board1, kp_board2, matches_bf_xcheck)
-draw_matches(board1, board2, kp_board1, kp_board2, matches_lowe)
+#draw_matches(board1, board2, kp_board1, kp_board2, matches_bf_xcheck)
+#draw_matches(board1, board2, kp_board1, kp_board2, matches_lowe)
 
 # Apartado 3
 
+
+draw_panorama_2_images(board1, board2, 1920, 1080)
+
+board1 = read_image('imagenes/yosemite6.jpg', 0)
+board2 = read_image('imagenes/yosemite7.jpg', 0)
+
+draw_panorama_2_images(board1, board2, 1920, 1080)
