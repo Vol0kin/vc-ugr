@@ -615,7 +615,7 @@ def compute_coordinates_keypoints_matches(keypoints_list, matches_list, queryIdx
     return kp_coords_matches
 
 
-def draw_panorama_N_images(image_list, canv_width, canv_height):
+def draw_panorama_N_images(image_list, canv_width, canv_height, canv_homo_x, canv_homo_y):
     # Obtener lista con keypoints y descriptores para las imagenes
     #kp_desc_list = [compute_akaze_keypoints_descriptors(img) for img in image_list]
 
@@ -627,8 +627,8 @@ def draw_panorama_N_images(image_list, canv_width, canv_height):
     canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
     # Crear homografia al canvas
-    homo_canvas = np.array([[1, 0, 1500],
-                            [0, 1, 1000],
+    homo_canvas = np.array([[1, 0, canv_homo_x],
+                            [0, 1, canv_homo_y],
                             [0, 0, 1]], 
                             dtype=np.float64
     )
@@ -645,13 +645,9 @@ def draw_panorama_N_images(image_list, canv_width, canv_height):
     )
 
     homo_product = np.copy(homo_canvas)
-    print(list(range(center_idx, len(image_list)-1)))
-    
 
     # Componer parte derecha del mosaico
-    
     for i in range(center_idx, len(image_list)-1):
-        print(i)
         # Obtener imagenes fuente y destino
         dst_img = image_list[i]
         src_img = image_list[i+1]
@@ -676,8 +672,6 @@ def draw_panorama_N_images(image_list, canv_width, canv_height):
         # Obtener homografia usando RANSAC con threshold de 5
         # Se recomienda que el threshold este en el rango [1,10]
         homo, _ = cv2.findHomography(kp_match_src, kp_match_dst, cv2.RANSAC, 5)
-        print(homo)
-
         homo_product = np.dot(homo_product, homo)
 
         vis = transform_img_uint8_RGB(src_img)
@@ -693,7 +687,6 @@ def draw_panorama_N_images(image_list, canv_width, canv_height):
     
     # Componer parte izquierda del mosaico
     for i in reversed(range(1, center_idx+1)):
-        print(i)
         # Obtener imagenes fuente y destino
         dst_img = image_list[i]
         src_img = image_list[i-1]
@@ -718,7 +711,6 @@ def draw_panorama_N_images(image_list, canv_width, canv_height):
         # Obtener homografia usando RANSAC con threshold de 5
         # Se recomienda que el threshold este en el rango [1,10]
         homo, _ = cv2.findHomography(kp_match_src, kp_match_dst, cv2.RANSAC, 5)
-        print(homo)
 
         homo_product = np.dot(homo_product, homo)
 
@@ -730,7 +722,6 @@ def draw_panorama_N_images(image_list, canv_width, canv_height):
             dst=canvas,
             borderMode=cv2.BORDER_TRANSPARENT
         )
-
 
     # Mostrar canvas
     visualize_image(canvas)
@@ -788,9 +779,13 @@ board2 = read_image('imagenes/yosemite7.jpg', 0)
 
 
 # Apartado 4
-yosemite_names = ["imagenes/yosemite1.jpg", "imagenes/yosemite2.jpg",
+yosemite_names1 = ["imagenes/yosemite1.jpg", "imagenes/yosemite2.jpg",
                   "imagenes/yosemite3.jpg", "imagenes/yosemite4.jpg"]
+yosemite_names2 = ["imagenes/yosemite5.jpg", "imagenes/yosemite6.jpg",
+                  "imagenes/yosemite7.jpg"]
 
-yosemite_images = [read_image(img, 1) for img in yosemite_names]
+yosemite_images1 = [read_image(img, 1) for img in yosemite_names1]
+yosemite_images2 = [read_image(img, 1) for img in yosemite_names2]
 
-draw_panorama_N_images(yosemite_images, 4000, 4000)
+draw_panorama_N_images(yosemite_images1, 2048, 750, 800, 128)
+draw_panorama_N_images(yosemite_images2, 3000, 1700, 2000, 500)
