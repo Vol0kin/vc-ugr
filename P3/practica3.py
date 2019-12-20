@@ -597,14 +597,41 @@ def draw_panorama_2_images(img1, img2, canv_width, canv_height):
 
 
 ###############################################################################
+#                      Apartado 4: Mosaicos para N imagenes                   #
 ###############################################################################
+
+def draw_panorama_N_images(image_list, canv_width, canv_height):
+    # Obtener lista con keypoints y descriptores para las imagenes
+    kp_desc_list = [compute_akaze_keypoints_descriptors(img) for img in image_list]
+
+    # Determinar la imagen central
+    central_idx = len(image_list) // 2
+
+    left_to_right_matches = []
+    right_to_left_matches = []
+
+    for i in range(central_idx, len(image_list)-1):
+        left_to_right_matches.append(lowe_average_2nn_matcher(kp_desc_list[i][1], kp_desc_list[i+1][1]))
+    
+    print(len(left_to_right_matches))
+    
+    for i in reversed(range(1, len(image_list))):
+        right_to_left_matches.append(lowe_average_2nn_matcher(kp_desc_list[i][1], kp_desc_list[i-1][1]))
+    
+    print(len(right_to_left_matches))
+
+    
+
+
+###############################################################################
+###############################################################################
+# Inicializar semilla aleatoria
+np.random.seed(1)
 
 # Cargar imagen de Yosemite
 yosemite = read_image('imagenes/Yosemite1.jpg', 0)
 yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
 
-
-np.random.seed(1)
 keypoints_list, corrected_keypoints = harris_corner_detection(
     yosemite,
     block_size=5,
@@ -620,25 +647,38 @@ keypoints_list, corrected_keypoints = harris_corner_detection(
 #compare_keypoints_orig_corrected(yosemite_color, keypoints_list, corrected_keypoints)
 
 # Apartado 2
-board1 = read_image('imagenes/Yosemite1.jpg', 0)
-board2 = read_image('imagenes/Yosemite2.jpg', 0)
+yosemite1 = read_image('imagenes/Yosemite1.jpg', 0)
+yosemite2 = read_image('imagenes/Yosemite2.jpg', 0)
+
+yosemite1_c = read_image('imagenes/Yosemite1.jpg', 1)
+yosemite2_c = read_image('imagenes/Yosemite2.jpg', 1)
 
 # Extraer descriptores
-kp_board1, desc_board1 = compute_akaze_keypoints_descriptors(board1)
-kp_board2, desc_board2 = compute_akaze_keypoints_descriptors(board2)
+kp_yosemite1, desc_yosemite1 = compute_akaze_keypoints_descriptors(yosemite1)
+kp_yosemite2, desc_yosemite2 = compute_akaze_keypoints_descriptors(yosemite2)
 
-matches_bf_xcheck = brute_force_crosscheck_matcher(desc_board1, desc_board2)
-matches_lowe = lowe_average_2nn_matcher(desc_board1, desc_board2)
+matches_bf_xcheck = brute_force_crosscheck_matcher(desc_yosemite1, desc_yosemite2)
+matches_lowe = lowe_average_2nn_matcher(desc_yosemite1, desc_yosemite2)
 
-#draw_matches(board1, board2, kp_board1, kp_board2, matches_bf_xcheck)
-#draw_matches(board1, board2, kp_board1, kp_board2, matches_lowe)
+#draw_matches(yosemite1_c, yosemite2_c, kp_yosemite1, kp_yosemite2, matches_bf_xcheck)
+#draw_matches(yosemite1_c, yosemite2_c, kp_yosemite1, kp_yosemite2, matches_lowe)
 
 # Apartado 3
 
 
-draw_panorama_2_images(board1, board2, 1920, 1080)
+#draw_panorama_2_images(yosemite1_c, yosemite2_c, 1920, 1080)
 
 board1 = read_image('imagenes/yosemite6.jpg', 0)
 board2 = read_image('imagenes/yosemite7.jpg', 0)
 
-draw_panorama_2_images(board1, board2, 1920, 1080)
+#draw_panorama_2_images(board1, board2, 1920, 1080)
+
+
+# Apartado 4
+yosemite_names = ["imagenes/yosemite1.jpg", "imagenes/yosemite2.jpg",
+                  "imagenes/yosemite3.jpg", "imagenes/yosemite4.jpg",
+                  "imagenes/yosemite5.jpg"]
+
+yosemite_images = [read_image(img, 0) for img in yosemite_names]
+
+draw_panorama_N_images(yosemite_images, 1920, 1080)
