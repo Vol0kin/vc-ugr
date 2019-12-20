@@ -779,13 +779,15 @@ board2 = read_image('imagenes/yosemite7.jpg', 0)
 
 
 # Apartado 4
-yosemite_names1 = ["imagenes/yosemite1.jpg", "imagenes/yosemite2.jpg",
-                  "imagenes/yosemite3.jpg", "imagenes/yosemite4.jpg"]
-yosemite_names2 = ["imagenes/yosemite5.jpg", "imagenes/yosemite6.jpg",
-                  "imagenes/yosemite7.jpg"]
+yosemite_names1 = [f"imagenes/yosemite{n}.jpg" for n in range(1,5)]
+yosemite_names2 = [f"imagenes/yosemite{n}.jpg" for n in range(5, 8)]
+etsiit_names = [f"imagenes/mosaico00{num}.jpg" for num in range(2,10)]
+etsiit_names += [f"imagenes/mosaico0{num}.jpg" for num in range(10, 12)]
 
 yosemite_images1 = [read_image(img, 1) for img in yosemite_names1]
 yosemite_images2 = [read_image(img, 1) for img in yosemite_names2]
+etsiit_images = [read_image(etsiit, 1) for etsiit in etsiit_names]
 
 draw_panorama_N_images(yosemite_images1, 2048, 750, 800, 128)
 draw_panorama_N_images(yosemite_images2, 3000, 1700, 2000, 500)
+draw_panorama_N_images(etsiit_images, 950, 500, 350, 100)
