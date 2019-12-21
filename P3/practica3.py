@@ -324,6 +324,17 @@ def threshold_points_of_interest(points, threshold):
 
 
 def compute_orientation(dx_grad, dy_grad):
+    """
+    Funcion que calcula la orientacion del gradiente de una serie de puntos
+
+    Args:
+        dx_grad: Derivadas en el eje X
+        dy_grad: Derivadas en el eje Y
+    Return:
+        Devuelve un array en el que estan las orientaciones de todos los
+        pares de gradientes de dx_grad y dy_grad. Las orientaciones estan
+        en grados, y se encuentran en el rango [0, 360)
+    """
     # Obtener vectores u y sus normas
     u = np.concatenate([dx_grad.reshape(-1,1), dy_grad.reshape(-1,1)], axis=1)
     u_norm = np.linalg.norm(u, axis=1)
@@ -333,7 +344,7 @@ def compute_orientation(dx_grad, dy_grad):
     cos_vals = vec_cos_sen[:, 0]
     sen_vals = vec_cos_sen[:, 1]
 
-    # Calcular calcular sen/cos (arreglando posibles errores como 0/0 y x/0)
+    # Calcular sen/cos arreglando posibles errores como 0/0 y x/0
     # Se arreglan los errores poniendolos a 0.0
     orientations = np.divide(sen_vals,
         cos_vals,
@@ -341,7 +352,8 @@ def compute_orientation(dx_grad, dy_grad):
         where=cos_vals!=0.0
     )
 
-    # Obtener \theta usando arcotangente (resultado en radianoes)
+    # Obtener \theta usando arcotangente (resultado en radianes
+    # entre [-pi/2, pi/2])
     orientations_rad = np.arctan(orientations)
 
     # Obtener angulos y arreglarlos (sumar 180º en caso de que cos < 0
@@ -353,8 +365,28 @@ def compute_orientation(dx_grad, dy_grad):
     return orientations_degrees
 
 
-def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_octaves):
+def harris_corner_detection(img, block_size, window_size, ksize_der,
+                            n_octaves, threshold=10.0):
+    """
+    Funcion que detecta los puntos de Harris de una imagen a distintas
+    escaslas.
 
+    Args:
+        img: Imagen de la que se quieren extraer los puntos de Harris
+        block_size: Tamaño del bloque que se va a tener en cuenta a la hora de
+                    calcular los valores singulares.
+        window_size: Tamaño de la ventana al realizar la supresion de no
+                     maximos
+        ksize_der: Tamaño del operador de Sobel (utilizado en el calculo
+                   de los valores singulares)
+        n_octaves: Numero de octavas/escalas de la imagen de la que sacar
+                   puntos
+        threshold: Umbral utilizado para eliminar todos los valores inferiores
+                   a este.
+    Return:
+        Devuelve dos listas: una que contiene los keypoints extraidos y otra
+        que contiene los keypoints corregidos
+    """
     # Obtener piramide gaussiana de la imagen
     img_pyr = compute_gaussian_pyramid(img, n_octaves)
 
@@ -367,10 +399,13 @@ def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_oc
 
     for i in range(n_octaves):
         # Obtener puntos de interes de la escala
-        points_interest = compute_points_of_interest(img_pyr[i], block_size, ksize)
+        points_interest = compute_points_of_interest(img_pyr[i],
+            block_size,
+            ksize_der
+        )
 
         # Aplicar umbralizacion
-        threshold_points_of_interest(points_interest, 10.0)
+        threshold_points_of_interest(points_interest, threshold)
 
         # Aplicar supresion de no maximos
         points_interest = non_max_supression(points_interest, window_size)
@@ -427,6 +462,22 @@ def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_oc
         keypoints.append(octave_keypoints)
 
     return keypoints, corrected_keypoints
+
+
+def compute_number_keypoints(keypoints_list):
+    """
+    Funcion que calcula el numero de keypoints detectados en una imagen para
+    todas las escalas y lo muestra por pantalla
+
+    Args:
+        keypoints_list: Lista con los keypoints
+    """
+    num_kp = 0
+
+    for kp in keypoints_list:
+        num_kp += len(kp)
+    
+    print(f"Number of keypoints found across all scales: {num_kp}")
 
 
 def draw_all_keypoints(img, keypoint_list):
@@ -772,16 +823,67 @@ np.random.seed(1)
 yosemite = read_image('imagenes/Yosemite1.jpg', 0)
 yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
 
-keypoints_list, corrected_keypoints = harris_corner_detection(
+keypoints_list1, corrected_keypoints1 = harris_corner_detection(
     yosemite,
     block_size=5,
     window_size=3,
-    ksize=3,
     ksize_der=3, 
-    n_octaves=5
+    n_octaves=5,
+    threshold=10.0
 )
 
-#draw_all_keypoints(yosemite_color, keypoints_list)
+compute_number_keypoints(keypoints_list1)
+draw_all_keypoints(yosemite_color, keypoints_list1)
+
+keypoints_list2, corrected_keypoints2 = harris_corner_detection(
+    yosemite,
+    block_size=5,
+    window_size=5,
+    ksize_der=3, 
+    n_octaves=5,
+    threshold=10.0
+)
+
+compute_number_keypoints(keypoints_list2)
+draw_all_keypoints(yosemite_color, keypoints_list2)
+
+keypoints_list3, corrected_keypoints3 = harris_corner_detection(
+    yosemite,
+    block_size=5,
+    window_size=3,
+    ksize_der=5, 
+    n_octaves=5,
+    threshold=10.0
+)
+
+compute_number_keypoints(keypoints_list3)
+draw_all_keypoints(yosemite_color, keypoints_list3)
+
+keypoints_list4, corrected_keypoints4 = harris_corner_detection(
+    yosemite,
+    block_size=5,
+    window_size=3,
+    ksize_der=3, 
+    n_octaves=5,
+    threshold=60.0
+)
+
+compute_number_keypoints(keypoints_list4)
+draw_all_keypoints(yosemite_color, keypoints_list4)
+
+keypoints_list5, corrected_keypoints5 = harris_corner_detection(
+    yosemite,
+    block_size=5,
+    window_size=3,
+    ksize_der=3, 
+    n_octaves=5,
+    threshold=90.0
+)
+
+compute_number_keypoints(keypoints_list5)
+draw_all_keypoints(yosemite_color, keypoints_list5)
+
+
 #draw_keypoints_octave(yosemite_color, keypoints_list)
 
 #compare_keypoints_orig_corrected(yosemite_color, keypoints_list, corrected_keypoints)
