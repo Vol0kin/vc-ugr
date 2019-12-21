@@ -218,7 +218,7 @@ def non_max_supression(img, block_size):
 #                   Apartado 1: Deteccion de puntos de Harris                 #
 ###############################################################################
 
-def compute_gaussian_pyramid(img, ksize, n_octaves):
+def compute_gaussian_pyramid(img, n_octaves):
 
     # Crear lista que contendra la piramide Gaussiana
     gauss_pyr = [img]
@@ -305,7 +305,7 @@ def compute_orientation(dx_grad, dy_grad):
 def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_octaves):
 
     # Obtener piramide gaussiana de la imagen
-    img_pyr = compute_gaussian_pyramid(img, ksize, n_octaves)
+    img_pyr = compute_gaussian_pyramid(img, n_octaves)
 
     # Obtener piramides de las derivadas
     dx_pyr, dy_pyr = compute_derivative_pyramids(img, ksize_der, n_octaves)
@@ -599,21 +599,6 @@ def draw_panorama_2_images(img1, img2, canv_width, canv_height):
 ###############################################################################
 #                      Apartado 4: Mosaicos para N imagenes                   #
 ###############################################################################
-
-def compute_coordinates_keypoints_matches(keypoints_list, matches_list, queryIdx=True):
-    print(matches_list[0][0].trainIdx)
-    # Obtener coordenadas de los keypoints que participan en los matches
-    if queryIdx:
-        kp_coords_matches = [[kp[m.queryIdx].pt for m in matches] for matches, kp in zip(matches_list, keypoints_list)]
-    else:
-        kp_coords_matches = [[kp[m.trainIdx].pt for m in matches] for matches, kp in zip(matches_list, keypoints_list)]
-
-
-    # Pasar las coordenadas a matriz
-    kp_coords_matches = [np.array(coords, dtype=np.float32) for coords in kp_coords_matches]
-
-    return kp_coords_matches
-
 
 def draw_panorama_N_images(image_list, canv_width, canv_height, canv_homo_x, canv_homo_y):
     # Obtener lista con keypoints y descriptores para las imagenes
