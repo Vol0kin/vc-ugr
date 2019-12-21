@@ -487,6 +487,9 @@ de operaciones extra que tenemos que hacer:
 Después de todo este proceso, ya tenemos las orientaciones calculadas, y podríamos
 proceder a la creación de \textit{keypoints} con la información que tenemos.
 
+Para simplificar todo el proceso, hemos creado una única función que se encarga de
+todo el proceso anterior. A continuación se puede ver el código de dicha función:
+
 \begin{lstlisting}
 def harris_corner_detection(img, block_size, window_size, ksize_der,
                             n_octaves, threshold=10.0):
@@ -583,7 +586,88 @@ def harris_corner_detection(img, block_size, window_size, ksize_der,
     return keypoints, corrected_keypoints
 \end{lstlisting}
 
+La función recibe como parámetros la imagen de la que sacar los puntos de Harris,
+el tamaño de bloque utilizado en el cómputo de los valores singulares (tal y como
+se ha explicado anteriormente), el tamaño de la ventana que se va a utilizar en la supresión
+de no máximos el tamaño del \textit{kernel} de la derivada, el número de octavas o escalas
+que se quieren sacar de la imagen (lo cuál determina el tamaño de las pirámides) y el
+umbral que se tiene que aplicar para reducir el número de puntos. Por defecto, el
+umbral está puesto a 10, que es el valor que se probó en el \textit{paper}.
 
+Esta función, aparte de hacer todo lo especificado anteriormente, también se encarga
+de corregir las posiciones de los \textit{keypoints} que se han obtenido, utilizando
+para ello la función de \texttt{OpenCV} \texttt{cornerSubPix(...)}. De esta forma, realizamos
+todos los cálculos a la vez, y no necesitamos repetir el proceso. Estos puntos serán utilizados
+más adelante para comparar qué tal han salido los puntos estimados. De momento, vamos
+a explicar lo que hace la función, y cuando aparezca la llamada a esta función nos
+pararemos a explicarla más detenidamente.
+
+Lo primero que hace la función es obtener las pirámides de la imagen y de las derivadas,
+además de crear las listas que contendrán la información de salida.
+
+Una vez hecho esto, repite todos los pasos descritos anteriormente tantas veces como
+octavas/escalas se le hayan especificado. Primero extrae los puntos de Harris, después
+elimina los que están por debajo del umbral y realiza la supresión de no máximos. Una vez
+hecho esto, determina las posiciones en las que los puntos tienen un valor superior a 0 y
+las guardan. Después, se encarga de calcular la escala y las orientaciones de la forma
+descrita anteriormente. Con la información que ha extraído, crea los \textit{keypoints} de la escala,
+lo cuál se puede ver en las líneas 62-63. Es importante destacar que, a la hora
+de crear los \textit{keypoints}, se cambian las $x$ por las $y$ y viceversa. Esto se
+hace así porque si no, a la hora de pintar los \textit{keypoints} posteriormente, estos
+saldrán girados, ya que \texttt{OpenCV} carga las imágenes invirtiendo los ejes. Por tanto,
+necesitamos invertir las posiciones manualmente para que posteriormente se puedan ver
+bien. También es importante destacar que las coordenadas se multiplican por $2^i$, donde
+$i$ es la octava/escala actual. Esto se debe a que, por ejemplo, al pasar de la base de la pirámide
+al siguiente nivel,
+lo que originalmente estaba en la posición $(x, y)$ ahora estará en la $(\frac{x}{2}, \frac{y}{2})$.
+En el siguiente nivel estará en la posición $(\frac{x}{4}, \frac{y}{4})$, y así sucesivamente.
+Esto se debe a que la imagen se va reduciendo la mitad en cada eje a medida que se
+va subiendo de nivel en la pirámide Gaussiana. Por tanto, como las coordenadas obtenidas
+son relativas a las de la imagen de una escala determinada, tenemos que adaptarlas a
+las de la imagen original multiplicando por este factor.
+
+Una vez que se han extraído los \textit{keypoints}, comienza el proceso en el que se
+refinan. Para ello, lo primero que se hace es juntar las coordenadas obtenidas en una única
+matriz, la cuál va a tener dos columnas: una para el eje $X$ y una para el $Y$. Después
+de eso, establecemos el criterio de parada del método de refinamiento, el cuál es una tupla
+que contiene los \textit{flags} y los valores. Con los \textit{flags} se indica que se parará o
+bien cuando se pase un número de épocas o cuando el movimiento a la hora de refinar
+en alguna época sea menor a un $\varepsilon$ dado. En este caso, se especifica que como máximo se hagan 15
+iteraciones o el refinamiento se mueva menos de $\varepsilon = 0.01$. De esta forma,
+no hacemos muchas iteraciones, y el valor de $\varepsilon$ se ha considerado como
+el adecuado, ya que si se mueve menos que eso, significa que hemos encontrado
+una posición muy próxima al mejor lugar, y se ha considerado suficiente el poco
+margen de error que deja. Además, al tener tan pocas iteraciones límite, es difícil
+ajustar mejor.
+
+Con el criterio ya definido llamamos a la función \texttt{cornerSubPix},
+la cuál recibe la imagen, las posiciones iniciales de los puntos que tiene que
+refinar(los cuáles hemos obtenido antes), el tamaño de la ventana (el
+valor que recibe es la \textbf{mitad} del tamaño total de la ventana), la región
+alrededor del píxel en la que no buscar (la mitad de esta, igual que en el caso
+anterior) y el criterio de parada. En este caso, para el tamaño de la ventana hemos
+especificado que se use $(3,3)$, de forma que se busque en una región $7 \times 7$
+alrededor del centro, ya que se ha estimado suficiente teniendo en cuenta los tamaños
+de bloque que se usarán más adelante, los cuáles en ningún caso serán mayores que 5
+debido a que el tamaño de la imagen se reduce demasiado rápido a medida que vamos
+subiendo niveles en la pirámide Gaussiana. En cuanto a la región alrededor de píxel
+en la que no buscar, he especificado $(-1,-1)$, de forma que se busque en toda la región,
+ya que se ha considerado que no es buena idea limitar el poco espacio de búsqueda que
+tenemos, ya que de por sí es pequeño.
+
+Una vez que se obtienen los puntos refinados, se redondean los valores al entero más
+próximo, se cambian las $x$ por las $y$ y viceversa (línea 86) y se escalan los valores
+de las coordenadas a los de la imagen original.
+
+Finalmente, se guardan tanto los \textit{keypoints} obtenidos como las posiciones
+refinadas en las listas correspondientes, y se repite todo el proceso para el número
+de octavas/escalas que se haya especificado.
+
+\subsection{Experimentación con los parámetros}
+
+Una vez que hemos descrito cómo se ha llevado a cabo todo el proceso, vamos
+a experimentar un poco con los parámetros para ver qué \textit{keypoints} se
+obtienen.
 
 \section{\textsc{Extracción de descriptores AKAZE}}
 
