@@ -219,8 +219,17 @@ def non_max_supression(img, block_size):
 ###############################################################################
 
 def compute_gaussian_pyramid(img, n_octaves):
+    """
+    Funcion que permite calcular una piramide Gaussiana de n_octaves escalas
 
+    Args:
+        img: Imagen de la que extraer la piramide
+        n_octaves: Numero de octavas que tiene que tener la piramide
+    Return:
+        Devuleve la piramide Gaussiana de la imagen de entrada
+    """
     # Crear lista que contendra la piramide Gaussiana
+    # Inicialmente contiene la imagen de entrada (el nivel mas bajo)
     gauss_pyr = [img]
 
     # Obtener piramide
@@ -231,7 +240,20 @@ def compute_gaussian_pyramid(img, n_octaves):
     
 
 def compute_derivative_pyramids(img, ksize_der, n_octaves, sigma=4.5):
+    """
+    Funcion que calcula las piramides Gaussianas de las derivadas en los
+    ejes X e Y dada una imagen de entrada. La imagen de entrada ese alisada
+    inicialmente con un filtro Gaussiano de sigma 4.5
 
+    Args:
+        img: Imagen de la que extraer las piramides de las derivadas
+        ksize_der: Tamaño del kernel de la derivada
+        n_octaves: Numero de imagenes que compondran las piramides
+        sigma: Sigma del alisamiento Gaussiano (default: 4.5)
+    Return:
+        Devuelve dos listas, una para la piramide de las derivadas en el eje
+        X y otra para la piramide de las derivadas en el eje Y
+    """
     # Aplicar alisamiento Gaussiano
     smooth = gaussian_kernel(img, int(3*sigma) * 2 + 1, sigma)
 
@@ -252,7 +274,19 @@ def compute_derivative_pyramids(img, ksize_der, n_octaves, sigma=4.5):
 
 
 def compute_points_of_interest(img, block_size, ksize):
-
+    """
+    Funcion que calucla los puntos de interes dada una imagen de entrada.
+    Dichos puntos de interes son calculados mediante el operador de Harris.
+    
+    Args:
+        img: Imagen de la que sacar los puntos de interes
+        block_size: Tamaño del bloque que se va a tener en cuenta a la hora de
+                    calcular los valores singulares.
+        ksize: Tamaño del operador de Sobel
+    Return:
+        Devuelve una imagen del mismo tamaño que la entrada que contiene los
+        puntos de interes calculados con el operador de Harris
+    """
     # Obtener valores singulares y vectores asociados
     sv_vectors = cv2.cornerEigenValsAndVecs(img, block_size, ksize)
 
@@ -261,14 +295,31 @@ def compute_points_of_interest(img, block_size, ksize):
     sv = sv_vectors[:, :, :2]
 
     # Calcular valor de cada píxel como \frac{lamb1 * lamb2}{lamb1 + lamb2}
+    # Ahí donde el denominador sea 0, se pone un 0, para evitar que se calcule
+    # un infinito
     prod_vals = np.prod(sv, axis=2)
     sum_vals = np.sum(sv, axis=2)
-    points_interest = np.divide(prod_vals, sum_vals, out=np.zeros_like(img), where=sum_vals!=0.0)
+    points_interest = np.divide(prod_vals, 
+        sum_vals,
+        out=np.zeros_like(img),
+        where=sum_vals!=0.0
+    )
 
     return points_interest
 
 
 def threshold_points_of_interest(points, threshold):
+    """
+    Funcion que aplica un umbral sobre una imagen, poniendo los pixels por
+    debajo del umbral a 0
+
+    Args:
+        points: Puntos/Imagen sobre la que aplicar la umbralizacion
+        threshold: Valor umbral
+    Return:
+        Devuelve una imagen en la que los valores por debajo del umbral han
+        sido puestos a 0
+    """
     points[points < threshold] = 0.0
 
 
@@ -360,7 +411,7 @@ def harris_corner_detection(img, block_size, window_size, ksize, ksize_der, n_oc
         )
 
         # Redondear, cambiar x por y y viceversa (OpenCV carga las imagenes
-        # invirtiendo los ejes) y transformar coordenada a la de la iamgen original
+        # invirtiendo los ejes) y transformar coordenada a la de la imagen original
         points = np.round(points)
         points = np.flip(points, axis=1)
         points *= 2**i
