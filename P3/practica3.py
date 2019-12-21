@@ -359,7 +359,7 @@ def compute_orientation(dx_grad, dy_grad):
     # Obtener angulos y arreglarlos (sumar 180º en caso de que cos < 0
     # y pasarlos al rango [0, 360], eliminando negativos)
     orientations_degrees = np.degrees(orientations_rad)
-    orientations_degrees[vec_cos_sen[:, 0] < 0.0] += 180.0
+    orientations_degrees[cos_vals < 0.0] += 180.0
     orientations_degrees[orientations_degrees < 0.0] += 360.0
     
     return orientations_degrees
@@ -424,8 +424,10 @@ def harris_corner_detection(img, block_size, window_size, ksize_der,
         # Calcular orientaciones de los puntos no eliminados
         orientations = compute_orientation(dx_grad, dy_grad)
 
-        # Lista que contendra los keypoints de la octava
-        octave_keypoints = []
+        # Lista que contiene los keypoints de la octava/escala
+        # Se corrigen las coordenadas segun la escala
+        keypoints_octave = [cv2.KeyPoint(x*2**i, y*2**i, scale, o)
+                            for y, x, o in zip(*points_idx, orientations)]
 
         # Unir las coordenadas de forma que sean n vectores [x,y] formando una  
         # matriz
@@ -451,15 +453,9 @@ def harris_corner_detection(img, block_size, window_size, ksize_der,
         points = np.flip(points, axis=1)
         points *= 2**i
 
-        # Guardar keypoints corregidos
+        # Guardar keypoints y keypoints corregidos
+        keypoints.append(keypoints_octave)
         corrected_keypoints.append(points)
-        
-        # Añadir keypoints
-        for y, x, o in zip(*points_idx, orientations):
-            octave_keypoints.append(cv2.KeyPoint(x*2**i, y*2**i, scale, o))
-        
-        # Guardar keypoints
-        keypoints.append(octave_keypoints)
 
     return keypoints, corrected_keypoints
 
