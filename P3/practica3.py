@@ -938,7 +938,6 @@ np.random.seed(1)
 ################################################################################
 # Apartado 1
 
-"""
 # Cargar imagen de Yosemite
 yosemite = read_image('imagenes/Yosemite1.jpg', 0)
 yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
@@ -1091,7 +1090,7 @@ matches_lowe = lowe_average_2nn_matcher(desc_board1, desc_board2)
 
 draw_matches(board1_c, board2_c, kp_board1, kp_board2, matches_bf_xcheck)
 draw_matches(board1_c, board2_c, kp_board1, kp_board2, matches_lowe)
-"""
+
 ################################################################################
 # Apartado 3
 
