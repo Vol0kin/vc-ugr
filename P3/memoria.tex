@@ -1467,7 +1467,384 @@ a que es muy fácil confundir distintas partes de las imágenes.
 
 \section{\textsc{Mosaico de dos imágenes}}
 
+En esta sección vamos a estudiar cómo podríamos generar un mosaico a partir de dos
+imágenes (las cuáles obviamente tienen que tener cierta relación entre ellas).
+
+Para generar el mosaico, necesitamos dar una serie de pasos:
+
+\begin{enumerate}
+	\item Extraer \textit{keypoints} y descriptores de las imágenes con las que queramos
+	hacer el mosaico.
+	\item Obtener las correspondencias o \textit{matches} entre las dos imágenes.
+	\item Estimar la homografía que lleva una imagen a la otra, utilizando para ello las coordenadas
+	de la correspondencia anterior.
+	\item Crear un cuadro donde poder dibujar las imágenes.
+	\item Establecer una homografía para trasladar la primera imagen al cuadro y trasladarla.
+	\item Componer la homografía que lleva la imagen al cuadro con la que lleva la primera imagen
+	en la segunda. Esto se puede hace fácilmente haciendo productos de matrices.
+\end{enumerate}
+
+Una vez que hemos definido el esquema general, vamos a realizar una implementación de
+este, la cuál se puede ver a continuación:
+
+\begin{lstlisting}
+def draw_panorama_2_images(img1, img2, canv_width, canv_height, canv_homo_x, canv_homo_y):
+    """
+    Funcion que genera un panorama a partir de dos imagenes de entrada. Pone
+    las imagenes en un cuadro canv_width x canv_height. La primera imagen
+    es la que se pondra primero en el canvas, y la segunda se pondra de acuerdo
+    a la primera
+
+    Args:
+        img1: Imagen que se pondra primera sobre el cuadro
+        img2: Imagen con la que se quiere componer img1
+        canv_width: Anchura del cuadro
+        canv_heigh: Altura del cuadro
+        canv_homo_x: Valor de la homografia en el eje X para trasladar
+                     las imagenes al canvas
+        canv_homo_y: Valor de la homografia en el eje Y para trasladar
+                     las imagenes al canvas
+    """
+
+    # Obtener keypoints y descriptores utilizando Lowe
+    kp_img1, desc_img1 = compute_akaze_keypoints_descriptors(img1)
+    kp_img2, desc_img2 = compute_akaze_keypoints_descriptors(img2)
+
+    # Obtener matches utilizando Lowe
+    matches = lowe_average_2nn_matcher(desc_img1, desc_img2)
+
+    # Obtener coordenadas de los keypoints de los matches
+    kp_match1 = np.array([kp_img1[m.queryIdx].pt for m in matches],
+        dtype=np.float32
+    )
+
+    kp_match2 = np.array([kp_img2[m.trainIdx].pt for m in matches],
+        dtype=np.float32
+    )
+
+    # Obtener homografia usando RANSAC con threshold de 5
+    # Se recomienda que el threshold este en el rango [1,10]
+    homo, _ = cv2.findHomography(kp_match2, kp_match1, cv2.RANSAC, 5)
+
+
+    # Crear canvas en negro donde se pintara el mosaico
+    canvas = generate_canvas(canv_width, canv_height)
+    canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+
+    # Crear homografia al canvas
+    homo_canvas = np.array([[1, 0, canv_homo_x],
+                            [0, 1, canv_homo_y],
+                            [0, 0, 1]], 
+                            dtype=np.float64
+    )
+
+    # Transformar imagen a uint8 y RGB
+    vis1 = transform_img_uint8_RGB(img1)
+    vis2 = transform_img_uint8_RGB(img2)
+
+    # Crear mosaico juntando imagenes
+    cv2.warpPerspective(vis1,
+        homo_canvas,
+        (canv_width, canv_height),
+        dst=canvas,
+        borderMode = cv2.BORDER_TRANSPARENT
+    )
+    
+    # En esta parte se componen las transformaciones
+    cv2.warpPerspective(vis2,
+        np.dot(homo_canvas, homo),
+        (canv_width, canv_height),
+        dst=canvas,
+        borderMode = cv2.BORDER_TRANSPARENT
+    )
+
+    # Mostrar canvas
+    visualize_image(canvas)
+\end{lstlisting}
+
+La función recibe como entrada las dos imágenes que se quieren componer, la anchura
+y la altura del cuadro y los valores la homografía que se corresponde con una traslación
+al cuadro para los ejes $X$ e $Y$.
+
+Lo primero que se hace es obtener los \textit{keypoints}, los descriptores y los
+\textit{matches} de las imágenes. A continuación, se obtienen los \textit{keypoints}
+que forman parte del \textit{match}, ya que los necesitaremos más adelante. Por tanto,
+extraemos dicha información para los \textit{keypoints} de ambas imágenes, tal y como
+se puede ver en las líneas 27-33. Recordemos que el atributo \texttt{queryIdx} hacía referencia
+a los puntos de la primera imagen que se ha pasado como parámetro a la hora de calcular
+las correspondencias, mientras que \texttt{trainIdx} hace referencia a los puntos de la
+segunda imagen.
+
+Una vez que tenemos esta información, podemos estimar la homografía. Para hacerlo,
+podemos utilizar la función \texttt{findHomography} de \texttt{OpenCV}, la cuál recibe
+los \textit{keypoints} de la imagen fuente, los de la imagen destino, el método de búsqueda
+y el umbral de dicho método. En cuanto al orden en el que pasar los \textit{keypoints}, tenemos
+que tener en cuenta que queremos estimar una transformación de los \textit{keypoints} de
+la fuente al destino. Como nosotros queremos estimar una homografía que nos permita
+trasladar la segunda imagen a la primera, tenemos que pasar primero los \textit{keypoints}
+que forman parte del \textit{match} de la segunda imagen, y luego los de la primera. En
+cuanto al método de búsqueda se refiere, hemos decidido utilizar RANSAC, ya que permite
+hacer buenas estimaciones en general. Al utilizar RANSAC, tenemos que especificar el valor
+del umbral. Si el valor calculado a la hora de estimar la homografía en un punto es mayor al
+umbral, se trata a dicho punto como un \textit{outlier}. En la documentación se especificaba
+que los valores recomendados se encuentran en el rango $[1, 10]$. Por tanto, hemos decidido
+escoger el valor central, 5, ya que se ha considerado un valor adecuado. La función \texttt{findHomography}
+devuelve tanto la homografía como una máscara, pero a nosotros solo nos interesa la homografía.
+
+Una vez que la hemos estimado, creamos el cuadro donde pintaremos la composición, además
+de que establecemos la homografía para trasladar imágenes al cuadro utilizando para ello
+los valores especificados como parámetros.
+
+Ahora, transformamos las imágenes de entrada al formato correspondiente y dibujamos
+la primera imagen. Para dibujarla, podemos utilizar la función \texttt{warpPerspective},
+la cuál recibe la imagen que queremos dibujar, la homografía que hay que aplicar
+para para dibujarla, las dimensiones de salida (en este caso conservamos las mismas
+del cuadro), la imagen de destino donde se dibujará (el cuadro) y el tipo de borde,
+el cuál hemos especificado que sea \texttt{BORDER\_TRANSPARENT}. Esto significa
+que las nuevas imágenes que traslademos al cuadro respetarán parte de lo que ya hay
+y no eliminarán las imágenes que habían, si no que se superpondrán sobre las que
+ya hay, conservando eso sí lo que hay por debajo para que se pueda ver.
+
+Después, aplicamos la misma función para pintar la otra imagen, solo que ahora
+la homografía es el producto de matrices de la homografía que lleva al cuadro
+y la homografía que lleva a la primera imagen, en ese orden. Finalmente,
+podremos visualizar el cuadro con las imágenes.
+
+Una vez dicho esto, vamos a ver algunos ejemplos de panoramas que hemos obtenido.
+Hemos utilizado fotos del panorama de Yosemite y del de la ETSIIT. Vamos a componer
+los panoramas con las imágenes a color, ya que en blanco y negro no se ven tan bien
+y no resultan tan visualmente atractivas. A continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.7]{img/pano2-1}
+	\caption{Panorama de dos imágenes utilizando las fotos \textit{yosemite1.jpg} y \textit{yosemite2.jpg}.}
+	\label{fig:pano-yos12}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.7]{img/pano2-2}
+	\caption{Panorama de dos imágenes utilizando las fotos \textit{yosemite5.jpg} y \textit{yosemite6.jpg}.}
+	\label{fig:pano-yos56}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.7]{img/pano2-3}
+	\caption{Panorama de dos imágenes utilizando las fotos \textit{mosaico002.jpg} y \textit{mosaico003.jpg}.}
+	\label{fig:pano-etsiit23}
+\end{figure}
+
+Se puede ver que, en general, los panoramas obtenidos son muy buenos. Vemos como
+las imágenes se ajustan perfectamente sin ningún o casi ningún tipo de resultado raro. La única
+composición que puede llamar un poco la atención es la figura \ref{fig:pano-etsiit23}, donde se puede
+ver el coche cortado entre las palmeras, en la parte izquierda de la rotonda. Esto, no obstante, no es
+algo que nos deba extrañar, ya que pocas veces o casi nunca podremos captar bien objetos
+en movimiento dentro de las panorámicas. Pero, en general, y viendo todos los resultados,
+las composiciones están bastante bien.
+
 \section{\textsc{Mosaico de \textit{N} imágenes}}
+
+Una vez que hemos visto cómo hacer composiciones con dos imágenes para formar panoramas,
+vamos a ver si podemos hacer lo mismo con un conjunto de $N$ imágenes.
+
+La teoría es casi la misma que en el caso anterior, solo que ahora nos encontramos que tenemos
+que poner más imágenes sobre el cuadro. Si empezásemos a componer las imágenes partiendo
+de la primera imagen de la lista, el panorama resultante comenzaría a deformarse, ya que se van
+a empezar a encadenar demasiadas transformaciones. Por tanto, lo ideal sería de la imagen que
+se encuentra en medio de todas, y componer tanto por la parte derecha como por la izquierda.
+Aparte de esto, poco más ha cambiado. Por tanto, vamos a ver una función que se encarga de
+generar un mosaico a partir de un conjunto de imágenes:
+
+\begin{lstlisting}
+def draw_panorama_N_images(image_list, canv_width, canv_height, canv_homo_x, canv_homo_y):
+    """
+    Funcion que genera un panorama a partir de una lista de imagenes de entrada. Pone
+    las imagenes en un cuadro canv_width x canv_height. Se pone primero la imagen
+    central y despues se ponen el resto de imagenes a cada lado
+
+    Args:
+        image_list: Lista con las imagenes que componen la panoramica
+        canv_width: Anchura del cuadro
+        canv_heigh: Altura del cuadro
+        canv_homo_x: Valor de la homografia en el eje X para trasladar
+                     las imagenes al canvas
+        canv_homo_y: Valor de la homografia en el eje Y para trasladar
+                     las imagenes al canvas
+    """
+    # Obtener lista con keypoints y descriptores para las imagenes
+    #kp_desc_list = [compute_akaze_keypoints_descriptors(img) for img in image_list]
+
+    # Determinar la imagen central
+    center_idx = len(image_list) // 2
+
+    # Crear canvas en negro donde se pintara el mosaico
+    canvas = generate_canvas(canv_width, canv_height)
+    canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+
+    # Crear homografia al canvas
+    homo_canvas = np.array([[1, 0, canv_homo_x],
+                            [0, 1, canv_homo_y],
+                            [0, 0, 1]], 
+                            dtype=np.float64
+    )
+
+    # Transformar  central imagen a uint8 y RGB
+    center = transform_img_uint8_RGB(image_list[center_idx])
+
+    # Poner imagen central en el mosaico
+    cv2.warpPerspective(center,
+        homo_canvas,
+        (canv_width, canv_height),
+        dst=canvas,
+        borderMode = cv2.BORDER_TRANSPARENT
+    )
+
+    homo_product = np.copy(homo_canvas)
+
+    # Componer parte derecha del mosaico
+    for i in range(center_idx, len(image_list)-1):
+        # Obtener imagenes fuente y destino
+        dst_img = image_list[i]
+        src_img = image_list[i+1]
+ 
+        # Obtener keypoints y descriptores utilizando Lowe
+        kp_dst, desc_dst = compute_akaze_keypoints_descriptors(dst_img)
+        kp_src, desc_src = compute_akaze_keypoints_descriptors(src_img)
+
+        # Obtener matches utilizando Lowe
+        matches = lowe_average_2nn_matcher(desc_dst, desc_src)
+
+        # Obtener coordenadas de los keypoints de los matches
+        kp_match_dst = np.array([kp_dst[m.queryIdx].pt for m in matches],
+            dtype=np.float32
+        )
+        
+        kp_match_src = np.array([kp_src[m.trainIdx].pt for m in matches],
+            dtype=np.float32
+        )
+
+
+        # Obtener homografia usando RANSAC con threshold de 5
+        # Se recomienda que el threshold este en el rango [1,10]
+        homo, _ = cv2.findHomography(kp_match_src, kp_match_dst, cv2.RANSAC, 5)
+        homo_product = np.dot(homo_product, homo)
+
+        vis = transform_img_uint8_RGB(src_img)
+
+        cv2.warpPerspective(vis,
+            homo_product,
+            (canv_width, canv_height),
+            dst=canvas,
+            borderMode=cv2.BORDER_TRANSPARENT
+        )
+    
+    homo_product = np.copy(homo_canvas)
+    
+    # Componer parte izquierda del mosaico
+    for i in reversed(range(1, center_idx+1)):
+        # Obtener imagenes fuente y destino
+        dst_img = image_list[i]
+        src_img = image_list[i-1]
+ 
+        # Obtener keypoints y descriptores utilizando Lowe
+        kp_dst, desc_dst = compute_akaze_keypoints_descriptors(dst_img)
+        kp_src, desc_src = compute_akaze_keypoints_descriptors(src_img)
+
+        # Obtener matches utilizando Lowe
+        matches = lowe_average_2nn_matcher(desc_dst, desc_src)
+
+        # Obtener coordenadas de los keypoints de los matches
+        kp_match_dst = np.array([kp_dst[m.queryIdx].pt for m in matches],
+            dtype=np.float32
+        )
+        
+        kp_match_src = np.array([kp_src[m.trainIdx].pt for m in matches],
+            dtype=np.float32
+        )
+
+
+        # Obtener homografia usando RANSAC con threshold de 5
+        # Se recomienda que el threshold este en el rango [1,10]
+        homo, _ = cv2.findHomography(kp_match_src, kp_match_dst, cv2.RANSAC, 5)
+
+        homo_product = np.dot(homo_product, homo)
+
+        vis = transform_img_uint8_RGB(src_img)
+
+        cv2.warpPerspective(vis,
+            homo_product,
+            (canv_width, canv_height),
+            dst=canvas,
+            borderMode=cv2.BORDER_TRANSPARENT
+        )
+
+    # Mostrar canvas
+    visualize_image(canvas)
+\end{lstlisting}
+
+Gran parte del código que se puede ver ya ha sido comentado en el caso del mosaico
+para dos imágenes. Por tanto, vamos a comentar solo aquellas cosas que son diferentes.
+
+Lo primero es que determinamos cuál es la imagen central y la trasladamos al cuadro después
+de crearlo. Una vez que hemos hecho esto, ya podemos comenzar con la composición. Primero componemos
+la parte derecha y luego la izquierda. Para hacer las composiciones, nos guardamos una copia de
+la homografía para trasladar la imagen al cuadro. Iremos multiplicando dicha copia por el valor
+de la nueva homografía estimada y machacaremos su valor. De esta forma, tendremos una matriz
+que va almacenando las transformaciones sucesivas que se tienen que aplicar.
+
+Para componer por la derecha, recorremos los índices de la lista desde el centro hasta el penúltimo.
+Obtenemos las imagen fuente (la que queremos componer con la imagen destino, es decir, la que queremos
+juntar con la imagen destino), la cuál es la imagen situada en el índice siguiente al actual, y la imagen destino, que es a
+donde queremos llevar la imagen original, la cuál es la imagen situada en el índice actual. Hacemos
+todos los pasos vistos anteriormente hasta estimar la homografía y hacemos el producto de la matriz
+donde hemos ido guardando las sucesivas transformaciones por la nueva homografía estimada, machacando
+el valor que teníamos antes de la matriz de transformaciones acumulada con el objetivo de utilizarlo más
+adelante. Posteriormente utilizamos la función \texttt{warpPerspective} para componer el mosaico, y
+repetimos el proceso hasta satisfacer la condición de parada (llegar al penúltimo índice).
+
+El proceso para componer por la parte izquierda es muy parecido al anterior, solo que comenzamos
+en el centro y vamos hacia atrás, y nos paramos cuando lleguemos al segundo elemento. La imagen
+destino sigue siendo la actual, solo que ahora la fuente es la que se encuentra en la posición
+anterior a la actual. El resto de pasos es idéntico. Lo único que tenemos que tener en cuenta
+es que tenemos que reiniciar la matriz que acumula las transformaciones antes de comenzar
+a componer por la izquierda.
+
+Una vez dicho esto, vamos a ver algunos ejemplos de composiciones que se han hecho. Para
+ello, se han utilizado de nuevo imágenes a color, ya que el resultado es más vistoso. Se han hecho
+composiciones para el paisaje de Yosemite y para el de la ETSIIT. En el primer caso, se han hecho
+dos composiciones, ya que la quinta foto no tiene relación espacial con la cuarta, con lo cuál no se
+puede tener un mosaico completo. En el caso de la ETSIIT, se han utilizado todas las fotos.
+A continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.8]{img/pano-yos1}
+	\caption{Panorama de las cuatro primeras imágenes de Yosemite.}
+	\label{fig:pano-yos1}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.7]{img/pano-yos2}
+	\caption{Panorama de las tres últimas imágenes de Yosemite.}
+	\label{fig:pano-yos2}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.7]{img/pano-etsiit}
+	\caption{Panorama con todas las imágenes de la ETSIIT.}
+	\label{fig:pano-etsiit}
+\end{figure}
+
+Podemos ver que en general las composiciones están muy bien hechas. No se nota casi el lugar donde se
+cortan las imágenes. La única que puede llamar un poco la atención es la figura \ref{fig:pano-yos2}, donde
+vemos que la imagen de la izquierda se ha deformado, lo cuál puede ser debido a la forma en la que
+se ha tomado la foto. La composición de la ETSIIT también ha quedado muy bien. Además,
+esta vez podemos ver que el coche que antes se veía raro porque estaba cortado, ahora es ve
+bien.
 
 \newpage
 

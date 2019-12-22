@@ -710,13 +710,39 @@ def draw_matches(img1, img2, keypoints1, keypoints2, matches):
 ###############################################################################
 
 def generate_canvas(width, height):
+    """
+    Funcion que genera un cuadro de tamaño widthxheight con todos los píxels
+    en negro
+
+    Args:
+        width: Anchura del canvas
+        height: Altura del canvas
+    Return:
+        Devuelve un cuadro de tamaño widthxheight con todos los píxels en negro
+    """
     # Generar matriz de 0's
     canvas = np.zeros((height, width), dtype=np.uint8)
 
     return canvas
 
 
-def draw_panorama_2_images(img1, img2, canv_width, canv_height):
+def draw_panorama_2_images(img1, img2, canv_width, canv_height, canv_homo_x, canv_homo_y):
+    """
+    Funcion que genera un panorama a partir de dos imagenes de entrada. Pone
+    las imagenes en un cuadro canv_width x canv_height. La primera imagen
+    es la que se pondra primero en el canvas, y la segunda se pondra de acuerdo
+    a la primera
+
+    Args:
+        img1: Imagen que se pondra primera sobre el cuadro
+        img2: Imagen con la que se quiere componer img1
+        canv_width: Anchura del cuadro
+        canv_heigh: Altura del cuadro
+        canv_homo_x: Valor de la homografia en el eje X para trasladar
+                     las imagenes al canvas
+        canv_homo_y: Valor de la homografia en el eje Y para trasladar
+                     las imagenes al canvas
+    """
 
     # Obtener keypoints y descriptores utilizando Lowe
     kp_img1, desc_img1 = compute_akaze_keypoints_descriptors(img1)
@@ -744,8 +770,8 @@ def draw_panorama_2_images(img1, img2, canv_width, canv_height):
     canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
     # Crear homografia al canvas
-    homo_canvas = np.array([[1, 0, 500],
-                            [0, 1, 300],
+    homo_canvas = np.array([[1, 0, canv_homo_x],
+                            [0, 1, canv_homo_y],
                             [0, 0, 1]], 
                             dtype=np.float64
     )
@@ -779,6 +805,20 @@ def draw_panorama_2_images(img1, img2, canv_width, canv_height):
 ###############################################################################
 
 def draw_panorama_N_images(image_list, canv_width, canv_height, canv_homo_x, canv_homo_y):
+    """
+    Funcion que genera un panorama a partir de una lista de imagenes de entrada. Pone
+    las imagenes en un cuadro canv_width x canv_height. Se pone primero la imagen
+    central y despues se ponen el resto de imagenes a cada lado
+
+    Args:
+        image_list: Lista con las imagenes que componen la panoramica
+        canv_width: Anchura del cuadro
+        canv_heigh: Altura del cuadro
+        canv_homo_x: Valor de la homografia en el eje X para trasladar
+                     las imagenes al canvas
+        canv_homo_y: Valor de la homografia en el eje Y para trasladar
+                     las imagenes al canvas
+    """
     # Obtener lista con keypoints y descriptores para las imagenes
     #kp_desc_list = [compute_akaze_keypoints_descriptors(img) for img in image_list]
 
@@ -895,6 +935,10 @@ def draw_panorama_N_images(image_list, canv_width, canv_height, canv_homo_x, can
 # Inicializar semilla aleatoria
 np.random.seed(1)
 
+################################################################################
+# Apartado 1
+
+"""
 # Cargar imagen de Yosemite
 yosemite = read_image('imagenes/Yosemite1.jpg', 0)
 yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
@@ -1047,29 +1091,43 @@ matches_lowe = lowe_average_2nn_matcher(desc_board1, desc_board2)
 
 draw_matches(board1_c, board2_c, kp_board1, kp_board2, matches_bf_xcheck)
 draw_matches(board1_c, board2_c, kp_board1, kp_board2, matches_lowe)
-
+"""
 ################################################################################
 # Apartado 3
 
+# Cargar imagenes y dibujar panorama
+yos1 = read_image("imagenes/yosemite1.jpg", 1)
+yos2 = read_image("imagenes/yosemite2.jpg", 1)
 
-#draw_panorama_2_images(yosemite1_c, yosemite2_c, 1920, 1080)
+draw_panorama_2_images(yos1, yos2, 1200, 600, 125, 60)
 
-board1 = read_image('imagenes/yosemite6.jpg', 0)
-board2 = read_image('imagenes/yosemite7.jpg', 0)
+# Cargar imagenes y dibujar panorama
+yos5 = read_image("imagenes/yosemite5.jpg", 1)
+yos6 = read_image("imagenes/yosemite6.jpg", 1)
 
-#draw_panorama_2_images(board1, board2, 1920, 1080)
+draw_panorama_2_images(yos5, yos6, 1600, 800, 125, 150)
+
+# Cargar imagenes y dibujar panorama
+etsiit2 = read_image("imagenes/mosaico002.jpg", 1)
+etsiit3 = read_image("imagenes/mosaico003.jpg", 1)
+
+draw_panorama_2_images(etsiit2, etsiit3, 500, 350, 75, 50)
 
 ################################################################################
 # Apartado 4
+
+# Establecer nombres de ficheros
 yosemite_names1 = [f"imagenes/yosemite{n}.jpg" for n in range(1,5)]
 yosemite_names2 = [f"imagenes/yosemite{n}.jpg" for n in range(5, 8)]
 etsiit_names = [f"imagenes/mosaico00{num}.jpg" for num in range(2,10)]
 etsiit_names += [f"imagenes/mosaico0{num}.jpg" for num in range(10, 12)]
 
+# Cargar imagenes
 yosemite_images1 = [read_image(img, 1) for img in yosemite_names1]
 yosemite_images2 = [read_image(img, 1) for img in yosemite_names2]
 etsiit_images = [read_image(etsiit, 1) for etsiit in etsiit_names]
 
+# Mostrar panoramas completos
 draw_panorama_N_images(yosemite_images1, 2048, 750, 800, 128)
 draw_panorama_N_images(yosemite_images2, 3000, 1700, 2000, 500)
 draw_panorama_N_images(etsiit_images, 950, 500, 350, 100)
