@@ -530,9 +530,20 @@ def draw_keypoints_octave(img, keypoint_list):
     
 
 def compare_keypoints_orig_corrected(img, keypoints, corrected):
+    """"
+    Funcion que compara los keypoints estimados con los corregidos.
+    Escoge tres pares de puntos y dibuja un círculo verde alrededor del keypoint
+    original y uno rojo alrededor el keypoint corregio. Se muestra el resultado
+    en una imagen 11x11 a la que se la hecho un zoom x5.
+    
+    Args:
+        img: Imagen sobre la que pintar los círculos 
+        keypoints: Lista con los keypoints originales
+        corrected: Lista con las coordenadas de los keypoints corregidos
+    """
     # Transformar datos de entrada a matrices de numpy
-    keypoints_coord = np.array([list(k.pt) for keys in keypoints for k in keys])
-    corrected_coord = np.array([c for correct_octave in corrected for c in correct_octave])
+    keypoints_coord = np.array([list(k.pt) for keys in keypoints for k in keys], dtype=np.int)
+    corrected_coord = np.array([c for correct_octave in corrected for c in correct_octave], dtype=np.int)
 
     # Encontrar los índices de los keypoints que difieren
     same_x = keypoints_coord[:, 0] == corrected_coord[:, 0]
@@ -544,25 +555,30 @@ def compare_keypoints_orig_corrected(img, keypoints, corrected):
     random_keypoints = np.random.choice(idx_different_vals[0], 3, replace=False)
 
     # Normalizar imagen y pasarla a RGB
-    vis = transform_img_uint8_RGB(img)    
+    vis = transform_img_uint8_RGB(img)
+
+    # Copiar la imagen para pintar los circulos en grande
+    vis_big = np.copy(vis)
+
+    # Dibujar keypoints originales y corregidos en pequeño primero y en grande luego
+    for k, c in zip(keypoints_coord[random_keypoints], corrected_coord[random_keypoints]):
+        vis = cv2.circle(vis, tuple(k), 2, (0, 255, 0))
+        vis = cv2.circle(vis, tuple(c), 2, (255, 0, 0))
+
+        vis_big = cv2.circle(vis_big, tuple(k), 7, (0, 255, 0))
+        vis_big = cv2.circle(vis_big, tuple(c), 7, (255, 0, 0))
+    
+    # Visualizar circulos grandes
+    visualize_image(vis_big)
 
     for idx in random_keypoints:
-        # Obtener píxeles donde el keypoint original y el corregido no coinciden
-        x_kp, y_kp  = keypoints_coord[idx].astype(np.int)
-        x_c_kp, y_c_kp = corrected_coord[idx].astype(np.int)
-
-        # Obtener centro del circulo del keypoint corregido
-        corr_center_x = x_c_kp - x_kp + 5
-        corr_center_y = y_c_kp - y_kp + 5
+        # Obtener pixels donde el keypoint original y el corregido no coinciden
+        x_kp, y_kp  = np.flip(keypoints_coord[idx])
 
         # Obtener la region 11 \times 11
         region = np.copy(vis[x_kp-5:x_kp+6, y_kp-5:y_kp+6])
 
-        # Dibujar círculos alrededor del keypoint y el corregido
-        region = cv2.circle(region, (5,5), 2, (0,255,0))
-        region = cv2.circle(region, (corr_center_x, corr_center_y), 2, (255, 0, 0))
-
-        # Hacer un resize de la region
+        # Hacer un resize de la region (un zoom)
         region = cv2.resize(region, None, fx=5, fy=5)
 
         # Mostrar imagen
@@ -833,6 +849,7 @@ np.random.seed(1)
 yosemite = read_image('imagenes/Yosemite1.jpg', 0)
 yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
 
+"""
 # Caso base
 keypoints_list1, corrected_keypoints1 = harris_corner_detection(
     yosemite,
@@ -926,8 +943,24 @@ draw_all_keypoints(yosemite_color, keypoints_list7)
 
 # Mostrar keypoints para cada octava para el ultimo caso
 draw_keypoints_octave(yosemite_color, keypoints_list7)
+"""
+# Cargar la imagen para comparar los keypoints estimados con los corregidos
+yosemite2 = read_image('imagenes/Yosemite2.jpg', 0)
+yosemite2_color = read_image('imagenes/Yosemite2.jpg', 1)
 
-#compare_keypoints_orig_corrected(yosemite_color, keypoints_list, corrected_keypoints)
+# Estimar keypoints
+keypoints2_list, corrected2_keypoints = harris_corner_detection(
+    yosemite2,
+    block_size=5,
+    window_size=5,
+    ksize_der=3, 
+    n_octaves=5,
+    threshold=80.0
+)
+
+compute_number_keypoints(keypoints2_list)
+draw_all_keypoints(yosemite2_color, keypoints2_list)
+compare_keypoints_orig_corrected(yosemite2_color, keypoints2_list, corrected2_keypoints)
 
 # Apartado 2
 yosemite1 = read_image('imagenes/Yosemite1.jpg', 0)

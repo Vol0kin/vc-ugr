@@ -898,27 +898,234 @@ Una vez dicho esto, vamos a ver qué puntos hemos detectado en cada escala:
 	\label{fig:scale4}
 \end{figure}
 
-Vemos que, a medida que extraemos \textit{keypoints} de niveles más elevados
+Vemos que a medida que extraemos \textit{keypoints} de niveles más elevados
 de la pirámide, el número que extraemos es cada vez menor, ya que al hacerse la
-imagen cada vez más pequeña, el número píxels que pueden ser un \textit{keypoint}
-son cada vez menos. En general, la evolución es pasar de tener muchos \textit{keypoints}
-bastante juntos dentro de una zona determinada de la imagen a tener pocos puntos bastante separados unos de otros.
-Esto es un efecto directo de la escala, ya que en los niveles más bajos nos permite fijarnos
-en los detalles generales y, a medida que vamos aumentando la escala, nos permite fijarnos
-en detalles más específicos y/u ocultos. Ya que los detalles generales son más abundantes,
-vamos a encontrar más de estos que de los que son más específicos, lo cuál también explica por
-qué vamos encontrando cada vez menos y menos (además de lo que hemos mencionado previamente
-del tamaño de las imágenes).
+imagen cada vez más pequeña, el número de píxels que pueden ser un \textit{keypoint}
+son cada vez menos. Además, esta organización en escalas provoca también que
+la información no se extraiga de golpe, sino que se haga poco a poco a medida que
+se va aumentando la escala. La información que se extraiga en las escalas más bajas
+no va a ser obviamente la misma que la que se extrae en los más altos, como es
+lógico, aunque en algunos casos, los \textit{keypoints} que se extraen en escalas
+consecutivas pueden estar relativamente cerca, como por ejemplo se
+puede ver en las imagenes \ref{fig:scale0} y \ref{fig:scale1}.
 
-Por tanto, es importante que al realizar
+En general, parece que los \textit{keypoints} están localizados dentro de la
+región iluminada de la montaña, y en muy pocas ocasiones se saca un punto que no esté
+dentro de esta región. Un ejemplo de esto se puede ver en la figura \ref{fig:scale2}, donde
+se extrae un punto que se localiza en una de las nubes. Dicha nube se encuentra como tal
+fuera de la región donde se han extraído todos los puntos anteriormente, y por tanto, es el
+único punto que se ha extraído en todas las escalas que no se encuentra localizado en la región
+previamente mencionada. 
+
+Por tanto, como pequeña conclusión, podemos decir que es importante que al realizar
 la extracción de descriptores, este proceso se haga en múltiples escalas, ya que
-permite extraer información de distintas partes de la imagen de forma efectiva.
-Hacerlo con una única escala no nos permitiría obtener toda la información a la primera,
-ya que es muy difícil sacarla toda con una sola pasada en  una única escala.
+permite extraer distinta información de distintas partes de la imagen de forma efectiva.
+Hacerlo con una única escala no nos permitiría obtener toda la información directamente,
+ya que en general hay mucha información que no se puede obtener observando
+solo la imagen original. Además, otra cosa muy importante es que nos permite
+obtener información invariante a las escalas, ya que los descriptores no dependen de
+que se hayan encontrado de una única forma, si no que pueden ser detectados de distintas
+formas en distintas escalas, haciéndolos por tanto más flexibles para usos futuros.
 
 \subsection{Comparación de la estimación con los puntos refinados}
 
-Por último, para concluir este ejercicio, vamos a estudiar
+Por último, para concluir este apartado, vamos a estudiar cómo de buenas son las
+estimaciones de los puntos que hemos realizado anteriormente. Para ello, utilizaremos
+la información que hemos extraído con la función \texttt{cornerSubPix}. Vamos a
+escoger, de entre aquellos \textit{keypoints} que no coincidan con los puntos refinados,
+tres pares de puntos. Pintaremos primero unos círculos pequeños alrededor de los puntos
+estimados y de los corregidos y, en una imagen diferente, unos círculos más grandes,
+para que podamos observar dónde se encuentran las diferencias en la imagen original. Los círculos
+serán de color \textcolor{green}{verde} para los puntos estimados y de color
+\textcolor{red}{rojo} para los puntos corregidos.
+Finalmente, cogeremos una región $11 \times 11$ alrededor del \textit{keypoint}
+original en la imagen que hemos dibujado el círculo pequeño, y mostraremos dicha región
+aumentando 5 veces la imagen, es decir, aplicándole un zoom $\times 5$. De esta forma, podremos
+ver de más cerca las diferencias entre los puntos estimados y los corregidos. El motivo de coger
+una región de ese tamaño es más que nada para que se pueda visualizar mejor, ya que el
+\textit{keypoint} original quedará en el centro, y el otro estará en alguna posición cercana a la suya.
+
+Para realizar esta parte hemos utilizado la imagen \textit{Yosemite2.jpg}, de la cuál hemos extraído
+los correspondientes \textit{keypoints}, los cuáles se pueden ver en la figura \ref{fig:kp-yos2},
+y las coordenadas refinadas de los puntos. Hemos decidido
+utilizar esta imagen para variar un poco, y para ver cómo funciona la estimación en una imagen
+diferente. Para extraer los \textit{keypoints} nos hemos guiado un poco por los parámetros
+que se utilizaron para la imagen \ref{fig:kp-wind-thresh}. Por tanto, hemos utilizado un tamaño de bloque
+y de ventana de 5, un tamaño de \textit{kernel} de derivada de 3 y un umbral de 80, rebajándolo un poco
+del umbral de 90 que utilizamos anteriormente. Con estos parámetros podemos decir, antes
+de ver los resultados, que se van a extraer una cantidad suficiente de puntos, y que estos van a ser
+bastante buenos en general (recordemos los resultados del caso anterior),
+ya que el tamaño del bloque y del \textit{kernel} de la derivada son los adecuados, además de que
+con el umbral especificado vamos a buscar puntos con valore singulares fuertes (es decir, donde
+haya una diferencia notable de intensidad), y con el tamaño de ventana haremos una supresión de no
+máximos efectiva, ya que buscará el máximo con una ventana del mismo tamaño que el tamaño de bloque
+utilizado para extraer los puntos Harris.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/kp2}
+	\caption{\textit{Keypoints} estimados para la imagen \textit{Yosemite2.jpg}. 2380 puntos estimados.}
+	\label{fig:kp-yos2}
+\end{figure}
+
+Una vez que hemos visto los \textit{keypoints} extraídos, vamos a ver las comparaciones. Para
+mostrarlas, hemos creado la siguiente función:
+
+\begin{lstlisting}
+def compare_keypoints_orig_corrected(img, keypoints, corrected):
+    """"
+    Funcion que compara los keypoints estimados con los corregidos.
+    Escoge tres pares de puntos y dibuja un circulo verde alrededor del keypoint
+    original y uno rojo alrededor el keypoint corregio. Se muestra el resultado
+    en una imagen 11x11 a la que se la hecho un zoom x5.
+    
+    Args:
+        img: Imagen sobre la que pintar los circulos 
+        keypoints: Lista con los keypoints originales
+        corrected: Lista con las coordenadas de los keypoints corregidos
+    """
+    # Transformar datos de entrada a matrices de numpy
+    keypoints_coord = np.array([list(k.pt) for keys in keypoints for k in keys], dtype=np.int)
+    corrected_coord = np.array([c for correct_octave in corrected for c in correct_octave], dtype=np.int)
+
+    # Encontrar los indices de los keypoints que difieren
+    same_x = keypoints_coord[:, 0] == corrected_coord[:, 0]
+    same_y = keypoints_coord[:, 1] == corrected_coord[:, 1]
+    same_values = same_x * same_y
+    idx_different_vals = np.where(same_values == False)
+
+    # Escoger keypoints que mostrar (escoger sin repeticion)
+    random_keypoints = np.random.choice(idx_different_vals[0], 3, replace=False)
+
+    # Normalizar imagen y pasarla a RGB
+    vis = transform_img_uint8_RGB(img)
+
+    # Copiar la imagen para pintar los circulos en grande
+    vis_big = np.copy(vis)
+
+    # Dibujar keypoints originales y corregidos en pequeño primero y en grande luego
+    for k, c in zip(keypoints_coord[random_keypoints], corrected_coord[random_keypoints]):
+        vis = cv2.circle(vis, tuple(k), 2, (0, 255, 0))
+        vis = cv2.circle(vis, tuple(c), 2, (255, 0, 0))
+
+        vis_big = cv2.circle(vis_big, tuple(k), 7, (0, 255, 0))
+        vis_big = cv2.circle(vis_big, tuple(c), 7, (255, 0, 0))
+    
+    # Visualizar circulos grandes
+    visualize_image(vis_big)
+
+    for idx in random_keypoints:
+        # Obtener pixels donde el keypoint original y el corregido no coinciden
+        x_kp, y_kp  = np.flip(keypoints_coord[idx])
+
+        # Obtener la region 11 \times 11
+        region = np.copy(vis[x_kp-5:x_kp+6, y_kp-5:y_kp+6])
+
+        # Hacer un resize de la region (un zoom)
+        region = cv2.resize(region, None, fx=5, fy=5)
+
+        # Mostrar imagen
+        visualize_image(region)
+\end{lstlisting}
+
+La función no es muy difícil de entender, pero vamos a comentarla brevemente. Lo primero
+que hacemos es crear dos listas que contienen las coordenadas de los \textit{keypoints}
+originales y la de los corregidos. En el primer caso, se obtienen a partir del atributo \texttt{pt}
+de la clase \texttt{KeyPoint}. En el segundo caso, solo se tienen que juntar los puntos obtenidos para
+cada octava en una única lista.
+
+A continuación, buscamos las posiciones en las que los puntos originales y los corregidos no coinciden.
+Para ello, primero comparamos la primera coordenada de los puntos originales con la primera de los
+corregidos, y obtenemos las posiciones de las listas donde coinciden. Hacemos lo mismo para
+la segunda coordenada y obtendremos las posiciones donde coinciden. Para tener las posiciones donde
+las dos coordenadas coinciden, simplemente tenemos que hacer el producto de los resultados anteriores. Al ser
+valores booleanos, el producto solo va a ser verdadero en las posiciones de las listas
+donde las coordenadas de los puntos originales y los corregidos coincidan. Por tanto, una vez que hemos
+obtenido el producto, solo tenemos que obtener las posiciones donde este producto sea falso, es decir, donde
+no coincidan. Todo este proceso se puede ver en las líneas 18-21.
+
+Después, utilizando las posiciones obtenidas anteriormente, escogemos tres de ellas de forma
+aleatoria sin repeticiones. Esto puede verse en la línea 24.
+
+A continuación, transformamos la imagen de salida a entero sin signo de 8 bits y hacemos una
+copia de esta última para pintar los círculos en grande. Para los índices que hemos obtenido anteriormente,
+accedemos a los coordenadas correspondientes en cada lista y pintamos un círculo pequeño y uno grande
+según lo especificado anteriormente.
+
+Una vez que los hemos dibujado, mostramos primero los círculos grandes. Para los círculos
+pequeños, accedemos a cada una de las posiciones obtenidas aleatoriamente y obtenemos las
+coordenadas $x$ e $y$ asociadas al punto estimado. Como en los \textit{keypoints} hemos guardado
+las coordenadas correctas para nosotros y no para \texttt{OpenCV}, tenemos que deshacer la inversión
+hecha anteriormente Por tanto, tenemos que volver a invertir las coordenadas obtenidas anteriormente.
+Todo esto puede verse en la línea 45.
+
+Ahora, tal y como se ve en la línea 48, obtenemos la región $11 \times 11$ y le hacemos una copia,
+por si al hacer zoom se modifica la imagen original. Para hacer el zoom, utilizamos la función \texttt{resize},
+la cuál recibe como parámetro la imagen sobre la que aplicar el zoom, el tamaño de la imagen de salida
+(con \texttt{None} especificamos que el tamaño sea el producto de los dos siguientes parámetros por las
+dimensiones correspondientes) y el factor de zoom que aplicar en cada eje. En este caso, tenemos que hacer
+un zoom de 5 en cada eje, por tanto se lo indicamos de la forma antes vista. Finalmente, dibujamos la
+imagen de la región.
+
+Una vez dicho esto, vamos a ver qué resultados se han obtenido. A continuación se puede ver la imagen
+con los círculos en grande:
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/kp-diff-big}
+	\caption{Localizaciones en la imagen original de los \textit{keypoints} estimados (verde) y los corregidos
+	(rojo).}
+	\label{fig:kp-diff-big}
+\end{figure}
+
+Vemos que, a primera vista, existen ciertas diferencias, aunque sean pequeñas. Si observamos los resultados
+más de cerca, podemos ver lo siguiente:
+
+\begin{figure}[H]
+	\begin{subfigure}[t]{.5\textwidth}
+		\centering
+		\includegraphics[scale=0.3]{img/kp-small1}
+		\subcaption{Corrección parte baja de la montaña.}
+	\end{subfigure}%
+	~ \quad
+	\begin{subfigure}[t]{.5\textwidth}
+		\centering
+		\includegraphics[scale=0.3]{img/kp-small2}
+		\subcaption{Corrección cima de la montaña.}
+	\end{subfigure}
+	
+	\centering
+	\begin{subfigure}[t]{.5\textwidth}
+		\centering
+		\includegraphics[scale=0.3]{img/kp-small3}
+		\subcaption{Corrección parte media de la montaña.}
+	\end{subfigure}
+	\caption{Correcciones de cada \textit{keypoint} obtenido.}
+\end{figure}
+
+Vemos que, efectivamente, las correcciones desplazan solo un poco a los puntos
+estimados. Si observásemos el valor de la intensidad del punto corregido (el centro del
+círculo rojo) veríamos que, efectivamente, dicho punto tienen una mayor intensidad.
+También tenemos que tener en cuenta otros factores que pueden hacer que los
+valores corregidos estén tan próximos al estimado, como por ejemplo
+el tamaño de la región a buscar, la zona a ignorar y los criterios
+de parada (recordemos que estamos utilizando los mismos valores
+de antes).
+
+De aquí podemos sacar algunas conclusiones. La primera es que las estimaciones
+realizadas son bastante buenas, ya se han equivocado solo por unos pocos píxels.
+En segundo lugar, es normal que se den este tipo de errores, ya que recordemos
+que estamos utilizando operaciones con números en coma flotante, y por tanto,
+se podrían obtener errores de precisión. Además, todas las técnicas que extraen
+descriptores de una imagen cometen cierto error, debido por ejemplo a la presencia
+de ruido en la imagen o a errores en los cálculos. Aparte de todo esto, al corregir los \textit{keypoints},
+también redondeamos los valores obtenidos para que las posicione sean valores
+enteros, y por tanto, al discretizar, estamos perdiendo algo más de precisión.
+
+Por tanto, como resumen general, podemos ver que la aproximación que
+hemos tomado nos ha permitido obtener unos resultados bastante buenos
+y que tienen un margen de error relativamente pequeño, ya que el punto de
+Harris real estará bastante cerca del estimado.
 
 \section{\textsc{Extracción de descriptores AKAZE}}
 
