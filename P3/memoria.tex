@@ -669,6 +669,257 @@ Una vez que hemos descrito cómo se ha llevado a cabo todo el proceso, vamos
 a experimentar un poco con los parámetros para ver qué \textit{keypoints} se
 obtienen.
 
+Para hacer las pruebas, vamos a utilizar la imagen \textit{Yosemite1.jpg}. Vamos
+a extraer los \textit{keypoints} en la imagen en blanco y negro y los pintaremos
+sobre la imagen en color. Vamos a probar a variar el tamaño del bloque, el tamaño
+del \textit{kernel} de las derivadas, el el tamaño de la ventana y el umbral. En todos
+los casos utilizaremos 5 escalas, ya que se ha considerado un número adecuado. En
+caso de haber escogido más, la imagen se hubiese quedado muy pequeña en los últimos
+niveles, y con menos, a lo mejor se perdía detalle. Con la mejor combinación de parámetros
+se mostrará un desglose de los \textit{keypoints} por escalas.
+
+El caso base será uno en el que se use un tamaño de bloque de 5, un tamaño de ventana
+y de \textit{kernel} de derivada 3, 5 escalas y un umbral de 10. El tamaño del bloque se ha escogido
+de 5 ya que la imagen decrece muy rápido de tamaño, con lo cuál coger uno más grande no tiene mucho
+sentido. El tamaño de la ventana se ha cogido de 3 porque se cree que es suficiente, ya que busca
+en una región más o menos pequeña cuál, de forma que no es influido por píxels que están
+más lejos del actual. Se ha estimado que un tamaño de \textit{kernel} para las derivadas
+de 3 es suficiente, ya que suele ofrecer buenos resultados. En cuanto al umbral, se ha dejado
+el umbral por defecto, ya que es el que venía en el \textit{paper}. 
+
+En cada caso, se indicará cuáles son los parámetros modificados y cuántos puntos se
+han detectado a lo largo de todas las escalas. A continuación se pueden ver los resultados:
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/kp-base}
+	\caption{\textit{Keypoints} obtenidos para el caso base. 6731 puntos detectados.}
+	\label{fig:kp-base}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/kp-window}
+	\caption{\textit{Keypoints} obtenidos con tamaño de ventana de 5. 2982 puntos detectados.}
+	\label{fig:kp-window}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/kp-der}
+	\caption{\textit{Keypoints} obtenidos con tamaño del \textit{kernel} de derivadas de 5. 6911 punto detectados.}
+	\label{fig:kp-der}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/kp-block}
+	\caption{\textit{Keypoints} obtenidos con tamaño de bloque de 3. 11013 puntos detectados.}
+	\label{fig:kp-block}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/kp-thresh60}
+	\caption{\textit{Keypoints} obtenidos con umbral de 60. 5610 puntos detectados.}
+	\label{fig:kp-thresh60}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/kp-thresh90}
+	\caption{\textit{Keypoints} obtenidos con  umbral de 90. 5113 puntos detectados.}
+	\label{fig:kp-thresh90}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/kp-wind-thresh}
+	\caption{\textit{Keypoints} obtenidos con ventana de tamaño 5 y umbral de 90. 2460 puntos detectados.}
+	\label{fig:kp-wind-thresh}
+\end{figure}
+
+Observando los resultados de forma general, podemos ver que en todos los casos se
+obtienen más de 2000 \textit{keypoints}. Parece que, en general, disminuir el tamaño
+del bloque y aumentar el tamaño del \textit{kernel} de la derivada hacen que se detecten
+más puntos que en el caso base. En el primer caso, esto parece lógico, ya que se tienen en
+cuenta menos píxels para determinar la variación de la intensidad, y por tanto, las estimaciones
+se quedan bastante más cortas, ya que posiblemente si se utilizase un entorno mayor, los valores
+singulares hubiesen sido más pequeños. En el segundo caso, puede deberse a que el operador
+haga que las variaciones de intensidad sean más notables, ya que ponderaría más a los píxels
+cercanos al centro. Por tanto, estaría de alguna forma sobreestimando de alguna forma las variaciones,
+aunque tampoco estamos muy seguros de que sea esto lo que suceda.
+
+Si en cambio aumentamos el tamaño de la ventana o el del umbral, como es lógico, el número
+de \textit{keypoints} se ve disminuido. Este descenso es mucho más drástico cuando se aumenta
+el tamaño de la ventana, ya que se eliminan más puntos debido a que se considera
+un entorno mucho mayor a la hora de buscar el máximo de la región. Por tanto, encontraremos
+valores que antes no habíamos considerado dentro de la región, y que por tanto, harán que lo
+que antes era un máximo local deje de serlo. Esto sin embargo presenta un pequeño problema, y es
+que no debemos abusar del tamaño de la ventana: un tamaño demasiado grande nos puede hacer
+perder demasiados puntos. Por tanto, lo suyo sería intentar coger, como mucho, una ventana con las
+mismas dimensiones que el tamaño del bloque utilizado, de forma que se busque el máximo en el entorno
+de donde se han extraído los valores singulares.  Si en vez de aumentar el tamaño de la ventana
+aumentamos el umbral, tal y como dijimos antes, también se reducen el número de puntos encontrados.
+Esto se debe a que se exige que los valores singulares sean más grandes, y que por tanto,
+que las variaciones en intensidad sean más pronunciadas. Por tanto, estamos haciendo que
+la detección sea algo más robusta, ya que buscamos las esquinas más destacables. Aunque,
+igual que en el caso anterior, no debemos abusar del umbral, ya que uno muy grande nos puede hacer
+empezar a perder puntos que pudiesen ser clave.
+
+Vemos que si combinamos tanto el incremento del umbral como el aumento del tamaño de la
+ventana, como se ha hecho en la figura \ref{fig:kp-wind-thresh},  obtenemos un conjunto de
+\textit{keypoints} que parece ser razonable, ya que son más de 2000, pero no es un número
+excesivamente grande. Además de eso, parece que se dejan de detectar algunos puntos que
+no tenían mucho sentido. Por ejemplo, no se detectan los puntos de la zona oscura, los cuáles
+sí que se detectaban cuando solo se aumentaba el tamaño de la ventana, y no se detectaban
+al aumentar umbral. Estos puntos no tenían mucho sentido, ya que realmente no hay ninguna
+esquina ahí y no parece que pueda ofrecer mucha información. Además, a simple vista,
+aunque haya cierta variación de la intensidad, esta no es muy significativa.
+
+Para dibujar los \textit{keypoints} anteriores se ha utilizado la siguiente función:
+
+\begin{lstlisting}
+def draw_all_keypoints(img, keypoint_list):
+    """
+    Funcion que dibuja todos los keypoints detectados
+
+    Args:
+        img: Imagen sobre la que pintar los keypoints
+        keypoint_list: Lista con los keypoints
+    """
+    # Juntar los keypoints de todas las escalas
+    keypoints= [k for keypoints_octave in keypoint_list for k in keypoints_octave]
+
+    # Transformar imagen a uint8 y RGB
+    vis = transform_img_uint8_RGB(img)
+
+    # Crear imagen de salida vacia del mismo tamaño que la original
+    out = np.empty_like(vis)
+
+    # Dibujar keypoints
+    out = cv2.drawKeypoints(vis,
+        keypoints,
+        out,
+        flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+    )
+
+    # Visualizar la imagen
+    visualize_image(out)
+\end{lstlisting}
+
+Esta función recibe la imagen sobre la que se quieren pintar los \textit{keypoints} y
+una lista con todos los puntos extraídos. Lo primero que hace es juntar todos los
+\textit{keypoints} extraídos a distintas escalas en una única lista. Después 
+transforma la imagen a entero sin signo y al formato RGB, ya que se usa \texttt{matplotlib}. Es necesario que la
+imagen esté en entero sin signo, ya que la función \texttt{drawKeypoints} obliga
+a que sea de este tipo para poder pintar los \textit{keypoints}. Después
+de esto, se crea una imagen de salida, la cuál inicialmente está vacía, y que es
+donde escribirá el resultado. Finalmente, se pinta cada \textit{keypoint} sobre
+la imagen se salida utilizando la función  \texttt{drawKeypoints}, a la cuál
+se le pasa la imagen de entrada, los puntos, la imagen de salida, y un \textit{flag},
+que en este caso indica que se pinten los \textit{keypoints} utilizando un formato
+rico en el que se muestran círculos de distintos colores, escalas y orientaciones.
+
+Una vez que hemos comentado esto, vamos a mostrar ahora los \textit{keypoints} que
+se han detectado en cada escala para alguno de los casos anteriores. En este caso,
+vamos a utilizar los puntos que se pueden ver en la figura \ref{fig:kp-wind-thresh}, ya
+que se considera que es el mejor conjunto de \textit{keypoints} que se han extraído,
+tanto porque no son demasiados como porque parecen ser relevantes, sin incluir
+puntos que puedan aportar poca o nula información.
+
+Para dibujar dichos puntos nos hemos ayudado de la siguiente función:
+
+\begin{lstlisting}
+def draw_keypoints_octave(img, keypoint_list):
+    """
+    Funcion que dibuja los keypoints por cada escala
+
+    Args:
+        img: Imagen sobre la que pintar los keypoints
+        keypoint_list: Lista con los keypoints
+    """
+    # Transformar imagen a uint8 y RGB
+    vis = transform_img_uint8_RGB(img)
+
+    for keypoints in keypoint_list:
+        # Crear imagen de salida vacia del mismo tamaño que la original
+        out = np.empty_like(vis)
+
+        # Dibujar keypoints de la octava
+        out = cv2.drawKeypoints(vis,
+            keypoints,
+            out,
+            flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+        )
+
+        # Visualizar la imagen
+        visualize_image(out)
+\end{lstlisting}
+
+La función es muy parecida a la que teníamos antes. Lo único que cambia es que no juntamos
+\textit{keypoints} en una única lista y que pintamos de forma individual los \textit{keypoints}
+de cada escala.
+
+Una vez dicho esto, vamos a ver qué puntos hemos detectado en cada escala:
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/scale0}
+	\caption{\textit{Keypoints} detectados en el primer nivel.}
+	\label{fig:scale0}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/scale1}
+	\caption{\textit{Keypoints} detectados en el segundo nivel.}
+	\label{fig:scale1}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/scale2}
+	\caption{\textit{Keypoints} detectados en el tercer nivel.}
+	\label{fig:scale2}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/scale3}
+	\caption{\textit{Keypoints} detectados en el cuarto nivel.}
+	\label{fig:scale3}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.6]{img/scale4}
+	\caption{\textit{Keypoints} detectados en el quinto nivel.}
+	\label{fig:scale4}
+\end{figure}
+
+Vemos que, a medida que extraemos \textit{keypoints} de niveles más elevados
+de la pirámide, el número que extraemos es cada vez menor, ya que al hacerse la
+imagen cada vez más pequeña, el número píxels que pueden ser un \textit{keypoint}
+son cada vez menos. En general, la evolución es pasar de tener muchos \textit{keypoints}
+bastante juntos dentro de una zona determinada de la imagen a tener pocos puntos bastante separados unos de otros.
+Esto es un efecto directo de la escala, ya que en los niveles más bajos nos permite fijarnos
+en los detalles generales y, a medida que vamos aumentando la escala, nos permite fijarnos
+en detalles más específicos y/u ocultos. Ya que los detalles generales son más abundantes,
+vamos a encontrar más de estos que de los que son más específicos, lo cuál también explica por
+qué vamos encontrando cada vez menos y menos (además de lo que hemos mencionado previamente
+del tamaño de las imágenes).
+
+Por tanto, es importante que al realizar
+la extracción de descriptores, este proceso se haga en múltiples escalas, ya que
+permite extraer información de distintas partes de la imagen de forma efectiva.
+Hacerlo con una única escala no nos permitiría obtener toda la información a la primera,
+ya que es muy difícil sacarla toda con una sola pasada en  una única escala.
+
+\subsection{Comparación de la estimación con los puntos refinados}
+
+Por último, para concluir este ejercicio, vamos a estudiar
+
 \section{\textsc{Extracción de descriptores AKAZE}}
 
 \section{\textsc{Mosaico de dos imágenes}}

@@ -477,6 +477,14 @@ def compute_number_keypoints(keypoints_list):
 
 
 def draw_all_keypoints(img, keypoint_list):
+    """
+    Funcion que dibuja todos los keypoints detectados
+
+    Args:
+        img: Imagen sobre la que pintar los keypoints
+        keypoint_list: Lista con los keypoints
+    """
+    # Juntar los keypoints de todas las escalas
     keypoints= [k for keypoints_octave in keypoint_list for k in keypoints_octave]
 
     # Transformar imagen a uint8 y RGB
@@ -496,7 +504,13 @@ def draw_all_keypoints(img, keypoint_list):
     visualize_image(out)
 
 def draw_keypoints_octave(img, keypoint_list):
+    """
+    Funcion que dibuja los keypoints por cada escala
 
+    Args:
+        img: Imagen sobre la que pintar los keypoints
+        keypoint_list: Lista con los keypoints
+    """
     # Transformar imagen a uint8 y RGB
     vis = transform_img_uint8_RGB(img)
 
@@ -819,6 +833,7 @@ np.random.seed(1)
 yosemite = read_image('imagenes/Yosemite1.jpg', 0)
 yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
 
+# Caso base
 keypoints_list1, corrected_keypoints1 = harris_corner_detection(
     yosemite,
     block_size=5,
@@ -831,6 +846,7 @@ keypoints_list1, corrected_keypoints1 = harris_corner_detection(
 compute_number_keypoints(keypoints_list1)
 draw_all_keypoints(yosemite_color, keypoints_list1)
 
+# Ventana = 5
 keypoints_list2, corrected_keypoints2 = harris_corner_detection(
     yosemite,
     block_size=5,
@@ -843,6 +859,7 @@ keypoints_list2, corrected_keypoints2 = harris_corner_detection(
 compute_number_keypoints(keypoints_list2)
 draw_all_keypoints(yosemite_color, keypoints_list2)
 
+# Tamaño kernel derivada = 5
 keypoints_list3, corrected_keypoints3 = harris_corner_detection(
     yosemite,
     block_size=5,
@@ -855,7 +872,21 @@ keypoints_list3, corrected_keypoints3 = harris_corner_detection(
 compute_number_keypoints(keypoints_list3)
 draw_all_keypoints(yosemite_color, keypoints_list3)
 
+# Numero bloques = 3
 keypoints_list4, corrected_keypoints4 = harris_corner_detection(
+    yosemite,
+    block_size=3,
+    window_size=3,
+    ksize_der=3, 
+    n_octaves=5,
+    threshold=10.0
+)
+
+compute_number_keypoints(keypoints_list4)
+draw_all_keypoints(yosemite_color, keypoints_list4)
+
+# Umbral = 60
+keypoints_list5, corrected_keypoints5 = harris_corner_detection(
     yosemite,
     block_size=5,
     window_size=3,
@@ -864,10 +895,11 @@ keypoints_list4, corrected_keypoints4 = harris_corner_detection(
     threshold=60.0
 )
 
-compute_number_keypoints(keypoints_list4)
-draw_all_keypoints(yosemite_color, keypoints_list4)
+compute_number_keypoints(keypoints_list5)
+draw_all_keypoints(yosemite_color, keypoints_list5)
 
-keypoints_list5, corrected_keypoints5 = harris_corner_detection(
+# Umbral = 90
+keypoints_list6, corrected_keypoints6 = harris_corner_detection(
     yosemite,
     block_size=5,
     window_size=3,
@@ -876,11 +908,24 @@ keypoints_list5, corrected_keypoints5 = harris_corner_detection(
     threshold=90.0
 )
 
-compute_number_keypoints(keypoints_list5)
-draw_all_keypoints(yosemite_color, keypoints_list5)
+compute_number_keypoints(keypoints_list6)
+draw_all_keypoints(yosemite_color, keypoints_list6)
 
+# Tamaño ventana = 5 y Umbral = 90
+keypoints_list7, corrected_keypoints7 = harris_corner_detection(
+    yosemite,
+    block_size=5,
+    window_size=5,
+    ksize_der=3, 
+    n_octaves=5,
+    threshold=90.0
+)
 
-#draw_keypoints_octave(yosemite_color, keypoints_list)
+compute_number_keypoints(keypoints_list7)
+draw_all_keypoints(yosemite_color, keypoints_list7)
+
+# Mostrar keypoints para cada octava para el ultimo caso
+draw_keypoints_octave(yosemite_color, keypoints_list7)
 
 #compare_keypoints_orig_corrected(yosemite_color, keypoints_list, corrected_keypoints)
 
