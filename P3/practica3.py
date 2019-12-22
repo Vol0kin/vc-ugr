@@ -590,6 +590,17 @@ def compare_keypoints_orig_corrected(img, keypoints, corrected):
 ###############################################################################
 
 def compute_akaze_keypoints_descriptors(img, threshold=0.1):
+    """
+    Funcion que calcula los keypoints y los descriptores de una imagen
+    utilizando AKAZE
+
+    Args:
+        img: Imagen de la que extraer la informacion
+        threshold: Umbral de AKAZE (no se aceptan puntos por debajo
+                   del umbral)
+    Return:
+        Devuelve los keypoints y los descriptores extraidos
+    """
     # Crear objeto AKAZE para extraer las caracteristicas
     akaze = cv2.AKAZE_create(threshold=threshold)
 
@@ -600,7 +611,16 @@ def compute_akaze_keypoints_descriptors(img, threshold=0.1):
 
 
 def brute_force_crosscheck_matcher(desc1, desc2):
+    """
+    Funcion que realiza el match entre dos conjuntos de descriptores dados
+    utilizando Brute Force y Cross Checking
 
+    Args:
+        desc1: Descriptor de la primera imagen
+        desc2: Descriptor de la segunda imagen
+    Return:
+        Devuelve los matches entre las dos descripciones
+    """
     # Crear matcher (va a utilizar el método Brute Force + Cross Check)
     bf = cv2.BFMatcher_create(crossCheck=True)
 
@@ -611,7 +631,16 @@ def brute_force_crosscheck_matcher(desc1, desc2):
 
 
 def nn2_matcher(desc1, desc2):
+    """
+    Funcion que realiza el match entre dos conjuntos de descriptores dados
+    utilizando 2NN
 
+    Args:
+        desc1: Descriptor de la primera imagen
+        desc2: Descriptor de la segunda imagen
+    Return:
+        Devuelve los matches entre las dos descripciones
+    """
     # Crear matcher
     knn = cv2.BFMatcher_create()
 
@@ -622,7 +651,16 @@ def nn2_matcher(desc1, desc2):
 
 
 def lowe_average_2nn_matcher(desc1, desc2):
+    """
+    Funcion que realiza el match entre dos descriptores dados
+    utilizando 2NN con Lowe
 
+    Args:
+        desc1: Descriptor de la primera imagen
+        desc2: Descriptor de la segunda imagen
+    Return:
+        Devuelve los matches entre las dos descripciones
+    """
     # Obtener matches
     matches = nn2_matcher(desc1, desc2)
 
@@ -634,14 +672,26 @@ def lowe_average_2nn_matcher(desc1, desc2):
 
 
 def draw_matches(img1, img2, keypoints1, keypoints2, matches):
-    # Transformar imagen a uint8 y RGB
+    """
+    Funcion para dibujar 100 matches aleatorios obtenidos entre dos imagenes,
+    utilizando para ello los keypoints obtenidos
+
+    Args:
+        img1: Primera imagen
+        img2: Segunda imagen
+        keypoints_1: Keypoints de img1
+        keypoints_2: Keypoints de img2
+        matches: Matches obtenidos entre img1 e img2
+    """
+    # Transformar imagenes a uint8 y RGB y concatenarlas
     vis1 = transform_img_uint8_RGB(img1)
     vis2 = transform_img_uint8_RGB(img2)
-
-    rand_matches = np.random.choice(matches, 100, replace=False)
-
     out_img = np.concatenate([vis1, vis2], axis=1)
 
+    # Obtener 100 matches aleatorios
+    rand_matches = np.random.choice(matches, 100, replace=False)
+
+    # Dibujar matches
     out_img = cv2.drawMatches(vis1,
         keypoints1,
         vis2,
@@ -849,7 +899,6 @@ np.random.seed(1)
 yosemite = read_image('imagenes/Yosemite1.jpg', 0)
 yosemite_color = read_image('imagenes/Yosemite1.jpg', 1)
 
-"""
 # Caso base
 keypoints_list1, corrected_keypoints1 = harris_corner_detection(
     yosemite,
@@ -943,7 +992,7 @@ draw_all_keypoints(yosemite_color, keypoints_list7)
 
 # Mostrar keypoints para cada octava para el ultimo caso
 draw_keypoints_octave(yosemite_color, keypoints_list7)
-"""
+
 # Cargar la imagen para comparar los keypoints estimados con los corregidos
 yosemite2 = read_image('imagenes/Yosemite2.jpg', 0)
 yosemite2_color = read_image('imagenes/Yosemite2.jpg', 1)
@@ -962,23 +1011,44 @@ compute_number_keypoints(keypoints2_list)
 draw_all_keypoints(yosemite2_color, keypoints2_list)
 compare_keypoints_orig_corrected(yosemite2_color, keypoints2_list, corrected2_keypoints)
 
+################################################################################
 # Apartado 2
+
+# Cargar las imagenes necesarias
 yosemite1 = read_image('imagenes/Yosemite1.jpg', 0)
 yosemite2 = read_image('imagenes/Yosemite2.jpg', 0)
 
 yosemite1_c = read_image('imagenes/Yosemite1.jpg', 1)
 yosemite2_c = read_image('imagenes/Yosemite2.jpg', 1)
 
-# Extraer descriptores
+board1 = read_image("imagenes/Tablero1.jpg", 0)
+board2 = read_image("imagenes/Tablero2.jpg", 0)
+
+board1_c = read_image("imagenes/Tablero1.jpg", 1)
+board2_c = read_image("imagenes/Tablero2.jpg", 1)
+
+# Extraer keypoints y descriptores
 kp_yosemite1, desc_yosemite1 = compute_akaze_keypoints_descriptors(yosemite1)
 kp_yosemite2, desc_yosemite2 = compute_akaze_keypoints_descriptors(yosemite2)
 
+kp_board1, desc_board1 = compute_akaze_keypoints_descriptors(board1)
+kp_board2, desc_board2 = compute_akaze_keypoints_descriptors(board2)
+
+# Extraer y dibujar matches para Yosemite
 matches_bf_xcheck = brute_force_crosscheck_matcher(desc_yosemite1, desc_yosemite2)
 matches_lowe = lowe_average_2nn_matcher(desc_yosemite1, desc_yosemite2)
 
-#draw_matches(yosemite1_c, yosemite2_c, kp_yosemite1, kp_yosemite2, matches_bf_xcheck)
-#draw_matches(yosemite1_c, yosemite2_c, kp_yosemite1, kp_yosemite2, matches_lowe)
+draw_matches(yosemite1_c, yosemite2_c, kp_yosemite1, kp_yosemite2, matches_bf_xcheck)
+draw_matches(yosemite1_c, yosemite2_c, kp_yosemite1, kp_yosemite2, matches_lowe)
 
+# Extraer y dibujar matches para Tablero
+matches_bf_xcheck = brute_force_crosscheck_matcher(desc_board1, desc_board2)
+matches_lowe = lowe_average_2nn_matcher(desc_board1, desc_board2)
+
+draw_matches(board1_c, board2_c, kp_board1, kp_board2, matches_bf_xcheck)
+draw_matches(board1_c, board2_c, kp_board1, kp_board2, matches_lowe)
+
+################################################################################
 # Apartado 3
 
 
@@ -989,7 +1059,7 @@ board2 = read_image('imagenes/yosemite7.jpg', 0)
 
 #draw_panorama_2_images(board1, board2, 1920, 1080)
 
-
+################################################################################
 # Apartado 4
 yosemite_names1 = [f"imagenes/yosemite{n}.jpg" for n in range(1,5)]
 yosemite_names2 = [f"imagenes/yosemite{n}.jpg" for n in range(5, 8)]

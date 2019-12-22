@@ -1129,6 +1129,342 @@ Harris real estará bastante cerca del estimado.
 
 \section{\textsc{Extracción de descriptores AKAZE}}
 
+En esta segunda sección vamos a utilizar el descriptor AKAZE para
+extraer información de la imagen, con el objetivo de hacer \textit{matches}
+entre dos imágenes, para ver si tienen puntos en común. Vamos a comparar
+también dos criterios para realizar el  \textit{match}, y veremos cuál de ellos
+es mejor.
+
+\subsection{Obtención de los descriptores AKAZE}
+
+El descriptor AKAZE es algo más sofisticado que lo que hemos visto hasta ahora, ya
+que obtiene información a partir de un espacio de escalas no lineal, aunque no
+vamos a entrar en mucho detalle en como funciona.
+
+\texttt{OpenCV} permite realizar el cálculo de este descriptor de forma relativamente
+sencilla. Para ello, disponemos de la clase \texttt{AKAZE}, la cuál permite calcular tanto
+los \textit{keypoints} como los descriptores con el método \texttt{detectAndCompute}.
+Vamos a ver cómo se haría esto:
+
+\begin{lstlisting}
+def compute_akaze_keypoints_descriptors(img, threshold=0.1):
+    """
+    Funcion que calcula los keypoints y los descriptores de una imagen
+    utilizando AKAZE
+
+    Args:
+        img: Imagen de la que extraer la informacion
+        threshold: Umbral de AKAZE (no se aceptan puntos por debajo
+                   del umbral)
+    Return:
+        Devuelve los keypoints y los descriptores extraidos
+    """
+    # Crear objeto AKAZE para extraer las caracteristicas
+    akaze = cv2.AKAZE_create(threshold=threshold)
+
+    # Extraer keypoints y descriptores
+    keypoints, descriptors = akaze.detectAndCompute(img, None)
+
+    return keypoints, descriptors
+\end{lstlisting}
+
+Esta función permite obtener tanto los \textit{keypoints} como los descriptres
+de una imagen de entrada utilizando AKAZE. Lo primero que se hace es crear
+un objeto de la clase \texttt{AKAZE} con la función \texttt{AKAZE\_create}, ya que el constructor
+de AKAZE está deprecado. A esta función le podemos especificar algunos parámetros, pero
+uno de los más interesantes es el umbral. Este valor permite descartar aquellos puntos
+que estén por debajo de él. Por tanto, a mayor umbral, menos puntos se generarán.
+Por defecto, se ha especificado que el umbral sea $0.1$, ya que se considera un valor
+razonable para eliminar aquella información que no sea muy relevante y dejar
+aquella que nos pueda ser útil. 
+
+Una vez hecho esto, simplemente tenemos que obtener
+la información utilizando el método \texttt{detectAndCompute}, el cuál
+recibe como parámetros una máscara que utilizar en los cálculos (la cuál
+no utilizaremos, y por tanto ponemos a \texttt{None}) y la imagen de la que
+extraer la información. Finalmente, devuelve los valores calculados, los cuáles
+serán utilizados más adelantes en las siguientes partes de esta sección.
+
+\subsection{\textit{Matching} mediante BruteForce y Cross Check}
+
+El primer método de \textit{matching} que veremos es el de Brute Force con Cross Check.
+Este es el método más sencillo posible, ya que consiste en relacionar todos los puntos de una
+imagen con todos los de la otra (la parte de fuerza bruta). De esta forma, se tendrían la distancia de
+cada punto $p_{1i}$ extraído de la primera imagen con cada punto $p_{2j}$ extraído de la
+segunda. Para establecer el \textit{match}, solo bastaría con mirar si el el punto más cercano
+a $p_{1i}$ es el $p_{2j}$ y si el más cercano al $p_{2j}$ es el $p_{1i}$ (la parte de Cross Check). En caso
+de que la condición anterior se vea satisfecha, tendremos un \textit{match}. En caso contrario,
+no habrá \textit{match}. Por tanto, es posible que haya puntos de las dos imágenes que no queden
+emparejados.
+
+Vamos a ver cómo podríamos calcular esto utilizando las funciones de \texttt{OpenCV}:
+
+\begin{lstlisting}
+def brute_force_crosscheck_matcher(desc1, desc2):
+    """
+    Funcion que realiza el match entre dos conjuntos de descriptores dados
+    utilizando Brute Force y Cross Checking
+
+    Args:
+        desc1: Descriptor de la primera imagen
+        desc2: Descriptor de la segunda imagen
+    Return:
+        Devuelve los matches entre las dos descripciones
+    """
+    # Crear matcher (va a utilizar el metodo Brute Force + Cross Check)
+    bf = cv2.BFMatcher_create(crossCheck=True)
+
+    # Obtener los matches
+    matches = bf.match(desc1, desc2)
+
+    return matches
+\end{lstlisting}
+
+La función anterior recibe los descriptores de dos imágenes. Lo primero que
+hace es crear una instancia de la clase \texttt{BFMatcher} utilizando la función
+\texttt{BFMatcher\_create} (el constructor está deprecado). Esta función tiene
+un parámetro que es \texttt{crossCheck}, el cuál está puesto por defecto a falso.
+Cuando se pone a verdadero, se indica que se quiere realizar el Cross Check, el cuál
+ha sido descrito anteriormente. Finalmente, para obtener los \textit{matches} simplemente
+basta con llamar al método \texttt{match}, el cuál recibe como parámetros los
+descriptores. El orden en el que se pasan los descriptores no influye en el resultado. Lo
+único que pasa es que los descriptores que hagan \textit{match} del primer parámetro
+se guardarán en el atributo \texttt{queryIdx}, mientras que los  del segundo se guardarán
+en el atributo \texttt{trainIdx}.
+
+\subsection{\textit{Matching} mediante Lowe-Average-2NN}
+
+El segundo método de \textit{matching} que vamos a ver es el que propone
+David Lowe en su trabajo \cite{lowe}. Según la propuesta, para cada punto extraído
+de la primera imagen, al que llamaremos $p_{1i}$, hay que encontrar los dos puntos
+más cercanos a este en la segunda imagen, a los cuáles llamaremos $p_{2,mejor1}$
+y $p_{2,mejor2}$. Para establecer si hay \textit{match} o no se tiene que cumplir
+que:
+
+\begin{equation}
+	d(p_{1i}, p_{2,mejor1}) < 0.8 d(p_{1i}, p_{2,mejor2})
+\end{equation}
+
+\noindent donde $d$ es la distancia. Se ha comprobad que el factor $0.8$ que multiplica
+la segunda distancia permite obtener unos buenos resultados en general, ya que es capaz
+de descartar el 90\% de los falsos \textit{matches} y de descartar por error menos del 5\%
+de los \textit{matches} verdaderos. Por tanto, utilizaremos dicho valor también en nuestro trabajo.
+
+Obtener los dos puntos más cercanos a uno puede parecer difícil al principio, pero afortunadamente
+\texttt{OpenCV} ofrece herramientas para llevarlo a cabo. La siguiente función es un ejemplo de esto:
+
+\begin{lstlisting}
+def nn2_matcher(desc1, desc2):
+    """
+    Funcion que realiza el match entre dos conjuntos de descriptores dados
+    utilizando 2NN
+
+    Args:
+        desc1: Descriptor de la primera imagen
+        desc2: Descriptor de la segunda imagen
+    Return:
+        Devuelve los matches entre las dos descripciones
+    """
+    # Crear matcher
+    knn = cv2.BFMatcher_create()
+
+    # Obtener matches
+    matches = knn.knnMatch(desc1, desc2, k=2)
+
+    return matches
+\end{lstlisting}
+
+La función de nuevo recibe dos conjuntos de descriptores de dos imágenes diferentes.
+Lo primero que hacemos es crear una instancia de \texttt{BFMatcher}, solo que esta
+vez no vamos a utilizar el Cross Check, debido a que luego aplicaremos el criterio
+de Lowe para eliminar aquellos \textit{matches} que no sean buenos.
+
+Para hacer el \textit{match} con los dos puntos más cercanos, podemos utilizar el método
+\texttt{knnMatch}, el cuál recibe las dos descripciones y \texttt{k}, el número de puntos
+más cercanos que queramos sacar. En este caso, como queremos los dos puntos más cercanos,
+tenemos que establecer \texttt{k=2}. La función devuelve finalmente una lista con los
+\textit{matches}, donde cada elemento de la lista es una tupla donde el primer
+elemento es \textit{match} más cercano, y el segundo elemento el segundo \textit{match}
+más cercano.
+
+Una vez vista la forma de extraer los puntos, vamos a ver cómo se podrían determinar los
+mejores \textit{matches}.
+
+\begin{lstlisting}
+def lowe_average_2nn_matcher(desc1, desc2):
+    """
+    Funcion que realiza el match entre dos descriptores dados
+    utilizando 2NN con Lowe
+
+    Args:
+        desc1: Descriptor de la primera imagen
+        desc2: Descriptor de la segunda imagen
+    Return:
+        Devuelve los matches entre las dos descripciones
+    """
+    # Obtener matches
+    matches = nn2_matcher(desc1, desc2)
+
+    # Quedarse el mejor match segun el criterio de Lowe
+    # El mejor match es m1 sii m1 < 0.8 * m2
+    lowe_matches = [m1 for m1, m2 in matches if m1.distance < 0.8* m2.distance]
+
+    return lowe_matches
+\end{lstlisting}
+
+Esta función parte de los descriptores de dos imágenes que se le proporcionan. Lo primero
+que hace es obtener los \textit{matches} llamando a la que buscaba los 2 puntos más
+cercanos al actual. Ahora ya solo nos queda procesar los \textit{matches} y quedarnos
+con aquellos que cumplan el criterio. Para ello, recorremos cada pareja de la lista
+y obtenemos los dos \textit{matches}, $m_1$ y $m_2$, y miramos si se cumple que
+$d(m_1) < 0.8d(m_2)$. En caso de que se cumpla, guardamos el \textit{match}
+$m_1$. En caso contrario, no guardamos nada.
+
+\subsection{Comparativa}
+
+Una vez que hemos visto cómo se implementarían, vamos a ver dos ejemplos comparativos
+para ver cómo se comportan. Vamos a mirar un ejemplo más sencillo, que es el de las imágenes
+de Yosemite, y un segundo ejemplo más complicado con las imágenes de un tablero. El objetivo
+es ver cómo se podrían relacionar cada pareja de imágenes, y ver quién lo hace mejor. Para hacer
+un análisis menos sesgado hacia uno u otro, vamos a escoger en cada caso 100 \textit{matches}
+de todos los obtenidos.
+
+Para hacer esto, vamos a sacar primero los \textit{keypoints} y los descriptores con AKAZE,
+y después haremos el \textit{matching} de cada tipo. Para evitar problemas, usaremos en esta parte
+las imágenes en escalas de grises, y pintaremos los resultados con las imágenes a color, para que quede
+algo más vistoso, tal y como hacíamos antes. Para pintar los \textit{matches} nos vamos a ayudar de la
+siguiente función:
+
+Para poder dibujar los \textit{matches}, vamos a ayudarnos de la siguiente función:
+
+\begin{lstlisting}
+def draw_matches(img1, img2, keypoints1, keypoints2, matches):
+    """
+    Funcion para dibujar 100 matches aleatorios obtenidos entre dos imagenes,
+    utilizando para ello los keypoints obtenidos
+
+    Args:
+        img1: Primera imagen
+        img2: Segunda imagen
+        keypoints_1: Keypoints de img1
+        keypoints_2: Keypoints de img2
+        matches: Matches obtenidos entre img1 e img2
+    """
+    # Transformar imagenes a uint8 y RGB y concatenarlas
+    vis1 = transform_img_uint8_RGB(img1)
+    vis2 = transform_img_uint8_RGB(img2)
+    out_img = np.concatenate([vis1, vis2], axis=1)
+
+    # Obtener 100 matches aleatorios
+    rand_matches = np.random.choice(matches, 100, replace=False)
+
+    # Dibujar matches
+    out_img = cv2.drawMatches(vis1,
+        keypoints1,
+        vis2,
+        keypoints2,
+        rand_matches,
+        out_img,
+        flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS
+    )
+
+    # Mostrar imagen
+    visualize_image(out_img)
+\end{lstlisting}
+
+Esta función recibe las imágenes que dibujar, junto con los \textit{keypoints} extraídos
+para cada una de ellas y los \textit{matches}. Lo primero que hace es pasar las imágenes
+a entero sin signo y juntarlas en una única imagen, utilizando para ello la función \texttt{concatenate}
+de \texttt{numpy}.  A continuación, coge 100
+de los \textit{matches} obtenidos de forma aleatoria. Para dibujar los \textit{matches}
+se utiliza la función \texttt{drawMatches}, la cuál recibe como parámetro la primera
+imagen y los \textit{keypoints} extraídos para ella, la segunda imagen y sus \textit{keypoints},
+los \textit{matches}, la imagen donde se escribirá la salida y una serie de \textit{flags}. En este
+caso, con el \textit{flag} que se ha utilizado se indica que se van a pintar solo aquellos \textit{keypoints}
+de los que se pinten los \textit{matches}, ya que en caso contrario se pintarían todos, incluso aquellos
+que no tienen \textit{matches} o aquellos que sí que tienen pero que no se pintan. Finalmente
+se visualiza la imagen.
+
+Una vez que hemos explicado esto, vamos a hacer la comparativa entre las dos técnicas:
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[t]{\textwidth}
+		\centering
+		\includegraphics[scale=0.78]{img/yos-bf}
+		\subcaption{\textit{Matching} utilizando BruteForce y Cross Check.}
+	\end{subfigure}
+	\begin{subfigure}[t]{\textwidth}
+		\centering
+		\includegraphics[scale=0.78]{img/yos-lowe}
+		\subcaption{\textit{Matching} utilizando Lowe-Average-2NN.}
+	\end{subfigure}
+	\caption{\textit{Matching} para el conjunto de fotografías Yosemite.}
+	\label{fig:yosemite}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[t]{\textwidth}
+		\centering
+		\includegraphics[scale=0.78]{img/board-bf}
+		\subcaption{\textit{Matching} utilizando BruteForce y Cross Check.}
+	\end{subfigure}
+	\begin{subfigure}[t]{\textwidth}
+		\centering
+		\includegraphics[scale=0.78]{img/board-lowe}
+		\subcaption{\textit{Matching} utilizando Lowe-Average-2NN.}
+	\end{subfigure}
+	\caption{\textit{Matching} para el conjunto de fotografías Yosemite.}
+	\label{fig:board}
+\end{figure}
+
+Para las imágenes de Yosemite, tal y como se puede ver en la figura \ref{fig:yosemite},
+se ve que el \textit{matching} con BruteForce y Cross Check es algo peor que el otro
+ya que se cruzan bastante más lineas. En el caso de Lowe, vemos que solo hay una
+línea que se cruza. Por tanto, parece que en este caso Lowe tiene más de un 95\% de aciertos
+en cuanto a los \textit{mathces}, ya que el resto de línea sí que son paralelas entre sí y parecen
+corresponderse a los puntos. Este valor es aproximado, ya que con una resolución tan baja
+y tantos puntos es difícil de determinar si todos los puntos están unidos correctamente
+o no.
+
+Aparte de las líneas, vemos que los
+puntos tienen más sentido en el caso de Lowe que en el otro, ya que aquí no hay ningún punto
+en la parte oscura de la imagen que se enlace con la parte iluminada. Parece que
+la mayoría de puntos que saca Lowe se parecen a los que sacaría una persona,
+ya que la mayoría de ellos están en la zona común de ambas imágenes. Muy pocos
+puntos están fuera de esta zona. En el caso de la fuerza bruta, hay muchos más puntos que están
+fuera de la zona común, con lo cuál no es tan bueno como Lowe.
+
+En el caso de las figuras de los tableros, el cuál se puede ver en la figura \ref{fig:board}, vemos que ambas técnicas tienen
+problemas, ya que es un problema demasiado difícil de resolver incluso para un
+humano. Incluso a nosotros mismos nos cuesta saber cuáles son las correspondencias
+entre las dos imágenes, ya que al ser los tableros objetos simétricos, es fácil confundir
+una parte del tablero con otra. Parece que al pasar de una imagen a la otra se produce una
+rotación y un cambio de intensidad, con lo cuál va a ser algo más difícil determinar las
+correspondencias a diferencia del caso anterior, donde las imágenes sí que eran más
+parecidas y podían ser unidas fácilmente, ya que se correspondían mejor.
+
+Si observamos los resultados, vemos que en ambas técnicas casi todas las líneas se cruzan.
+Esto se debe a que no existe un patrón tan claro para obtener los \textit{matchings}, ya que
+hay bastantes posibles transformaciones que se podrían hacer para adaptar una imagen a la otra.
+También existen diferencias respecto a los puntos que se sacan, ya que Lowe saca más puntos del
+tablero que del marco donde se encuentra, a diferencia de BruteForce con Cross Check. Por tanto, si
+consideramos todos estos factores de forma conjunta, en este caso no podemos afirmar que una técnica
+sea mejor que la otra, ya que ambas han ofrecido unos resultados muy pobres.
+
+Por tanto, de aquí podemos concluir que, en general, Lowe ofrece unos mejores resultados que
+BruteForce con Cross Check, ya que en el ejemplo del Yosemite, Lowe ha acertado casi todas
+las correspondencias. Además de eso, Lowe tiene un mejor criterio para decidir los \textit{matches},
+ya que tiene que comprobar que el punto más cercano a uno concreto no se encuentra relativamente
+cerca del segundo punto más cercano. Por tanto, de esta forma se asegura de que no se escoja
+un punto sobre otro en caso de que exista duda de cuál es el mejor, ya que ambos son candidatos
+a serlo.
+
+No obstante, ambas técnicas tienen problemas, ya que les cuesta
+encontrar correspondencias buenas en casos donde existe mucha simetría, debido
+a que es muy fácil confundir distintas partes de las imágenes.
+
 \section{\textsc{Mosaico de dos imágenes}}
 
 \section{\textsc{Mosaico de \textit{N} imágenes}}
