@@ -10,6 +10,13 @@
 \usepackage{enumitem}						% Permitir enumerate con distintos simbolos
 \usepackage[T1]{fontenc}					% Usar textsc en sections
 \usepackage{amsmath}						% Símbolos matemáticos
+\usepackage{amssymb}
+\usepackage{natbib}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}			% Pseudocodig
+
+\algrenewcommand\algorithmicreturn{\textbf{return}}
 
 % Comando para poner el nombre de la asignatura
 \newcommand{\asignatura}{Visión por Computador}
@@ -105,7 +112,6 @@ en la realidad en ningún momento, pero por la perspectiva con la que se ha toma
 tal y como pasó en el caso de las vías, podría parecer que las líneas se juntasen en el
 infinito.
 
-
 \nonumsection{Ejercicio 2}
 
 \question{¿Por qué es necesario usar el plano proyectivo para estudiar las
@@ -113,6 +119,21 @@ transformaciones en las imágenes de fotos de escenas? Dar algún
 ejemplo.}
 
 \answer
+
+Necesitamos utilizar el plano proyectivo para estudiar las transformaciones
+en las imágenes de fotos de escenas porque existen ciertas transformaciones, como
+por ejemplo las cambios de perspectiva, los cuáles se dan al tomar fotos de
+una misma escena desde distintas posiciones, que no se pueden estudiar en el
+plano afín, ya que son un tipo de transfomración que rompe con ciertas propiedades
+geométricas que tienen los planos afines, como por ejemplo la conservación
+del paralelismo.
+
+Por tanto, para estudiar dichas transformaciones necesitamos hacerlo en el
+plano proyectivo, ya que ahí las transformaciones se pueden representar
+como \textbf{homografías}. Ĺas homografías, no obstante, no solo representan transformaciones
+de perspectiva, sino que también se pueden utilizar para representar transformaciones
+afines. Por tanto, realmente se puede estudiar cualquier tipo de transformación en
+el plano proyectivo, lo cuál lo hace más adecuado y preferente sobre el afín.
 
 \nonumsection{Ejercicio 3}
 
@@ -133,9 +154,21 @@ cuando se toma una foto de él? Justificar la respuesta.}
 
 \answer
 
+Cuando tomamos una fotografía de un plano, se conservan las siguientes
+propiedades:
+
+\begin{itemize}[label=\textbullet]
+	\item \textbf{Líneas rectas}: Las líneas rectas se conservan, ya que
+	tomar una foto de un plano desde un punto u otro no produce una deformación
+	de estas.
+	\item 
+\end{itemize}
+
 \nonumsection{Ejercicio 5}
 
+\question{En coordenadas homogéneas los puntos y rectas del plano se representan por vectores de tres coordenadas (notados x y l respectivamente), de manera que si una recta contiene a un punto se verifica la ecuación $x^Tl=0$, es decir $(x_1, x_2, x_3) \left( \begin{matrix} a \\ b \\ c \end{matrix} \right) = 0$. Considere una homografía H que transforma vectores de puntos, $x^\prime = Hx$. Dado que una homografía transforma vectores de tres coordenadas también existen homografías G para transformar vectores de rectas $l^\prime = Gl$. Suponga una recta l y un punto x que verifican $x^Tl=0$ en el plano proyectivo y suponga que conoce una homografía H que transforma vectores de puntos. En estas condiciones ¿cuál es la homografía G que transforma los vectores de las rectas? Deducirla matemáticamente.}
 
+\answer
 
 \nonumsection{Ejercicio 6}
 
@@ -154,9 +187,521 @@ respuesta.}
 
 \answer
 
+Partiendo de que los puntos del plano proyectivo-2 son de la forma
+$(x', y', 0)$, tenemos que encontrar una homografía que nos permita
+llevar el punto $(3,0,2)$ a una recta de dicho plano, haciendo que el
+último valor sea por tanto un 0 en vez de un 2. Para ello, vamos a plantear esta
+transformación de la siguiente forma:
+
+\begin{equation}
+	\begin{pmatrix}
+ 	a & b & c \\ 
+ 	d & e & f \\ 
+ 	g & h & i 
+	\end{pmatrix}
+	\begin{pmatrix}
+ 	3 \\ 
+ 	0 \\ 
+ 	2
+	\end{pmatrix}
+	=
+	\begin{pmatrix}
+ 	x' \\ 
+ 	y' \\ 
+ 	0
+	\end{pmatrix}
+\end{equation}
+
+\noindent donde la homografía $\mathbf{H}$ es:
+
+\begin{equation}
+\mathbf{H} = 	\begin{pmatrix}
+ 	a & b & c \\ 
+ 	d & e & f \\ 
+ 	g & h & i 
+	\end{pmatrix}
+\end{equation}
+
+Realmente de aquí solo nos interesa calcular los valores de $g$, $h$ e $i$
+que nos permiten transformar el 2 que se tiene en un principio a 0.
+Para ello, vamos a reescribir la última parte como una ecuación.
+La expresión es la siguiente:
+
+\begin{equation}
+	3g + 0h + 2i = 0
+\end{equation}
+
+Simplificando la expresión anterior, obtenemos lo siguiente:
+
+\begin{equation}
+	3g + 2i = 0
+\end{equation}
+
+La expresión anterior tiene realmente infinitas soluciones,
+aunque todas ellas se pueden expresar de la siguietne forma:
+
+\[
+	g = 2k \; , \; i = -3k \;, \; donde \; k \in \mathbb{Z}
+\]
+
+Por tanto, podríamos escoger como una solución simple $g = 2$
+e $i = -3$. El valor de $h$ sería $h = 0$, y el resto de elementos
+de $\mathbf{H}$ podríamos ponerlos como la matriz identidad. Por
+tanto, tendríamos lo siguiente:
+
+\begin{equation}
+\mathbf{H} = \begin{pmatrix}
+ 	1 & 0 & 0 \\ 
+ 	0 & 1 & 0 \\ 
+ 	2 & 0 & -3 
+	\end{pmatrix}
+\end{equation}
+
+Ahora, si queremos calcular las coordenadas del nuevo punto, simplemente
+tenemos que palicar la homografía calculada anteriormente, y obtendríamos
+que:
+
+\begin{equation}
+	\begin{pmatrix}
+ 	1 & 0 & 0 \\ 
+ 	0 & 1 & 0 \\ 
+ 	2 & 0 & -3 
+	\end{pmatrix}
+	\begin{pmatrix}
+ 	3 \\ 
+ 	0 \\ 
+ 	2
+	\end{pmatrix}
+	=
+	\begin{pmatrix}
+ 	3 \\ 
+ 	0 \\ 
+ 	0
+	\end{pmatrix}
+\end{equation}
+
+
 \nonumsection{Ejercicio 8}
 
+\question{Una homografía general $\mathbf{H}=\begin{pmatrix}a & b & c \\ d & e & f \\
+g & h & i \end{pmatrix} = \begin{bmatrix} \mathbf{A} & \mathbf{t} \\ \mathbf{v}^T & v
+\end{bmatrix}$, $\text{det}(\mathbf{H}) \neq 0$ admite una
+descomposición única en movimiento elementales de la siguiente
+forma $\mathbf{H} = \mathbf{H}_S\mathbf{H}_A\mathbf{H}_P$ donde $\mathbf{H}_S$
+representa la homografía de una similaridad
+(escala, giro y traslación), $\mathbf{H}_A$ la homografía de un movimiento afín
+puro y $\mathbf{H}_P$ una transformación proyectiva pura. Es decir,}
 
+$$
+\mathbf{H}_S = \begin{pmatrix} s\cos\theta & -s\sin\theta & t_x \\ s\sin\theta & s\cos\theta & t_y \\
+0 & 0 & 1 \end{pmatrix} \equiv \begin{bmatrix} s\mathbf{R} & \mathbf{t} \\ \mathbf{0}^T & 1 \end{bmatrix}, s>0
+$$
+
+$$
+\mathbf{H}_A = \begin{pmatrix} a & c & 0 \\ 0 & b &0 \\ 0 & 0 & 1 \end{pmatrix} \equiv
+\begin{bmatrix} s\mathbf{K} & \mathbf{0} \\ \mathbf{0}^T & 1 \end{bmatrix}, \text{det}(\mathbf{K}=1
+$$
+
+$$
+\mathbf{H}_P = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 &0 \\ v_1 & v_2 & v \end{pmatrix} \equiv
+\begin{bmatrix} \mathbf{I} & \mathbf{0} \\ \mathbf{v}^T & v \end{bmatrix}, v \neq 0
+$$
+
+\question{(Notación: en negrita son vectores o matrices)}
+
+\question{Describir un algoritmo que permite encontrar las matrices de la
+descomposición de una matriz $\mathbf{H}$ dada. Aplicarlo para encontrar la
+descomposición de}
+
+$$
+	\mathbf{H} = \begin{pmatrix}
+	1.707 & 0.586 & 1.0 \\
+	2.707 & 8.242 & 2.0 \\
+	1.0 & 2.0 & 1.0
+	\end{pmatrix}
+$$
+
+\answer
+
+Para empezar, voy a decir que he consultado el libro
+\textit{Multiple View Geometry in Computer Vision}\cite{Hartley:2003:MVG:861369}
+para extraer información y para guiarme, ya que el problema
+planteado puede ser encontrado ahí. En la solución primero
+mostraremos cuáles son las bases de lo que vamos a hacer, y después
+mostraremos un pseudocódigo junto con el resultado de la descomposición
+propuesta.
+
+Vamos a empezar sacando la información más inmediata. Si miramos la expresión
+$\mathbf{H}=\begin{pmatrix}a & b & c \\ d & e & f \\
+g & h & i \end{pmatrix} = \begin{bmatrix} \mathbf{A} & \mathbf{t} \\ \mathbf{v}^T & v
+\end{bmatrix}$ podemos deducir una serie de cosas:
+
+\begin{enumerate}
+	\item $\mathbf{A}$ tiene que ser una matriz $2\times2$, y tiene que
+	equivaler a $\begin{pmatrix}a & b \\ d & e \end{pmatrix}$.
+	\item $\mathbf{t}$ es, por la notación, un vector columna. Por tanto,
+	tiene que tener el mismo número de filas que $\mathbf{A}$, y por tanto,
+	tiene que tener un tamaño de $2 \times 1$. De esta forma, tendríamos
+	que $\mathbf{t} = \begin{pmatrix} c \\ f \end{pmatrix}$.
+	\item $\mathbf{v}^T$ es, por la notación, un vector fila. Por tanto,
+	tiene que tener el mismo número de columnas que $\mathbf{A}$, y por tanto,
+	tiene que tener un tamaño de $1 \times 2$. De esta forma, tendríamos
+	que $\mathbf{v}^T = \begin{pmatrix} g & h \end{pmatrix}$.
+	\item $v$ es un único valor, ya que no está expresado en notación de vector
+	y/o matriz. Por tanto, el único caso que puede darse es $v = i$.
+\end{enumerate}
+
+Por tanto, de aquí ya podemos extraer algunos elementos de la descomposición,
+los cuáles son $\mathbf{t}$, $\mathbf{v}^T$ y $v$. $\mathbf{A}$, en un principio, también
+lo tenemos, pero si nos fijamos en las matrices que forman parte de la descomposición,
+vemos que no aparece por ninguna parte. En su lugar, aparecen otras expresiones, como
+$s\mathbf{R}$ y $\mathbf{K}$. Por tanto, tenemos que encontrar alguna manera
+de calcular estas dos matrices, de manera que, con las expresiones que obtengamos,
+podamos crear un algoritmo para hacer la descomposición.
+
+Si miramos el libro, podemos encontrar
+una expresión para obtener $\mathbf{A}$, la cuál es la siguiente:
+
+\begin{equation}
+\label{dec}
+	\mathbf{A} = s\mathbf{RK} + \mathbf{tv}^T
+\end{equation}
+
+\noindent donde $\mathbf{K}$ es una matriz triangular superior con $\text{det}(\mathbf{K})=1$.
+
+Esta expresión surge de ir multiplicando las expresiones que aparecen
+entre corchetes. Para demostrarlo, vamos a ver dicho desarrollo:
+
+\begin{gather*}
+\begin{bmatrix} \mathbf{A} & \mathbf{t} \\ \mathbf{v}^T & v
+\end{bmatrix} =
+\begin{bmatrix} s\mathbf{R} & \mathbf{t} \\ \mathbf{0}^T & 1 \end{bmatrix}
+\begin{bmatrix} s\mathbf{K} & \mathbf{0} \\ \mathbf{0}^T & 1 \end{bmatrix}
+\begin{bmatrix} \mathbf{I} & \mathbf{0} \\ \mathbf{v}^T & v \end{bmatrix}
+=
+\begin{bmatrix} s\mathbf{RK} & \mathbf{t} \\ \mathbf{0}^T & 1 \end{bmatrix}
+\begin{bmatrix} \mathbf{I} & \mathbf{0} \\ \mathbf{v}^T & v \end{bmatrix}
+\\ =
+\begin{bmatrix} s\mathbf{RK} + \mathbf{tv}^T & \mathbf{t}v \\ \mathbf{v}^T & v \end{bmatrix}
+\end{gather*}
+
+Como podemos ver, la expresión anterior aparece dentro de la matriz
+resultante.
+
+Nuestro objetivo es determinar las expresiones para calcular
+$s\mathbf{R}$ y $\mathbf{K}$. Para obtener dichos valores, nos
+vamos a ayudar de aquellos que ya conocemos, que son
+$\mathbf{t}$, $\mathbf{v}^T$, $v$ y $\mathbf{A}$.
+
+Para empezar, vamos a reescribir la expresión que se ve en \eqref{dec}
+con el objetivo de simplificar cálculos futuros:
+
+\begin{equation}
+	 s\mathbf{RK} = \mathbf{A} - \mathbf{tv}^T
+\end{equation}
+
+Ahora, si desarrollamos la expresión anterior con toda la información
+que conocemos, obtenemos lo siguiente:
+
+\begin{gather*}
+s\mathbf{RK} = \mathbf{A} - \mathbf{tv}^T \\
+\begin{pmatrix}
+s\cos\theta & -s\sin\theta \\
+s\sin\theta & s\cos\theta
+\end{pmatrix}
+\begin{pmatrix}
+k_a & k_c \\
+0 & k_b
+\end{pmatrix}
+=
+\begin{pmatrix}
+a & b \\ d & e
+\end{pmatrix}
+-
+\begin{pmatrix}
+c \\ f
+\end{pmatrix}
+\begin{pmatrix}
+g & h
+\end{pmatrix}
+\\
+\begin{pmatrix}
+k_as\cos\theta & k_cs\cos\theta - k_bs\sin\theta \\
+k_as\sin\theta & k_cs\sin\theta + k_bs\cos\theta
+\end{pmatrix}
+=
+\begin{pmatrix}
+a & b \\ d & e
+\end{pmatrix}
+-
+\begin{pmatrix}
+cg & ch \\
+fg & fh
+\end{pmatrix}
+\\
+\begin{pmatrix}
+k_as\cos\theta & k_cs\cos\theta - k_bs\sin\theta \\
+k_as\sin\theta & k_cs\sin\theta + k_bs\cos\theta
+\end{pmatrix}
+=
+\begin{pmatrix}
+a-cg & b-ch \\ d-fg & e-fh
+\end{pmatrix}
+\end{gather*}
+
+Podemos plantear dicha expresión como un sistema de ecuaciones:
+
+\begin{equation}
+\left.\begin{matrix}
+ k_as\cos\theta = a-cg \\
+ k_cs\cos\theta - k_bs\sin\theta = b -ch \\
+ k_as\sin\theta = d-fg \\
+ k_cs\sin\theta + k_bs\cos\theta = e-fh
+\end{matrix}\right\}
+\end{equation}
+
+De aquí, nuestro objetivo es obtener los valores de $s$, $\theta$,
+$k_a$, $k_b$ y $k_c$. Si nos fijamos, de momento tenemos un sistema
+con cuatro ecuaciones y cinco incógnitas. En un principio, tendríamos
+muchísimos problemas para resolverlo, ya que nos faltaría una ecuación
+más. Afortunadamente, tiene que cumplirse que el determinante de $\mathbf{K}$ tiene que
+ser 1. Para que esto suceda, tiene que darse que $k_a k_b = 1$. Por tanto, tiene que cumplirse
+que
+
+$$\textcolor{blue}{k_b = \frac{1}{k_a}}$$
+
+Sustituyendo, obtenemos lo siguiente:
+
+\begin{equation}
+\left.\begin{matrix}
+ k_as\cos\theta = a-cg \\
+ k_cs\cos\theta - \frac{1}{k_a}s\sin\theta = b -ch \\
+ k_as\sin\theta = d-fg \\
+ k_cs\sin\theta + \frac{1}{k_a}s\cos\theta = e-fh
+\end{matrix}\right\}
+\end{equation}
+
+Ahora tenemos un sistema de cuatro ecuaciones con cuatro
+incógnitas. Sin embargo, obtener las soluciones nos va a llevar
+bastante trabajo, ya que queremos que todas ellas sean genéricas
+para cualquier homografía $\mathbf{H}$, de forma que de aquí
+podamos sacar algún algoritmo que nos pueda servir para
+cualquier matriz que cumpla con las restricciones impuestas.
+
+Lo primero que podemos intentar hacer es obtener el valor de $\theta$,
+ya que parece ser lo más ``fácil'' de sacar. Para hacerlo, vamos
+a utilizar la primera y la tercer ecuación, ya que ambas tienen
+$k_a$ en ellas.
+
+Si dejamos la primera ecuación en función de $k_a$, obtenemos
+lo siguiente:
+
+\begin{equation}
+\label{simp1}
+k_a = \frac{a-cg}{s\cos\theta}
+\end{equation}
+
+Si dejamos la tercera ecuación en función de $k_a$, obtenemos
+la siguiente expresión:
+
+\begin{equation}
+\label{simp2}
+k_a = \frac{d-fg}{s\sin\theta}
+\end{equation}
+
+Si igualamos, obtenemos que:
+
+\begin{gather*}
+\frac{a-cg}{s\cos\theta} = \frac{d-fg}{s\sin\theta} \\
+s\sin\theta(a-cg) = s\cos\theta(d-fg) \\
+\frac{s\sin\theta}{s\cos\theta} = \frac{d-fg}{a-cg} \\
+\frac{\sin\theta}{\cos\theta} = \frac{d-fg}{a-cg} \\
+\tan \theta = \frac{d-fg}{a-cg}
+\end{gather*}
+
+Ya que tenemos el valor de la tangente de $\theta$, para
+obtener el valor de $\theta$ solo tenemos que aplicar
+la función inversa, la cuál es el arco tangente. Por tanto,
+tenemos que $\theta$ tiene el siguiente valor:
+
+\begin{equation}
+\textcolor{blue}{\theta = \arctan \Bigg( \frac{d-fg}{a-cg} \Bigg)}
+\end{equation}
+
+Ahora que ya tenemos $\theta$, aun nos resta encontrar los
+valores de $k_a$, $k_c$ y $s$. Lo primero que podemos hacer
+es dejar el valor de $s$ en función de $k_a$. Para hacer
+esto, podemos aislar en la primera ecuación, y obtendríamos
+la siguiente expresión:
+
+\begin{equation}
+\textcolor{blue}{s = \frac{a-cg}{k_a\cos\theta}}
+\end{equation}
+
+Ahora, vamos a intentar obtener el valor de $k_a$. Para
+ello podemos intentar utilizar la segunda y la cuarta
+ecuación, aunque para eso, vamos a simplificarlas antes:
+
+\begin{equation}
+\left.\begin{matrix}
+ k_as\cos\theta = a-cg \\
+ s\Big(k_c\cos\theta - \frac{1}{k_a}\sin\theta\Big) = b -ch \\
+ k_as\sin\theta = d-fg \\
+ s\Big(k_c\sin\theta + \frac{1}{k_a}\cos\theta\Big) = e-fh
+\end{matrix}\right\}
+\end{equation}
+
+Ahora podemos coger la segunda y la cuarta ecuación,
+teniendo por tanto el siguiente par de ecuaciones:
+
+\begin{equation}
+\left.\begin{matrix}
+ s\Big(k_c\cos\theta - \frac{1}{k_a}\sin\theta\Big) = b -ch \\
+ s\Big(k_c\sin\theta + \frac{1}{k_a}\cos\theta\Big) = e-fh
+\end{matrix}\right\}
+\end{equation}
+
+Si aislamos $s$ en cada lado, obtenemos:
+
+\begin{equation}
+\left.\begin{matrix}
+ s = \frac{b-ch}{k_c\cos\theta - \frac{1}{k_a}\sin\theta} \\
+ s = \frac{e-fh}{k_c\sin\theta + \frac{1}{k_a}\cos\theta}
+\end{matrix}\right\}
+\end{equation}
+
+Antes de continuar, para facilitar el trabajo,
+vamos a hacer la siguiente sustitución de variables:
+
+$$
+t_1 = b-ch, t_2 = e-fh
+$$
+
+Ahora, si sustituimos por las variables anteriores e igualamos
+las dos expresiones, obtenemos lo siguiente:
+
+\begin{gather*}
+\frac{t_1}{k_c\cos\theta - \frac{1}{k_a}\sin\theta} = \frac{t_2}{k_c\sin\theta + \frac{1}{k_a}\cos\theta}\\
+t_1k_c\sin\theta + \frac{t_1\cos\theta}{k_a} = t_2k_c\cos\theta - \frac{t_2\sin\theta}{k_a}\\
+t_1k_ak_c\sin\theta + t_1\cos\theta = t_2k_ak_c\cos\theta - t_2\sin\theta\\
+t_2k_ak_c\cos\theta - t_1k_ak_c\sin\theta = t_1\cos\theta + t_2\sin\theta \\
+k_ak_c = \frac{t_1\cos\theta + t_2\sin\theta}{t_2\cos\theta - t_1\sin\theta}\\
+k_c = \frac{t_1\cos\theta + t_2\sin\theta}{t_2\cos\theta - t_1\sin\theta} \cdot \frac{1}{k_a}\\
+\textcolor{blue}{k_c = \frac{(b-ch)\cos\theta + (e-fh)\sin\theta}{(e-fh)\cos\theta - (b-ch)\sin\theta} \cdot \frac{1}{k_a}}
+\end{gather*}
+
+Ahora si sustituimos $s$ y $k_c$ en la segunda ecuación por las
+expresiones que hemos obtenido hasta ahora, tenemos lo siguiente:
+
+\begin{gather*}
+\frac{a-cg}{k_a\cos\theta}\Bigg(\frac{t_1\cos\theta + t_2\sin\theta}{t_2\cos\theta - t_1\sin\theta} \cdot \frac{\cos\theta}{k_a} - \frac{\sin\theta}{k_a}\Bigg) = t_1\\
+\frac{a-cg}{k_a^2\cos\theta}\Bigg(\frac{t_1\cos\theta + t_2\sin\theta}{t_2\cos\theta - t_1\sin\theta} \cdot \cos\theta - \sin\theta\Bigg) = t_1\\
+\frac{a-cg}{k_a^2}\Bigg(\frac{t_1\cos\theta + t_2\sin\theta}{t_2\cos\theta - t_1\sin\theta} - \tan\theta\Bigg) = t_1\\
+k_a^2=\frac{a-cg}{t_1}\Bigg(\frac{t_1\cos\theta + t_2\sin\theta}{t_2\cos\theta - t_1\sin\theta} - \tan\theta\Bigg)\\
+k_a=\sqrt{\frac{a-cg}{t_1}\Bigg(\frac{t_1\cos\theta + t_2\sin\theta}{t_2\cos\theta - t_1\sin\theta} - \tan\theta\Bigg)}\\
+\textcolor{blue}{k_a=\sqrt{\frac{a-cg}{b-ch}\Bigg(\frac{(b-ch)\cos\theta + (e-fh)\sin\theta}{(e-fh)\cos\theta - (b-ch)\sin\theta} - \tan\theta\Bigg)}}
+\end{gather*}
+
+Y con esto, ya tendríamos las expresiones necesarias para calcular
+todas las incógnitas. Si nos fijamos en las expresiones anteriores, vemos
+que algunas de ellas están en azul. Esto se debe a que estas serán las expresiones
+que utilizaremos en nuestro algoritmo para calcular la descomposición.
+
+Por tanto, sin más dilación, vamos a ver un pseudocódigo del algoritmo para
+calcular la descomposición de la matriz $\mathbf{H}$:
+
+\begin{algorithm}[H]
+\caption{Pseudocódigo de la descomposición de $\mathbf{H}$}
+\begin{algorithmic}[1]
+\Function{DescomponerH}{$\mathbf{H}$}
+\State $a,b,c,d,e,f,g,h,i \gets \mathbf{H}_{11}, \mathbf{H}_{12}, \mathbf{H}_{13}, \mathbf{H}_{21}, \mathbf{H}_{22}, \mathbf{H}_{23}, \mathbf{H}_{31}, \mathbf{H}_{32}, \mathbf{H}_{33}$
+\State $\theta \gets \arctan\Big( \frac{d-fg}{a-cg} \Big)$
+\State $k_a \gets \sqrt{\frac{a-cg}{b-ch}\Big(\frac{(b-ch)\cos\theta + (e-fh)\sin\theta}{(e-fh)\cos\theta - (b-ch)\sin\theta} - \tan\theta\Big)}$
+\State $k_b \gets \frac{1}{k_a}$
+\State $k_c \gets \frac{(b-ch)\cos\theta + (e-fh)\sin\theta}{(e-fh)\cos\theta - (b-ch)\sin\theta} \cdot \frac{1}{k_a}$
+\State $s \gets \frac{a-cg}{k_a\cos\theta}$
+\State $\mathbf{H}_S \gets \begin{pmatrix} s\cos\theta & -s\sin\theta & c \\ s\sin\theta & s\cos\theta & f \\
+0 & 0 & 1 \end{pmatrix}$
+\State $ \mathbf{H}_A \gets \begin{pmatrix}
+k_a & k_c & 0 \\ 0 & k_b & 0 \\ 0 & 0 & 1
+\end{pmatrix}
+$
+\State $ \mathbf{H}_P \gets
+\begin{pmatrix}
+1 & 0 & 0 \\ 0 & 1 & 0 \\ g & h & i
+\end{pmatrix}
+$
+\State \Return $\mathbf{H}_S$, $\mathbf{H}_A$, $\mathbf{H}_P$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+Vamos a aplicar ahora el algoritmo para descomponer la matriz
+siguiente:
+
+$$
+	\mathbf{H} = \begin{pmatrix}
+	1.707 & 0.586 & 1.0 \\
+	2.707 & 8.242 & 2.0 \\
+	1.0 & 2.0 & 1.0
+	\end{pmatrix}
+$$
+
+\begin{enumerate}
+	\item Obtenemos los valores iniciales:
+	$$
+	a = 1.707, b=0.586, c = 1.0, d=2.707, e = 8.242, f = 2.0, g=1.0, h=2.0, i=1.0
+	$$
+	\item Calculamos $\theta$:
+	
+	$$
+	\theta = \arctan\Big( \frac{2.707-2.0}{1.707-1.0} \Big) =
+	\arctan\Big( \frac{0.707}{0.707} \Big) = \arctan(1) = \frac{\pi}{4}
+	$$
+	
+	\item Calculamos $k_a$:
+	
+	\begin{gather*}
+	k_a = \sqrt{\frac{1.707-1}{0.586-2}\Bigg(\frac{(0.586-2)\cos\frac{\pi}{4} + (8.242-4)\sin\frac{\pi}{4}}{(8.242-4)\cos\frac{\pi}{4} - (0.586-2)\sin\frac{\pi}{4}} - \tan\frac{\pi}{4}\Bigg)} = 0.5
+	\end{gather*}
+	
+	\item Calculamos $k_b$:
+	
+	$$
+	k_b = \frac{1}{0.5} = 2 
+	$$
+	
+	\item Calculamos $k_c$:
+	
+	$$
+	k_c = \frac{(0.586-2)\cos\frac{\pi}{4} + (8.242-4)\sin\frac{\pi}{4}}{(8.242-4)\cos\frac{\pi}{4} - (0.586-2)\sin\frac{\pi}{4}}  \cdot \frac{1}{0.5} = 1
+	$$
+	
+	\item Calculamos $s$:
+	
+	$$
+	s = \frac{1.707 - 1}{0.5\cdot \cos\frac{\pi}{4}} = 1.99969 \approx 2
+	$$
+	
+	\item Obtenemos las matrices:
+	
+	\begin{gather*}
+	\mathbf{H}_S =
+	\begin{pmatrix}
+	2\cos\frac{\pi}{4} & -2\sin\frac{\pi}{4} & 1\\
+	2\sin\frac{\pi}{4} & 2\cos\frac{\pi}{4} & 2\\
+	0 & 0 & 1
+	\end{pmatrix}\\
+	\mathbf{H}_A =
+	\begin{pmatrix}
+	0.5 & 1 & 0 \\ 0 & 2 & 0 \\ 0 & 0 & 1
+	\end{pmatrix}\\
+	\mathbf{H}_P =
+	\begin{pmatrix}
+	1 & 0 & 0 \\ 0 & 1 & 0 \\ 1 & 2 & 1
+	\end{pmatrix}
+ 	\end{gather*}
+\end{enumerate}
 
 \nonumsection{Ejercicio 9}
 
@@ -219,9 +764,9 @@ podrían no estar presentes? Justificar la respuesta.}
 
 \newpage
 
-\begin{thebibliography}{5}
-
-\end{thebibliography}
+\bibliographystyle{plain}
+\nocite{*}
+\bibliography{mybib}
 
 \end{document}
 
