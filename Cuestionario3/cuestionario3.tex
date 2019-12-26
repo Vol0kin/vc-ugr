@@ -161,7 +161,9 @@ propiedades:
 	\item \textbf{Líneas rectas}: Las líneas rectas se conservan, ya que
 	tomar una foto de un plano desde un punto u otro no produce una deformación
 	de estas.
-	\item 
+	\item \textbf{Colinealidad}: Los puntos que pertenecen a alguna línea seguirán
+	perteneciendo a ella, y aquellos que no, seguirán sin pertenecer, independientemente
+	del punto de vista en el que se sitúe el observador.
 \end{itemize}
 
 \nonumsection{Ejercicio 5}
@@ -382,7 +384,7 @@ entre corchetes. Para demostrarlo, vamos a ver dicho desarrollo:
 \begin{bmatrix} s\mathbf{RK} & \mathbf{t} \\ \mathbf{0}^T & 1 \end{bmatrix}
 \begin{bmatrix} \mathbf{I} & \mathbf{0} \\ \mathbf{v}^T & v \end{bmatrix}
 \\ =
-\begin{bmatrix} s\mathbf{RK} + \mathbf{tv}^T & \mathbf{t}v \\ \mathbf{v}^T & v \end{bmatrix}
+\begin{bmatrix} s\mathbf{RK} + \mathbf{tv}^T & \mathbf{t} \\ \mathbf{v}^T & v \end{bmatrix}
 \end{gather*}
 
 Como podemos ver, la expresión anterior aparece dentro de la matriz
@@ -719,6 +721,29 @@ geométricos o fotométricos? Justificar la contestación.}
 
 \answer
 
+Harris utiliza información sobre el gradiente para seleccionar puntos.
+Para cada píxel, se obtienen los valores singulares de una matriz $2\times2$,
+los cuáles son $\lambda_1$ y $\lambda_2$ y están ligados a los valores
+de los gradientes en el eje $X$ y en el eje $Y$, respectivamente.
+Para cada píxel se obtiene un valor $f = \frac{\lambda_1 \lambda_2}{\lambda_1 + \lambda_2}$,
+el cuál representa el valor del punto Harris. Según los
+valores de $\lambda_1$ y $\lambda_2$ se determina a qué tipo de región
+pertenece el píxel:
+
+\begin{itemize}[label=\textbullet]
+	\item Si los dos valores son pequeños, nos encontramos en una región plana.
+	\item Si un valor es grande y el otro pequeño, significa que estamos en
+	un borde, ya que la intensidad varía mucho solo en uno de los ejes.
+	\item Si los dos valores son grandes, significa que estamos en una esquina,
+	ya que la intensidad varía mucho en ambos ejes.
+\end{itemize}
+
+Harris detecta principalmente patrones geométricos, ya que detecta esquinas
+de objetos a partir de la información de los gradientes. Sin embargo,
+al utilizar información del gradiente, está obteniendo información procedente
+de patrones fotométricos. Por tanto, utiliza dichos patrones fotométricos
+para ayudarse en la tarea de detectar esquinas.
+
 \nonumsection{Ejercicio 11}
 
 \question{¿Sería adecuado usar como descriptor de un punto Harris los
@@ -737,12 +762,43 @@ posible garantizar que todas las parejas son correctas?}
 
 \answer
 
+Existen algunos criterios para hacer \textit{matching} entre puntos:
+
+\begin{itemize}[label=\textbullet]
+	\item \textbf{Fuerza bruta con \textit{Cross Check}}: Este criterio es
+	el más intuitivo. Simplemente consiste en unir cada descriptor $d_{1i}$ de una imagen
+	con cada descriptor $d_{2j}$ de la otra iamgen, y escoger solo aquellas parejas
+	de correspondencias en las que el punto más cercano a $d_{1i}$ sea $d_{2j}$ y viceversa
+	(se tiene que dar en ambos sentidos; si solo se da en uno, se descarta).
+	\item \textbf{Lowe-Average-2NN }: Para cada descriptor de una imagen, se escogen
+	los dos descriptores más cercanos de la otra imagen. Se mide la distancia al
+	mejor $dist_1$ y al segundo mejor $dist_2$, y solo se acepta el \textit{match} con
+	el mejor si $dist_1 < 0.8dist_2$ (según el \textit{paper} original). En caso contrario,
+	se descarta el \textit{match}.
+\end{itemize}
+
+Estos criterios sin embargo no garantizan que todas las parejas sean
+correctas. Por ejemplo, puede darse el caso de que no exista un mejor
+punto para uno dado, esta correspondencia sea bastante mala. También podría darse
+que en la aparezcan elementos simétricos o con patrones repetidos, lo cuál
+puede llegar a complicar el proceso del \textit{matching} al haber más de
+una posible correspondencia.
+
 \nonumsection{Ejercicio 13}
 
 \question{¿Cuál es el objetivo principal del uso de la técnica RANSAC en
 el cálculo de una homografía? Justificar la respuesta.}
 
 \answer
+
+El objetivo de RANSAC es estimar mejor las homografías. Para ello, solo tiene
+en cuenta los \textit{matches} que considere como \textit{inliers}, descartando
+por tanto los \textit{outliers}. Los \textit{inliers} son las correspondencias
+que son consistentes con la homografía estimada, mientras que los \textit{outliers}
+son aquellas correspondencias que no lo son. RANSAC intenta estimar la homografía
+con el menor número de \textit{outliers}, de forma que el impacto que tengan los
+malos \textit{matches} sea pequeño en la homografía final. Así, las homografías
+estimadas son más resistentes a correspondencias inciertas o debidas al ruido.
 
 \nonumsection{Ejercicio 14}
 
